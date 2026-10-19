@@ -1,0 +1,72 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "dignity-for-children",
+ "name": "Dignity for Children Foundation",
+ "legalName": "Dignity for Children Foundation",
+ "category": "Children",
+ "location": {
+  "town": "Sentul",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Gives urban poor and marginalised children in Kuala Lumpur holistic care and an education, from preschool to secondary school and skills training, so they can find work and break the poverty cycle.",
+ "programmes": [
+  "Preschool, primary and secondary education, including IGCSE",
+  "Vocational and skills training (Dignity College, internships)",
+  "Social enterprises: cafe, salon, bakery, wood workshop, sewing",
+  "Farm Academy in Bentong, Pahang",
+  "Welfare, meals and social-emotional learning"
+ ],
+ "impact": [
+  "More than 10,000 children educated since 1998 (website, 2026)",
+  "More than 2,300 children currently enrolled, aged 2-19 (website, 2026)",
+  "208,000 meals served to students each year (website, 2026)",
+  "1,504 youths trained in vocational skills and 370 students completed IGCSE (website, cumulative)"
+ ],
+ "beneficiaries": "Marginalised and urban poor children aged 2-19 in Kuala Lumpur, from more than 25 nationalities",
+ "organisation": {
+  "entityType": "Company limited by guarantee (SSM)",
+  "registration": "200001003583 [506188-W]",
+  "registrationSource": "https://dignityforchildren.org/about-dignity/about-us",
+  "founded": "1998",
+  "founders": "Rev. Elisha Satvinder and Petrina Shee Shiang Fei (co-founders); started in 1998 in Sentul, Kuala Lumpur, with 20 students",
+  "leadership": "Petrina Shee Shiang Fei (Co-Founder and Chief Executive Officer); Rev. Elisha Satvinder (Co-Founder); James Ling Wan Chye (Chairman, Board of Trustees); Jackson Ho Yeong Fan (Vice-Chairman)",
+  "taxExemption": {
+   "statement": "Stated, no reference (donations to 'Tabung Pendidikan dan Kebajikan Dignity' are exempt under subsection 44(6) ITA 1967; no LHDN reference or validity printed)",
+   "source": "https://dignityforchildren.org/about-dignity/media/annual-report"
+  },
+  "accounts": "Annual Report 2022 offered at https://dignityforchildren.org/about-dignity/media/annual-report (no separate PDF link found); no audited financial statements found"
+ },
+ "contact": {
+  "address": "5-G, Jalan 15/48a, Sentul Raya Boulevard, 51000 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur",
+  "phone": "+(60) 3-2303 1397",
+  "email": "dignity@dignityforchildren.org",
+  "website": "https://dignityforchildren.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/dignityforchildren/",
+   "facebook": "https://www.facebook.com/dignityforchildren/",
+   "youtube": "https://www.youtube.com/channel/UCOtP6koeaaODUIEyP9ZNCsQ",
+   "tiktok": "https://www.tiktok.com/@dignityforchildren"
+  }
+ },
+ "live": {
+  "note": "YouTube channel and TikTok linked from the site (https://www.youtube.com/channel/UCOtP6koeaaODUIEyP9ZNCsQ); video count and live streaming not checked"
+ },
+ "donationsToday": "Online one-time and monthly gifts; Sponsor-a-Child from RM50/month; Urgent Needs and Empower a Child funds; peer fundraising campaigns; corporate/CSR partnerships; buying from its social enterprise shop",
+ "sources": [
+  "https://dignityforchildren.org",
+  "https://dignityforchildren.org/about-dignity/about-us",
+  "https://dignityforchildren.org/about-dignity/leadership-team",
+  "https://dignityforchildren.org/contact-us",
+  "https://dignityforchildren.org/about-dignity/media/annual-report"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/dignity-for-children.jpg",
+  "credit": "Meshrarao",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:King_Edward_VII_Taiping_School_classrooms.jpg",
+  "alt": "A heritage school building in Taiping",
+  "illustrative": true
+ }
+}

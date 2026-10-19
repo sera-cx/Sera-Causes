@@ -1,0 +1,68 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "malaysian-association-for-the-blind",
+ "name": "Malaysian Association for the Blind",
+ "legalName": "",
+ "category": "Disability",
+ "location": {
+  "town": "Brickfields",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Helps blind and visually impaired Malaysians live independently through education, rehabilitation, vocational training and advocacy.",
+ "programmes": [
+  "Rehabilitation and training centres (Gurney, MAB Rehabilitation & Training Centre)",
+  "Taman Harapan agricultural training centre in Temerloh",
+  "Low vision clinic and H.T. Ong Library",
+  "Braille publishing",
+  "Massage roadshows and homeworker scheme for income",
+  "Accessibility advocacy and welfare"
+ ],
+ "impact": [],
+ "beneficiaries": "Blind and visually impaired people, including those with multiple disabilities",
+ "organisation": {
+  "entityType": "",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "",
+  "founders": "",
+  "leadership": "Tan Sri Tengku Azlan Sultan Abu Bakar (President, per Malay Mail Jan 2024; not listed on site)",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Kompleks MAB, Jalan Tebing, Off Jalan Tun Sambanthan 4, 50470 Brickfields, Kuala Lumpur, Malaysia",
+  "phone": "+603-2272 2677",
+  "email": "info@mab.org.my",
+  "website": "https://mab.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/mab_malaysia/",
+   "facebook": "http://fb.com/mabmalaysia",
+   "youtube": "https://www.youtube.com/@MABLIND_MAB"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/@MABLIND_MAB); video count and live streaming not verified"
+ },
+ "donationsToday": "Online credit/debit card via https://mab.org.my/donation-page/",
+ "sources": [
+  "https://www.mab.org.my/",
+  "https://mab.org.my/about/",
+  "https://mab.org.my/contact/",
+  "https://mab.org.my/donation-page/",
+  "https://www.malaymail.com/news/malaysia/2024/01/21/malaysian-association-for-the-blind-hopes-govt-will-help-upgrade-its-training-centre-in-temerloh-says-president/113765",
+  "https://www.my.emb-japan.go.jp/itpr_en/newinfo_24022026.html"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/malaysian-association-for-the-blind.jpg",
+  "credit": "Stefan Malmesjö",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Reading_Braille.jpg",
+  "alt": "A finger reading braille",
+  "illustrative": true
+ }
+}

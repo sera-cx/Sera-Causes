@@ -1,0 +1,63 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "perhentian-turtle-project",
+ "name": "Perhentian Turtle Project (PTP)",
+ "legalName": "",
+ "category": "Turtles",
+ "location": {
+  "town": "Pulau Perhentian",
+  "state": "Terengganu",
+  "country": "MY"
+ },
+ "summary": "Monitors and protects sea turtles in the Perhentian Islands Marine Park using photo-identification and raises awareness in local communities.",
+ "programmes": [
+  "Photo-ID turtle population monitoring",
+  "#PenyuWarrior citizen science",
+  "Volunteer and internship programmes",
+  "Research collaborations",
+  "Adopt a Turtle"
+ ],
+ "impact": [],
+ "beneficiaries": "Sea turtles of the Perhentian Islands; Kampung Pasir Hantu fishing community",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2015",
+  "founders": "",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Project house, Kampung Pasir Hantu (Fishermen Village), Perhentian Islands, Terengganu (no postal address published)",
+  "phone": "+60 19-272 3208 (Turtle Hotline)",
+  "email": "perhentianturtleproject@gmail.com",
+  "website": "https://www.perhentianturtleproject.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/perhentianturtleproject"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found on website"
+ },
+ "donationsToday": "Adopt a Turtle (RM150 per turtle per season) via Google Form, with payment details emailed; no general donation page",
+ "sources": [
+  "https://perhentianturtleproject.org/",
+  "https://www.perhentianturtleproject.org/about-us",
+  "https://www.perhentianturtleproject.org/copy-of-our-team",
+  "https://www.perhentianturtleproject.org/adopt-a-turtle"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/perhentian-turtle-project.jpg",
+  "credit": "Vlad & Marina Butsky",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Snorkelers_with_sea_turtle_(Kahaluu_Bay).jpg",
+  "alt": "Snorkellers watching a green turtle over a reef",
+  "illustrative": true
+ }
+}

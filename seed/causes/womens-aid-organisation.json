@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "womens-aid-organisation",
+ "name": "Women's Aid Organisation",
+ "legalName": "",
+ "category": "Women",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Gives free shelter, counselling and crisis support to women and children facing abuse, and campaigns for laws and attitudes that protect women's rights.",
+ "programmes": [
+  "24-hour WhatsApp/SMS line (TINA) and hotline",
+  "Emergency shelter for women and children",
+  "Case management and counselling",
+  "Training and public education",
+  "Policy advocacy (e.g. #MakeStalkingACrime)",
+  "Youth empowerment (#GerakGirls)"
+ ],
+ "impact": [
+  "7,975 points of contact (hotline, WhatsApp, email, face-to-face) in 2025",
+  "87 women and children admitted to shelter in 2025",
+  "3,782 case management interactions in 2025",
+  "246 counselling sessions in 2025"
+ ],
+ "beneficiaries": "Women and children experiencing domestic violence and other abuse",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1982",
+  "founders": "",
+  "leadership": "Lee Jia Ping (President); Nazreen Nizam (Executive Director) — per Annual Report 2025",
+  "taxExemption": {
+   "statement": "Stated, no reference",
+   "source": "https://wao.org.my/donate/"
+  },
+  "accounts": "Annual Report 2025 (lists a Financial Report 2025 appendix): https://wao.org.my/wp-content/uploads/2026/07/WAO-ANNUAL-REPORT-2025.pdf; reports back to 2000 at https://wao.org.my/annual-reports/"
+ },
+ "contact": {
+  "address": "P.O.Box 493, Jalan Sultan, 46760 Petaling Jaya, Selangor, Malaysia",
+  "phone": "03 7957 5636",
+  "email": "info@wao.org.my",
+  "website": "https://wao.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/womensaidorg/",
+   "facebook": "https://www.facebook.com/womens.aid.org/",
+   "tiktok": "https://www.tiktok.com/@womensaidorg"
+  }
+ },
+ "live": {
+  "note": "TikTok account linked from site (https://www.tiktok.com/@womensaidorg); no YouTube channel linked; live streaming not found"
+ },
+ "donationsToday": "Bank transfer (CIMB, Maybank), WePledge monthly giving, wishlist, fundraising campaigns; tax-exempt receipt for RM50 and above on request",
+ "sources": [
+  "https://wao.org.my/",
+  "https://wao.org.my/about-us/",
+  "https://wao.org.my/donate/",
+  "https://wao.org.my/annual-reports/",
+  "https://wao.org.my/wp-content/uploads/2026/07/WAO-ANNUAL-REPORT-2025.pdf",
+  "https://www.malaymail.com/news/malaysia/2024/04/01/wao-denies-ousted-directors-claim-of-unlawful-exco-says-not-under-ros-probe/126718"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/womens-aid-organisation.jpg",
+  "credit": "Halimsamad",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sunrise_at_pulau_perhentian.jpg",
+  "alt": "Sunrise over boats at Pulau Perhentian",
+  "illustrative": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "seratu-aatai",
+ "name": "Seratu Aatai",
+ "legalName": "Pertubuhan Pemuliharaan Biodiversiti Seratu Aatai Sabah",
+ "category": "Wildlife",
+ "location": {
+  "town": "Kinabatangan",
+  "state": "Sabah",
+  "country": "MY"
+ },
+ "summary": "Help people in Sabah live alongside Bornean elephants by reducing human-elephant conflict through research, community work and education.",
+ "programmes": [
+  "Bornean elephant population estimation (Tabin and Segaliud-Deramakot-Tangkulap-Tawai)",
+  "Livelihood Insurance for Elephant (LIFE) to offset crop losses",
+  "Landscape conservation in Lower Kinabatangan with plantations and smallholders",
+  "Education and awareness, incl. Honorary Wildlife Wardens in plantation schools"
+ ],
+ "impact": [
+  "Won GBP 50,000 Whitley Award (April 2025)",
+  "Published inaugural Annual Report 2025"
+ ],
+ "beneficiaries": "Bornean elephants; rural communities and smallholders in elephant ranges in Sabah",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-004-12-07122018",
+  "registrationSource": "https://www.seratuaatai.org/",
+  "founded": "2018",
+  "founders": "Dr Nurzhafarina (Farina) Othman, elephant researcher and UMS senior lecturer; 2025 Whitley Award winner",
+  "leadership": "Dr Farina Othman, Founder and Director (per Whitley Award, 2025)",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Annual Report 2025 (narrative, flip-book): https://heyzine.com/flip-book/31eae55ef7.html; audited accounts not public"
+ },
+ "contact": {
+  "address": "Cabin Borneensis, Institute for Tropical Biology and Conservation, Universiti Malaysia Sabah, Jalan UMS, 88400 Kota Kinabalu, Sabah",
+  "phone": "",
+  "email": "seratuaatai@gmail.com",
+  "website": "https://www.seratuaatai.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/seratu_aatai/",
+   "facebook": "https://www.facebook.com/gajahkinabatangan",
+   "youtube": "https://www.youtube.com/channel/UC3gc4LAulyWLNC_-0id-Dew"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site; activity not checked. https://www.youtube.com/channel/UC3gc4LAulyWLNC_-0id-Dew"
+ },
+ "donationsToday": "Bank transfer (bank details still placeholder on page), Wildlife Conservation Network partner page (wildnet.org/seratuaatai), Amazon wish list",
+ "sources": [
+  "https://www.seratuaatai.org/",
+  "https://www.seratuaatai.org/about",
+  "https://www.seratuaatai.org/donate",
+  "https://www.seratuaatai.org/reports",
+  "https://www.seratuaatai.org/contact",
+  "https://whitleyaward.org/2025/04/30/malaysias-dr-farina-othman-wins-2025-whitley-award-for-work-with-bornean-elephants-in-palm-oil-landscape/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/seratu-aatai.jpg",
+  "credit": "Apocru",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Borneo_Elephant_(Kinabatangan_River,_July_2025).jpg",
+  "alt": "Bornean elephant by the Kinabatangan River",
+  "illustrative": true
+ }
+}

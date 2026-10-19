@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "bsbcc",
+ "name": "Bornean Sun Bear Conservation Centre",
+ "legalName": "",
+ "category": "Wildlife",
+ "location": {
+  "town": "Sepilok",
+  "state": "Sabah",
+  "country": "MY"
+ },
+ "summary": "Rescue, care for and rehabilitate sun bears in Sabah, release suitable bears back to the wild, and raise awareness of the world's smallest bear.",
+ "programmes": [
+  "Rescue and rehabilitation of confiscated or orphaned sun bears",
+  "Permanent sanctuary for bears that cannot be released",
+  "Release and monitoring (Tabin Sun Bear Project)",
+  "Visitor centre and environmental education",
+  "Research on sun bear biology, health and behaviour",
+  "Bear adoption and volunteer programmes"
+ ],
+ "impact": [
+  "43 rescued sun bears in care, 13 hard-released to date (The Star, July 2026)",
+  "15 bears rescued between 2018 and 2026 (The Star, July 2026)",
+  "Opened to the public 16 January 2014"
+ ],
+ "beneficiaries": "Rescued and ex-captive Bornean sun bears; visitors and schools in Sabah",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2008",
+  "founders": "Dr. (Hons) Wong Siew Te, listed as CEO and founder; founding partners named as Sabah Forestry Department, Sabah Wildlife Department and Land Empowerment Animals People (LEAP)",
+  "leadership": "Dr. (Hons) Wong Siew Te, CEO and Founder",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public (annual reports referenced on site; no accessible URL confirmed)"
+ },
+ "contact": {
+  "address": "Jalan Sepilok, Batu 14, Sandakan, Sabah",
+  "phone": "+6089-534491",
+  "email": "info.bsbcc@gmail.com",
+  "website": "https://www.bsbcc.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/BSBCC/",
+   "youtube": "https://www.youtube.com/@BSBCC"
+  }
+ },
+ "live": {
+  "note": "YouTube channel @BSBCC linked from the homepage; video count and live activity could not be checked. https://www.youtube.com/@BSBCC"
+ },
+ "donationsToday": "Share Bear and My Bear adoption schemes, Gifts With Meaning, and general donations via the Adopt & Donate page (payment methods not specified on page)",
+ "sources": [
+  "https://www.bsbcc.org.my/",
+  "https://www.bsbcc.org.my/about-us",
+  "https://www.bsbcc.org.my/overview",
+  "https://www.bsbcc.org.my/our-journey",
+  "https://www.bsbcc.org.my/meet-our-crew",
+  "https://www.bsbcc.org.my/adopt-and-donate",
+  "https://www.thestar.com.my/metro/metro-news/2026/07/07/soft-release-the-new-hope-for-rescued-bornean-sun-bears",
+  "https://kepkas.sabah.gov.my/tag/sunbear"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/bsbcc.jpg",
+  "credit": "CEphoto, Uwe Aranas",
+  "licence": "CC BY-SA 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sepilok_Sabah_Bornean-Sun-Bear-Conservation-Centre-02.jpg",
+  "alt": "Entrance sign of the Bornean Sun Bear Conservation Centre at Sepilok",
+  "illustrative": true
+ }
+}

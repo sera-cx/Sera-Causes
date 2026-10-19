@@ -1,0 +1,66 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "scas",
+ "name": "Second Chance Animal Society (SCAS)",
+ "legalName": "Second Chance Animal Society",
+ "category": "Animals",
+ "location": {
+  "town": "Hulu Langat",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Rescue and rehome stray dogs while promoting adoption over buying and neutering to cut stray numbers.",
+ "programmes": [
+  "Dog rescue and shelter care",
+  "Adoption",
+  "Volunteering and shelter visits",
+  "Community services",
+  "Adopt, Don't Buy and neutering advocacy"
+ ],
+ "impact": [
+  "Over 1,000 stray dogs saved in Selangor, about half rehomed (undated, site)",
+  "Shelter houses over 500 dogs (undated, site)"
+ ],
+ "beneficiaries": "Stray dogs in Selangor",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM 010-10-10012013",
+  "registrationSource": "https://www.secondchance.com.my/",
+  "founded": "2009",
+  "founders": "",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Pekan Batu 14, Hulu Langat, Selangor",
+  "phone": "+6012 919 2263",
+  "email": "info@secondchance.com.my",
+  "website": "https://www.secondchance.com.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/scasmalaysia/",
+   "facebook": "https://www.facebook.com/scasmalaysia/"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found"
+ },
+ "donationsToday": "PayPal/credit card (one-off), Maybank bank transfer; notify donate@secondchance.com.my",
+ "sources": [
+  "https://www.secondchance.com.my/",
+  "https://www.secondchance.com.my/donate-now/",
+  "https://fundraiser.givinghub.asia/organizations/second-chance-animal-society"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/scas.jpg",
+  "credit": "Maeylo",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rescue_Puppy_Exemplar.jpg",
+  "alt": "A rescue puppy looking up",
+  "illustrative": true
+ }
+}

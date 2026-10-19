@@ -1,0 +1,65 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "shelter-home-for-children",
+ "name": "Shelter Home for Children",
+ "legalName": "Persaudaraan Perlindungan Kristian Untuk Bantuan Dan Kebajikan Shelter",
+ "category": "Children",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "A registered Christian welfare organisation that rescues, protects and restores children and youth affected by abuse, neglect or abandonment, and reunites them with their families where possible.",
+ "programmes": [
+  "Shelter Homes: temporary residential care for children and teens",
+  "Shelter After School (SAS) for latchkey children and youth",
+  "Family reunification",
+  "Community work",
+  "Sponsor-a-Child and Gift of Love giving"
+ ],
+ "impact": [],
+ "beneficiaries": "Children, teens and youth from abusive, neglectful or otherwise adverse backgrounds",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-008-10-17081984",
+  "registrationSource": "https://www.shelterhome.org/about/our-history",
+  "founded": "1981",
+  "founders": "A group of seven friends, including James Nayagam (later Executive Director); began with tuition classes for children in a squatter settlement on Old Klang Road",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "LHDN 01/35/42/51/179-6.3700 (validity not stated); receipts for RM50 and above",
+   "source": "https://www.shelterhome.org/donate/donation"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Admin Office: No. 2, Lorong Timur, 46000 Petaling Jaya, Selangor Darul Ehsan (mailing: P.O. Box 23, Jalan Sultan, 46700 Petaling Jaya, Selangor)",
+  "phone": "03-79550663",
+  "email": "office@shelterhome.org",
+  "website": "https://www.shelterhome.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/shelterhome.org_/",
+   "facebook": "https://www.facebook.com/ShelterHomeMY",
+   "youtube": "https://www.youtube.com/user/shelterMY"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from the site (https://www.youtube.com/user/shelterMY); video count and live streaming not checked"
+ },
+ "donationsToday": "Online form (one-time or monthly); bank transfer (Standard Chartered); PayPal; cheque to 'SHELTER HOME FOR CHILDREN'; cash at the admin office; Sponsor-a-Child, Gift of Love, Need List, Legacy Giving; calendar sales; 45 for 45 Virtual Charity Run 2026",
+ "sources": [
+  "https://shelterhome.org",
+  "https://www.shelterhome.org/about/our-history",
+  "https://www.shelterhome.org/about/what-we-do",
+  "https://www.shelterhome.org/donate/donation"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/shelter-home-for-children.jpg",
+  "credit": "Khamkhoune, age 11 (via Basile Morin)",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lao_child_drawing_of_a_village.jpg",
+  "alt": "A child’s drawing of a village by a river",
+  "illustrative": true
+ }
+}

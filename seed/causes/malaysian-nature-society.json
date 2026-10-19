@@ -1,0 +1,68 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "malaysian-nature-society",
+ "name": "Malaysian Nature Society (MNS)",
+ "legalName": "",
+ "category": "Environment",
+ "location": {
+  "town": "Kuala Lumpur",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Promotes conservation of Malaysia's natural heritage through habitat and species protection, environmental education and policy advocacy.",
+ "programmes": [
+  "Habitat, site and species conservation",
+  "Environmental education (Kelab Pencinta Alam, field trips)",
+  "Nature centres incl. Kuala Selangor Nature Park and MNS-BOH Field Study Centre",
+  "Policy advocacy",
+  "Raptor Watch and Pesta Sayap events",
+  "CSR and ESG partnerships"
+ ],
+ "impact": [],
+ "beneficiaries": "Malaysian forests, wetlands, wildlife and birds; members, youth and the public",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "Society No. 1288/50",
+  "registrationSource": "https://mns.my/about-mns/",
+  "founded": "1940",
+  "founders": "A group of British expatriates (unnamed), linked to the first Malayan Nature Journal in 1940",
+  "leadership": "President Anna Wong @ Wong Yun Moi; Vice Presidents Noor Jehan Abu Bakar and Ayadurai Letchumanan; Acting Executive Director Muhammad Raffi Bin Ismail (from July 2026); Board of Trustees Chair Puan Sri Datin Amar Nur Ashima Aziz",
+  "taxExemption": {
+   "statement": "Stated, no reference (tax-exempt receipts for donations of RM10 or more; no reference or validity printed)",
+   "source": "https://mns.my/mns-membership/donate-now/"
+  },
+  "accounts": "Quarterly reports only (Q4 2024: https://mns.my/wp-content/uploads/2025/03/MNS-Q4-2024-Quarterly-Report.pdf); annual audited accounts not public"
+ },
+ "contact": {
+  "address": "JKR 641, Jalan Kelantan, Bukit Persekutuan, 50480 Kuala Lumpur, Malaysia",
+  "phone": "03-2287 9422",
+  "email": "",
+  "website": "https://mns.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/malaysiannaturesociety",
+   "facebook": "https://web.facebook.com/MalaysianNatureSociety.Official",
+   "youtube": "https://www.youtube.com/MNSmalaysia"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from website (https://www.youtube.com/MNSmalaysia); no live streaming found"
+ },
+ "donationsToday": "Online donation page; cheque; mail-in transfer/credit card form; Visa/Mastercard for international donors; membership and online shop",
+ "sources": [
+  "https://www.mns.my/",
+  "https://mns.my/about-mns/",
+  "https://mns.my/mns-membership/donate-now/",
+  "https://mns.my/contact/",
+  "https://mns.my/quarterly-reports/",
+  "https://mns.my/change-of-change-of-executive-leadership-appointment-of-muhammad-raffi-bin-ismail-as-acting-mns-ed/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/malaysian-nature-society.jpg",
+  "credit": "Bernard Dupont",
+  "licence": "CC BY-SA 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rhinoceros_Hornbills_(Buceros_rhinoceros)_(8067785989).jpg",
+  "alt": "Rhinoceros hornbills in a tree",
+  "illustrative": true
+ }
+}

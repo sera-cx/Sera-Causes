@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "mercy-malaysia",
+ "name": "MERCY Malaysia",
+ "legalName": "Malaysian Medical Relief Society",
+ "category": "Relief",
+ "location": {
+  "town": "Kuala Lumpur",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Medical and humanitarian relief organisation that responds to disasters and runs longer-term health, recovery and risk-reduction work for vulnerable communities in Malaysia and abroad.",
+ "programmes": [
+  "Emergency medical response to disasters and conflicts",
+  "Early recovery and rebuilding of health services",
+  "Disaster risk reduction and preparedness training",
+  "Water, sanitation and hygiene (WASH)",
+  "Psychosocial first aid training",
+  "Islamic social finance channel for zakat, sadaqah and waqf"
+ ],
+ "impact": [
+  "500,000+ people served in 2025",
+  "622 volunteers mobilised in 2025",
+  "22 community disaster-resilience sessions in 2025",
+  "14 psychosocial first aid training sessions in 2025"
+ ],
+ "beneficiaries": "Communities hit by disasters and crises in Malaysia and overseas, including flood evacuees and people in conflict zones",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-020-14-16091999",
+  "registrationSource": "https://mercy.org.my/who-we-are/",
+  "founded": "1999",
+  "founders": "Dr Jemilah Mahmood, Malaysian obstetrician and gynaecologist, set it up with a few like-minded friends",
+  "leadership": "Dato' Dr Ahmad Faizal Mohd Perdaus (President); Prof Dr Shalimar binti Abdullah (Vice President I); Razi Pahlavi bin Abdul Aziz (Vice President II); Dr Mohamed Ashraff bin Mohd Ariff (Vice President III); Reza bin Abdul Rahim (Hon. Treasurer); Prof Dr Nazimah binti Idris (Hon. Secretary); Zuraidah Mian (Acting Executive Director); Royal Patron: the Sultan of Perak",
+  "taxExemption": {
+   "statement": "Stated, no reference",
+   "source": "https://www.mercy.org.my/"
+  },
+  "accounts": "Annual Report 2025 with condensed audited financials (auditor Jeffrey Suffian, unqualified opinion): https://mercy.org.my/wp-content/uploads/2026/06/MERCY-MALAYSIA-ANNUAL-REPORT-2025-UDPATED.pdf; also 2024 https://mercy.org.my/wp-content/uploads/2025/06/Annual-Report-2024.pdf, 2023, 2022 on https://mercy.org.my/resources/"
+ },
+ "contact": {
+  "address": "1st Floor, Bangunan MCOBA, 42 Jalan Syed Putra, 50460 Kuala Lumpur, Malaysia",
+  "phone": "03 2276 2116",
+  "email": "",
+  "website": "https://mercy.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/mercymalaysia/",
+   "facebook": "https://www.facebook.com/MERCYMalaysia/",
+   "youtube": "https://www.youtube.com/@MERCYMalaysiaHQ",
+   "tiktok": "https://www.tiktok.com/@mercymalaysia"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/@MERCYMalaysiaHQ) and TikTok account; video count and live streaming not verified"
+ },
+ "donationsToday": "One-off online donation portal (hss.mercy.org.my), monthly giving (seringgitsehari.mercy.org.my), Islamic social finance (zakat, sadaqah, waqf), fundraising partnerships, donation inquiry form",
+ "sources": [
+  "https://www.mercy.org.my/",
+  "https://mercy.org.my/who-we-are/",
+  "https://mercy.org.my/resources/",
+  "https://mercy.org.my/wp-content/uploads/2026/06/MERCY-MALAYSIA-ANNUAL-REPORT-2025-UDPATED.pdf",
+  "https://www.wikiimpact.com/?p=26300"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/mercy-malaysia.jpg",
+  "credit": "AiMediaMY",
+  "licence": "CC BY 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:December_2021_Malaysian_floods_in_Klang.jpg",
+  "alt": "Aerial view of flooded homes in Klang, December 2021",
+  "illustrative": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "tengah-island-conservation",
+ "name": "Tengah Island Conservation (TIC)",
+ "legalName": "",
+ "category": "Turtles",
+ "location": {
+  "town": "Pulau Tengah, Mersing",
+  "state": "Johor",
+  "country": "MY"
+ },
+ "summary": "Builds a resilient island ecosystem around Pulau Tengah and the Mersing islands that protects threatened species and supports local communities.",
+ "programmes": [
+  "Turtle, coral reef and seagrass habitat monitoring",
+  "Integrated island waste management (Rumah Eko)",
+  "Sustainable tourism",
+  "Education and outreach",
+  "Local and international internships",
+  "Adopt a Nest"
+ ],
+ "impact": [],
+ "beneficiaries": "Hawksbill and green turtles, reefs and seagrass of the Mersing islands; island communities and students",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2015 (as Batu Batu resort conservation unit; full NGO by 2019)",
+  "founders": "Founded and partly funded by Batu Batu resort (no individuals named)",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Annual Report 2025 (https://tinyurl.com/TICAnnualReport2025) and Impact Report 2024 (https://heyzine.com/flip-book/1732500b93.html) public; contents not machine-readable; audited accounts not public"
+ },
+ "contact": {
+  "address": "Long Beach, Pulau Tengah, 86800 Mersing, Johor, Malaysia",
+  "phone": "",
+  "email": "info@tengahislandconservation.org",
+  "website": "https://www.tengahislandconservation.org",
+  "socials": {
+   "instagram": "http://instagram.com/tic_my",
+   "youtube": "https://www.youtube.com/channel/UCkwdRwiKb4zYn6-lZ_78asA",
+   "tiktok": "https://www.tiktok.com/@tengahislandconservation"
+  }
+ },
+ "live": {
+  "note": "YouTube channel and TikTok account linked from website (https://www.youtube.com/channel/UCkwdRwiKb4zYn6-lZ_78asA); no live streaming found"
+ },
+ "donationsToday": "Online via Give.Asia (tengahislandconservation.give.asia); Adopt a Nest; corporate partnerships",
+ "sources": [
+  "https://tengahislandconservation.org/",
+  "https://www.tengahislandconservation.org/about-mentor",
+  "https://www.tengahislandconservation.org/donate",
+  "https://www.tengahislandconservation.org/contact",
+  "https://malaymail.com/news/life/2025/10/23/where-turtles-return-home-johor-island-leads-the-fight-to-protect-malaysias-marine-heritage/195599"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/tengah-island-conservation.jpg",
+  "credit": "Diego Delso",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tortuga_carey_(Eretmochelys_imbricata),_parque_nacional_Ras_Muhammad,_Egipto,_2022-03-28,_DD_26.jpg",
+  "alt": "Hawksbill turtle swimming over coral",
+  "illustrative": true
+ }
+}

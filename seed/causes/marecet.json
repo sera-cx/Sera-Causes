@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "marecet",
+ "name": "MareCet",
+ "legalName": "The MareCet Research Organization",
+ "category": "Marine",
+ "location": {
+  "town": "Langkawi, Johor & Perak waters",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Studies Malaysia's dolphins, whales and dugongs, raises public awareness and pushes for policy that protects marine habitats.",
+ "programmes": [
+  "Marine mammal research (Langkawi Dolphin Research Project, The Whale Project)",
+  "Dugong and seagrass conservation",
+  "Whales On-The-Wheels mobile marine education",
+  "Marine policy advocacy",
+  "Volunteer research programme and marine excursions"
+ ],
+ "impact": [
+  "Whale Project 2026 surveyed a 2,000 sq km grid off Langkawi (The Star, June 2026)"
+ ],
+ "beneficiaries": "Dolphins, whales and dugongs in Malaysian waters; schoolchildren and coastal communities",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-029-10-01062012",
+  "registrationSource": "https://www.marecet.org/donate",
+  "founded": "2012",
+  "founders": "Dr Louisa Ponnampalam and Fairul Izmal Jamal Hisne (marine mammal researchers)",
+  "leadership": "Dr Louisa Shobhini Ponnampalam, Chairperson and Executive Director; Fairul Izmal Jamal Hisne, Vice-Chairperson; Ng Jol Ern, Honorary Secretary; Joel Ashervin Zachariah, Treasurer",
+  "taxExemption": {
+   "statement": "Stated, no reference (About page says tax-exempt status from the Inland Revenue Board; no reference or validity printed)",
+   "source": "https://www.marecet.org/about"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "+6018-337 6882 (hotline/WhatsApp)",
+  "email": "ask.marecet@gmail.com",
+  "website": "https://www.marecet.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/marecet/",
+   "facebook": "https://www.facebook.com/marecetresearchorganization/",
+   "youtube": "https://www.youtube.com/channel/UCgO5zIrtBam1uI5s6jULB9Q/featured",
+   "tiktok": "https://www.tiktok.com/@marecetmalaysia"
+  }
+ },
+ "live": {
+  "note": "YouTube channel and TikTok linked from contact page (https://www.youtube.com/channel/UCgO5zIrtBam1uI5s6jULB9Q); no live streaming found"
+ },
+ "donationsToday": "DuitNow QR (all major Malaysian e-wallets); US tax-deductible giving via Wildlife Conservation Network (wildnet.org/marecet); bank details on request",
+ "sources": [
+  "https://marecet.org/",
+  "https://www.marecet.org/about",
+  "https://www.marecet.org/donate",
+  "https://www.marecet.org/contactus",
+  "https://www.thestar.com.my/metro/metro-news/2026/06/24/sentinels-of-ocean-health"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/marecet.jpg",
+  "credit": "Long Vu",
+  "licence": "CC BY 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Orcaella_brevirostris_-_Long_Vu_-_99590731.jpeg",
+  "alt": "A pod of Irrawaddy dolphins surfacing",
+  "illustrative": true
+ }
+}

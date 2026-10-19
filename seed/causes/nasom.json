@@ -1,0 +1,72 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "nasom",
+ "name": "The National Autism Society of Malaysia (NASOM)",
+ "legalName": "The National Autism Society of Malaysia",
+ "category": "Children",
+ "location": {
+  "town": "",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Runs lifelong education, intervention and support services for autistic people, from early childhood to adulthood, and their families.",
+ "programmes": [
+  "Early intervention (up to age 10)",
+  "Intensive behavioural intervention",
+  "Pre-vocational and vocational training",
+  "Residential programme for autistic adults",
+  "Assessment and therapy services"
+ ],
+ "impact": [
+  "18 centres nationwide (Annual Report 2024)",
+  "444 students enrolled as of 31 December 2024 (Annual Report 2024)",
+  "Total income RM2,848,588 in FY2024 (Annual Report 2024)"
+ ],
+ "beneficiaries": "Autistic children, young people and adults, and their families",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1986",
+  "founders": "A group of parents and professionals (no individuals named); registered 3 March 1987 as a national charity",
+  "leadership": "Mohd Nazrul Mohd Amin (President); Julian Wong Ming Vui (Chairman); Dr. Nursuriati Jamil (Vice Chairman); Cason Ong Tzse Chun (Secretary); Ong Shu Pei (Treasurer)",
+  "taxExemption": {
+   "statement": "LHDN A.G. 600-12/1/4-6.3400 (validity not stated)",
+   "source": "https://www.nasom.org.my/donate/"
+  },
+  "accounts": "Annual reports and audited financial statements public for 2020-2024. Latest: Annual Report 2024 https://www.nasom.org.my/wp-content/uploads/2026/04/NASOM%202024%20Annual%20Report.pdf ; Audited FS YE2024 https://www.nasom.org.my/wp-content/uploads/2026/04/Audited-Report-YE2024-NASOM.pdf"
+ },
+ "contact": {
+  "address": "Pacific Place Commercial Centre, Unit B-3-3, Jalan PJU 1A/4, Ara Damansara, 47301 Petaling Jaya, Selangor Darul Ehsan",
+  "phone": "+603-7832 1928",
+  "email": "info@nasom.org.my",
+  "website": "https://www.nasom.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/nasomcares/",
+   "facebook": "https://www.facebook.com/nasomcares/",
+   "tiktok": "https://www.tiktok.com/@nasomcares"
+  }
+ },
+ "live": {
+  "note": "TikTok account linked from the site (https://www.tiktok.com/@nasomcares); no YouTube or live channel linked"
+ },
+ "donationsToday": "Bank transfer / DuitNow QR (CIMB); cheque; online via GivingHub, Jariah Fund (Muamalat) and theNoor; Touch 'n Go eWallet; donations to a specific centre. Receipts via donation@nasom.org.my.",
+ "sources": [
+  "https://nasom.org.my",
+  "https://www.nasom.org.my/about-nasom/",
+  "https://www.nasom.org.my/board-of-managements/",
+  "https://www.nasom.org.my/annual-reports/",
+  "https://www.nasom.org.my/donate/",
+  "https://www.nasom.org.my/wp-content/uploads/2026/04/NASOM%202024%20Annual%20Report.pdf",
+  "https://apimaster.thestar.com.my/lifestyle/living/2025/12/10/why-nasom-is-going-the-extra-mile-to-help-families-of-kids-with-autism"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/nasom.jpg",
+  "credit": "Khamkhoune, age 11 (via Basile Morin)",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lao_child_drawing_of_a_waterfall.jpg",
+  "alt": "A child’s crayon drawing of a waterfall and house",
+  "illustrative": true
+ }
+}

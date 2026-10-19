@@ -1,0 +1,74 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "nkf-malaysia",
+ "name": "National Kidney Foundation of Malaysia",
+ "legalName": "Yayasan Buah Pinggang Kebangsaan Malaysia",
+ "category": "Health",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Runs subsidised dialysis for low-income kidney patients and works on kidney disease prevention, education and research.",
+ "programmes": [
+  "Subsidised dialysis centres nationwide",
+  "Early detection and prevention screening",
+  "School outreach on kidney health",
+  "Patient welfare: counselling and treatment subsidies",
+  "Training centre for renal care staff",
+  "Research and annual dialysis conference"
+ ],
+ "impact": [
+  "32 dialysis centres (as at September 2026)",
+  "1,809 dialysis patients (as at September 2026)"
+ ],
+ "beneficiaries": "Low-income kidney failure patients needing dialysis, and the public at risk of kidney disease",
+ "organisation": {
+  "entityType": "Foundation",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1970",
+  "founders": "Formally established 16 Jan 1970, sponsored by the Rotary Club of Petaling Jaya; first President Tan Sri Haji Sardon bin Haji Jubir; nephrologist Dr S.S. Gill's experiences led to its formation",
+  "leadership": "Tan Sri Dato' Dr Abu Bakar bin Suleiman (President, Council of Governors); Tan Sri Dato' Seri Dr Jeffrey Cheah, AO (Deputy President); Dato' Dr Zaki Morad bin Mohd Zaher (Chairman, Board of Directors); Choo Kok Ming (Chief Executive Officer, listed as Management Team 2025)",
+  "taxExemption": {
+   "statement": "Not stated on site. Court reporting: held 44(6)(a) status since 1970; IRB revoked it 29 Aug 2019; Shah Alam High Court quashed the revocation on 28 Nov 2024. No current LHDN reference printed.",
+   "source": "https://malaysiakini.com/news/727334"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "70, Jalan 14/29, 46100 Petaling Jaya, Selangor Darul Ehsan",
+  "phone": "03-7954 9048",
+  "email": "info@nkf.org.my",
+  "website": "https://nkf.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/nkfmy/",
+   "facebook": "https://www.facebook.com/nkfmy",
+   "youtube": "https://www.youtube.com/nkfmy",
+   "tiktok": "https://www.tiktok.com/@nkfmy"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/nkfmy), incl. 50th anniversary video; live streaming not verified"
+ },
+ "donationsToday": "Online via FPX (Curlec) and credit/debit card, monthly Direct Debit Donor Programme, e-wallets, bank transfer, merchandise and campaign giving, telemarketing",
+ "sources": [
+  "https://www.nkf.org.my/",
+  "https://nkf.org.my/about-us-v2/",
+  "https://nkf.org.my/about-us/whos-who/",
+  "https://nkf.org.my/contact-us/",
+  "https://nkf.org.my/support-us/donations/",
+  "https://nkf.org.my/wp-content/uploads/2024/04/NKF-LHDN-Media-Statement.pdf",
+  "https://malaysiakini.com/news/727334",
+  "https://www.richardweechambers.com/?p=9321"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/nkf-malaysia.jpg",
+  "credit": "Jackhsiao",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:HCCH_hemodialysis_machine.jpg",
+  "alt": "A nurse operating a dialysis machine",
+  "illustrative": true
+ }
+}

@@ -1,0 +1,65 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "kasih-turtle-conservation-project",
+ "name": "Kasih Turtle Conservation Project",
+ "legalName": "",
+ "category": "Turtles",
+ "location": {
+  "town": "Pantai Chendor, Cherating",
+  "state": "Pahang",
+  "country": "MY"
+ },
+ "summary": "Beach hatchery at Pantai Chendor that carries on Paksu Cherating’s work: getting turtle eggs back into the sand instead of onto plates, then releasing the hatchlings.",
+ "programmes": [
+  "Hatchery for rescued turtle eggs",
+  "Daily hatchling releases in season, open to visitors",
+  "Turtle conservation internships (April intake)",
+  "Merch sales to fund the hatchery",
+  "Partner events such as corporate mangrove planting and beach clean-ups"
+ ],
+ "impact": [],
+ "beneficiaries": "Sea turtles nesting at Pantai Chendor, Cherating, Pahang; visitors",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2024 (per Kasih’s own logo)",
+  "founders": "",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "",
+  "website": "",
+  "socials": {
+   "instagram": "https://www.instagram.com/kasih.turtle/"
+  }
+ },
+ "live": {
+  "note": "Hatchling releases at dusk are the natural live moment. Nesting season is ending: Kasih stopped advance release bookings from 5 October 2026."
+ },
+ "donationsToday": "Not published. Contact through Instagram or WhatsApp.",
+ "sources": [
+  "https://www.instagram.com/kasih.turtle/",
+  "https://www.bateriku.com/news/chendor-turtle-beach-near-kuantan",
+  "https://www.nst.com.my/amp/lifestyle/sunday-vibes/2018/11/432279/farewell-turtle-warrior",
+  "https://www.nst.com.my/amp/lifestyle/sunday-vibes/2018/12/445233/living-turtles-continuing-turtle-warriors-legacy",
+  "https://repository.seafdec.org.my/handle/20.500.12561/616?show=full"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "background": "Kasih describes itself as the continuation of Paksu Cherating’s turtle-egg work (Rimbun Dahan Turtle Hatchery). The New Straits Times profiled Pak Su, Ariffin Hassan, in November 2018; his son Fadhil Izzudin Ariffin later took over the Chendor hatchery. Kasih’s link to the family is not yet confirmed.",
+ "image": {
+  "src": "photos/kasih-turtle-conservation-project.jpg",
+  "credit": "Kasih Turtle Conservation Project, Pantai Chendor",
+  "licence": "Supplied",
+  "sourceUrl": "",
+  "alt": "Green turtle hatchlings in a basket before release",
+  "illustrative": false
+ }
+}

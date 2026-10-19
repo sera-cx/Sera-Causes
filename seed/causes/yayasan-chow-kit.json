@@ -1,0 +1,67 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "yayasan-chow-kit",
+ "name": "Yayasan Chow Kit",
+ "legalName": "Yayasan Chow Kit",
+ "category": "Children",
+ "location": {
+  "town": "Chow Kit",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Protects at-risk children and youth in and around Chow Kit, Kuala Lumpur, giving them safe spaces and the support they need to reach their potential.",
+ "programmes": [
+  "One-Stop Children's Centre (OSCC): protection and case management",
+  "Psychosocial support and family strengthening",
+  "Education assistance and health referrals",
+  "Two drop-in centres in Chow Kit",
+  "A safe home for children needing temporary guardianship"
+ ],
+ "impact": [],
+ "beneficiaries": "At-risk and marginalised children and teenagers in and around Chow Kit, Kuala Lumpur",
+ "organisation": {
+  "entityType": "Foundation",
+  "registration": "20110100228 (930395-A)",
+  "registrationSource": "https://yck.org.my/about-yck/our-origin/",
+  "founded": "2010",
+  "founders": "Dato' Dr Hartini Zainuddin, founder, with Raja Azizan and Kak Arfidah; the work began earlier as the Nur Salam children's programme under Yayasan Salam Malaysia before YCK was incorporated in 2010",
+  "leadership": "Zakri Bin Mohd Khir (Chairman); Trustees: YAM Tunku Zain Al-'Abidin, Marlene Kaur, Prof. Dr Melati Nungsari, Francesco Caruso, Datin Shirieene Hajamaideen, Bhavanash Sharma",
+  "taxExemption": {
+   "statement": "Stated, no reference (site says 'All donations* to YCK are tax-exempted' and issues tax exemption receipts; no LHDN reference or validity printed)",
+   "source": "https://yck.org.my/donate-2/"
+  },
+  "accounts": "Annual reports 2021-2025 public: 2025 https://yck.org.my/wp-content/uploads/2026/08/YCKs-Annual-Report-2025.pdf ; 2024 https://yck.org.my/wp-content/uploads/2026/04/bda08-yck-2024-annual-report.pdf (index: https://yck.org.my/annual-report/). An audited-accounts page exists (https://yck.org.my/audited-accounts/) but its contents were not checked."
+ },
+ "contact": {
+  "address": "No. 19, 2nd floor, Jalan Belia, Off Jalan Tuanku Abdul Rahman, 50350 Kuala Lumpur",
+  "phone": "+603 26020492",
+  "email": "admin@yck.org.my",
+  "website": "https://yck.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/theyayasanchowkit/",
+   "facebook": "https://www.facebook.com/YayasanChowKit/"
+  }
+ },
+ "live": {
+  "note": "No YouTube channel or live stream linked from the site; only an embedded OSCC video on the homepage (https://yck.org.my)"
+ },
+ "donationsToday": "Online one-off and monthly 'YCK Child Guardians' forms; Simply Giving page (https://www.simplygiving.com/nonprofit/yayasanchowkit); bank transfer or cheque to CIMB (email proof to admin@yck.org.my for a tax receipt); in-kind goods; programme sponsorship; corporate partnerships",
+ "sources": [
+  "https://yck.org.my",
+  "https://yck.org.my/about-yck/our-origin/",
+  "https://yck.org.my/about-yck/our-trustees/",
+  "https://yck.org.my/annual-report/",
+  "https://yck.org.my/donate-2/",
+  "https://yck.org.my/impact/",
+  "https://fmtv5.freemalaysiatoday.com/category/nation/2025/05/07/yayasan-chow-kit-gets-rm50000-boost-to-uplift-vulnerable-children"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/yayasan-chow-kit.jpg",
+  "credit": "CEphoto, Uwe Aranas",
+  "licence": "CC BY-SA 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kuala_Lumpur_Malaysia_Skyline-03.jpg",
+  "alt": "Kuala Lumpur skyline by day",
+  "illustrative": true
+ }
+}

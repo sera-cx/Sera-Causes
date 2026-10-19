@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "malaysian-relief-agency",
+ "name": "Malaysian Relief Agency",
+ "legalName": "",
+ "category": "Relief",
+ "location": {
+  "town": "Cheras",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Humanitarian relief agency delivering disaster response, medical aid, shelter, water and education to people in need in Malaysia and abroad.",
+ "programmes": [
+  "Disaster and flood response",
+  "Medical and health care missions",
+  "Water, sanitation and hygiene (water wells)",
+  "Shelter and community development",
+  "Education and livelihood/food security",
+  "Volunteer training"
+ ],
+ "impact": [],
+ "beneficiaries": "Disaster- and conflict-affected communities in Malaysia and countries including Palestine, Sudan, Somalia, Yemen, Lebanon and Myanmar",
+ "organisation": {
+  "entityType": "Trust (PPAB / Trustee Act)",
+  "registration": "PPAB 20/2010",
+  "registrationSource": "https://mra.my/",
+  "founded": "",
+  "founders": "",
+  "leadership": "Dato' Dr Abdul Razak bin Kechik (Chairman, Board of Trustees); Dr Ishak bin Mas'ud (Vice Chairman); Dr Mohd Daud bin Sulaiman (Secretary, Board of Trustees); Dr Shahrizal Azwan bin Samsudin (Secretary General/CEO); Mohd Rezaidi bin Mohd Ishak (Vice President)",
+  "taxExemption": {
+   "statement": "Stated, no reference (tax-exempt since 2021; receipts for RM200 and above)",
+   "source": "https://mra.my/about-us/"
+  },
+  "accounts": "Not public (only project and Qurban reports listed at https://mra.my/our-reports/)"
+ },
+ "contact": {
+  "address": "C-45-1 & C-45-2 Jalan Danau Lumayan, Bandar Sri Permaisuri, 56000 Cheras, WP Kuala Lumpur, Malaysia",
+  "phone": "+603 - 9174 4672",
+  "email": "admin@mra.my",
+  "website": "https://mra.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/malaysianreliefagency.official/",
+   "facebook": "https://www.facebook.com/MalaysianReliefAgency.Official",
+   "youtube": "https://www.youtube.com/channel/UCS4IeoGDQunE8UjEDBMKFoA",
+   "tiktok": "https://www.tiktok.com/@malaysianreliefagency"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/channel/UCS4IeoGDQunE8UjEDBMKFoA); video count and live streaming not verified"
+ },
+ "donationsToday": "Online general donation form, project-specific appeals, Organisational Development Fund; payment methods on embedded form not verified",
+ "sources": [
+  "https://mra.my/",
+  "https://mra.my/about-us/",
+  "https://mra.my/our-leaders/",
+  "https://mra.my/our-reports/",
+  "https://mra.my/how-to-donate/",
+  "https://mra.my/donations/general-donation/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/malaysian-relief-agency.jpg",
+  "credit": "Farishhamka",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mentakab_during_after_December_2021_Malaysian_floods_(1).jpg",
+  "alt": "Mentakab town after the December 2021 floods",
+  "illustrative": true
+ }
+}

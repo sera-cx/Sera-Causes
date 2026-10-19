@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "global-environment-centre",
+ "name": "Global Environment Centre (GEC)",
+ "legalName": "GLOBAL ENVIRONMENT CENTRE (GEC)",
+ "category": "Environment",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Safeguards the environment and promotes sustainable management of peatlands, rivers, forests and coasts through partnerships with communities and government.",
+ "programmes": [
+  "Peatland Programme",
+  "River Care Programme and National River Care Fund",
+  "Forest and Coastal (mangrove) Programme",
+  "Environmental education",
+  "Community network and ecotourism"
+ ],
+ "impact": [
+  "115,884 trees planted in 2025, mostly in mangroves (2025 annual report)",
+  "43 community patrollers and 7 community groups engaged in 2025 (2025 annual report)"
+ ],
+ "beneficiaries": "Peatland, river and mangrove ecosystems and the communities living around them in Malaysia and Southeast Asia",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "199801016929 (473058-T)",
+  "registrationSource": "https://gec.org.my/donation/",
+  "founded": "1998",
+  "founders": "",
+  "leadership": "Faizal Parish, Director; Dr Kalithasan Kailasam, Deputy Director; Dato' Halimah Hassan, Chairperson (2025 annual report)",
+  "taxExemption": {
+   "statement": "Stated, no reference (all cash donations tax-exempted; no reference or validity printed)",
+   "source": "https://gec.org.my/donation/"
+  },
+  "accounts": "Annual reports 2016-2025 public with summary financials from audited accounts (2025: https://gec.org.my/wp-content/uploads/2026/09/2025_gec-annualreport_fa_2.pdf); full audited statements not public"
+ },
+ "contact": {
+  "address": "2nd Floor, Wisma Hing, No. 78, Jalan SS2/72, 47300 Petaling Jaya, Selangor",
+  "phone": "+603 7957 2007",
+  "email": "outreach@gec.org.my",
+  "website": "https://gec.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/globalenvironmentcentre/",
+   "facebook": "https://www.facebook.com/globalenvironmentcentre/",
+   "youtube": "https://www.youtube.com/channel/UCFQNBgr41VZ9z5wAQ16cQpA"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from website (https://www.youtube.com/channel/UCFQNBgr41VZ9z5wAQ16cQpA); no live streaming found"
+ },
+ "donationsToday": "Cheque; online bank transfer to chosen fund (River Care, Forest Care, General); e-wallet QR; HSBC credit card via Incitement. Tax receipts on request with donation form.",
+ "sources": [
+  "https://www.gec.org.my/",
+  "https://gec.org.my/who-we-are/",
+  "https://gec.org.my/team/",
+  "https://gec.org.my/donation/",
+  "https://gec.org.my/report-category/gec-annual-reports/",
+  "https://gec.org.my/wp-content/uploads/2026/09/2025_gec-annualreport_fa_2.pdf"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/global-environment-centre.jpg",
+  "credit": "Apocru",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mangrove_forest_of_Bako_National_Park_(July_2025).jpg",
+  "alt": "Mangrove roots in Bako National Park, Sarawak",
+  "illustrative": true
+ }
+}

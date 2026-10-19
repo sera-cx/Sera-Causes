@@ -1,0 +1,71 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "hospis-malaysia",
+ "name": "Hospis Malaysia",
+ "legalName": "",
+ "category": "Health",
+ "location": {
+  "town": "Cheras",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Provides free home-based palliative care to people with life-limiting illness and their families, and trains health workers and campaigns to make palliative care widely available in Malaysia.",
+ "programmes": [
+  "Free home-based palliative care visits",
+  "After-hours and phone support for patients and families",
+  "Training for doctors, nurses and medical students",
+  "Advocacy for national palliative care policy",
+  "Loan of medical equipment (beds, oxygen concentrators, syringe drivers)"
+ ],
+ "impact": [
+  "About 1,500 patients supported each year (site, 2026)",
+  "Around 800 healthcare workers and medical students trained each year (site, 2026)"
+ ],
+ "beneficiaries": "Patients with life-limiting illnesses and their families, mainly in the Klang Valley",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "199101013363 (223675 – X)",
+  "registrationSource": "https://hospismalaysia.org/",
+  "founded": "1991",
+  "founders": "",
+  "leadership": "Dato' Kathleen Chew Wai Lin (Chairman); Irvin Menezes (Treasurer); Lim Wai Yee (Secretary); Prof Dr Khoo Ee Ming (Council Member); Ehon Chan Yee Hon (Council Member)",
+  "taxExemption": {
+   "statement": "Stated, no reference",
+   "source": "https://hospismalaysia.org/donations/"
+  },
+  "accounts": "No audited financial statements public; 5-Year Review 2017-2021: https://hospismalaysia.org/wp-content/uploads/2026/04/Hospis-Malaysia-5-Year-Review-2017-2021.pdf (list at https://hospismalaysia.org/reports/)"
+ },
+ "contact": {
+  "address": "2, Jalan 4/96, off Jalan Sekuci, Taman Sri Bahtera, Cheras, 56100 Kuala Lumpur, Malaysia",
+  "phone": "+603-9133 3936",
+  "email": "info@hospismalaysia.org",
+  "website": "https://hospismalaysia.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/hospismalaysia/",
+   "facebook": "https://www.facebook.com/HospisMY",
+   "youtube": "https://www.youtube.com/c/HospisMalaysiaOfficial"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/c/HospisMalaysiaOfficial); video count and live streaming not verified"
+ },
+ "donationsToday": "Online donation portal (dms.hospismalaysia.org), bank transfer, Maybank MAE QRPay, e-wallet QR, downloadable donation form, in-kind medical and office equipment; tax receipts auto-issued for RM30 and above",
+ "sources": [
+  "https://hospismalaysia.org/",
+  "https://hospismalaysia.org/about-us/",
+  "https://hospismalaysia.org/council/",
+  "https://hospismalaysia.org/reports/",
+  "https://hospismalaysia.org/donations/",
+  "https://www.hospismalaysia.org/contact-us/",
+  "https://fmtv5.freemalaysiatoday.com/category/nation/2025/10/17/hospis-malaysia-pushes-for-palliative-care-as-a-national-priority"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/hospis-malaysia.jpg",
+  "credit": "Frank “Fg2” Gualtieri",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:LotusBud0048a.jpg",
+  "alt": "A lotus bud against a leaf",
+  "illustrative": true
+ }
+}

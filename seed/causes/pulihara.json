@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "pulihara",
+ "name": "PULIHARA",
+ "legalName": "Persatuan Pemuliharaan dan Kajian Marin Malaysia (Marine Conservation and Research Organisation Malaysia)",
+ "category": "Turtles",
+ "location": {
+  "town": "Lang Tengah, Redang & Tanjong Jara",
+  "state": "Terengganu",
+  "country": "MY"
+ },
+ "summary": "Protects sea turtle eggs and nesting females on Terengganu beaches from poaching and predators, alongside reef restoration and marine research.",
+ "programmes": [
+  "Sea turtle beach patrols and hatcheries at Lang Tengah, Tanjong Jara and Chakar Hutan",
+  "Volunteer night patrols and nest monitoring",
+  "Coral out-planting and reef restoration",
+  "Beach and reef clean-ups",
+  "Turtle watching and CSR programmes",
+  "Internships"
+ ],
+ "impact": [
+  "264,302 turtle eggs safeguarded and 208,657 hatched (LTTW cumulative through 2024)",
+  "405 corals out-planted and 19,753 kg of rubbish removed (cumulative through 2024)",
+  "Tanjong Jara 2025: 61 nests and 5,276 eggs saved, 4,170 hatchlings released"
+ ],
+ "beneficiaries": "Green and hawksbill sea turtles and painted terrapins in Terengganu; coastal communities",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-004-10-13122023",
+  "registrationSource": "https://puliharamalaysia.org/about-us/",
+  "founded": "2023 (PULIHARA registered 13 Dec 2023; predecessor Lang Tengah Turtle Watch founded 2013)",
+  "founders": "Hayati Mokhtar and Raphe van Zevenbergen (founders of Lang Tengah Turtle Watch)",
+  "leadership": "Rahayu Zulkifli, Chairperson and CEO; Hiew Wai Phang, Deputy Chairperson; Abidah Zaaba, Secretary; Preetha Sankar, Treasurer",
+  "taxExemption": {
+   "statement": "Not stated (site says conservation arm moved under PULIHARA to gain tax exemption; no approval reference printed)",
+   "source": "https://puliharamalaysia.org/about-us/"
+  },
+  "accounts": "Annual (programme) reports per site 2013-2025 public, e.g. 2025 Tanjong Jara: https://puliharamalaysia.org/wp-content/uploads/2026/07/TJ-Annual-Report-2025.pdf; audited financial statements not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "info@pulihara.org",
+  "website": "https://puliharamalaysia.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/pulihara.my",
+   "facebook": "https://www.facebook.com/pulihara.malaysia"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found on website"
+ },
+ "donationsToday": "Bank transfer and bank QR (Maybank) via donate page; nest adoption programme; online shop (teamrakyat.com/store/pulihara)",
+ "sources": [
+  "https://puliharamalaysia.org/",
+  "https://puliharamalaysia.org/about-us/",
+  "https://puliharamalaysia.org/donate/",
+  "https://puliharamalaysia.org/annual-reports/",
+  "https://puliharamalaysia.org/wp-content/uploads/2026/07/TJ-Annual-Report-2025.pdf"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/pulihara.jpg",
+  "credit": "U.S. Fish and Wildlife Service",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Green_sea_turtle_nesting_on_beach_sand_chelonia_mydas.jpg",
+  "alt": "Green turtle nesting on a beach at night",
+  "illustrative": true
+ }
+}

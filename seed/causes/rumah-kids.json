@@ -1,0 +1,65 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "rumah-kids",
+ "name": "Rumah KIDS",
+ "legalName": "Persatuan Rumah Kanak-Kanak Ini Disayangi",
+ "category": "Children",
+ "location": {
+  "town": "Subang Jaya & Klang",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Gives abused, orphaned and abandoned children a safe, loving home and supports them through school until they can live independently.",
+ "programmes": [
+  "Residential children's homes in Klang and Subang Jaya (USJ)",
+  "Daily care: food, clothing, education and health",
+  "Love30 monthly giving plan",
+  "Volunteer and CSR activities with the children"
+ ],
+ "impact": [
+  "36 children aged 3-18 currently in care across 4 homes (website, 2026)",
+  "More than 300 children raised in its homes since 1991 (website, 2026)"
+ ],
+ "beneficiaries": "Abused, orphaned and abandoned children aged 3 to 18",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-008 10 1205 1996",
+  "registrationSource": "https://rumahkids.com/contact-us/",
+  "founded": "1991",
+  "founders": "Dr. Henry Pillai, founding chairman until he retired in 2020",
+  "leadership": "Mr. Panir Rajamany (Chairman); Ms. Jessica Tang (Vice Chairman); Ms. Luna Koh (Secretary); Ms. Claire (Treasurer); Mr. David Jansen Nathan (Senior Manager, Public Relations)",
+  "taxExemption": {
+   "statement": "Stated, no reference (site says it is a tax-exempt charity and links to an LHDN approval image; reference and validity not readable in page text)",
+   "source": "https://rumahkids.com/donate-cash/"
+  },
+  "accounts": "Not public (the site says accounts are audited every year but does not publish them)"
+ },
+ "contact": {
+  "address": "No 1, Jalan USJ 1/2L, 47620 Subang Jaya, Selangor Darul Ehsan, Malaysia (second home: No 7, Jalan Durian, Off Jalan Dato Dollah, 41100 Klang, Selangor)",
+  "phone": "03-3385 1965",
+  "email": "enquiry@rumahkids.com",
+  "website": "https://rumahkids.com",
+  "socials": {
+   "instagram": "https://www.instagram.com/rumah_kids/"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found (only Instagram is linked; the site's Facebook icon also points to Instagram)"
+ },
+ "donationsToday": "Online cash donation; bank transfer within Malaysia and from overseas (Affin Bank); cheque; Love30 monthly plan; Sponsor an Expense; in-kind donations from the general and urgent need lists",
+ "sources": [
+  "https://rumahkids.com",
+  "https://rumahkids.com/about-us/",
+  "https://rumahkids.com/donate-cash/",
+  "https://rumahkids.com/contact-us/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/rumah-kids.jpg",
+  "credit": "Save the Children Canada",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Children_Art_Therapy.jpg",
+  "alt": "Children’s hands drawing with crayons",
+  "illustrative": true
+ }
+}

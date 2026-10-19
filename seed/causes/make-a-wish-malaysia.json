@@ -1,0 +1,71 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "make-a-wish-malaysia",
+ "name": "Make-A-Wish Malaysia",
+ "legalName": "",
+ "category": "Children",
+ "location": {
+  "town": "",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Grants wishes for children with critical, life-threatening illnesses, working with hospitals across Peninsular and East Malaysia.",
+ "programmes": [
+  "Wish granting for critically ill children",
+  "Hospital partnerships in Peninsular and East Malaysia",
+  "Regional hubs (e.g. Northern Region)",
+  "Fundraising events, volunteering and corporate partnerships"
+ ],
+ "impact": [
+  "1,214 wishes granted to date (website, 2026)",
+  "Over 6,000 family members reached (website, 2026)",
+  "100+ wishes granted each year; 1,200+ since 2010 (The Star, 6 Aug 2026)"
+ ],
+ "beneficiaries": "Children with critical or life-threatening medical conditions and their families",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "Reg. no 2228-10-WKL",
+  "registrationSource": "https://makeawish.org.my/contact-us/",
+  "founded": "",
+  "founders": "",
+  "leadership": "Y.A.M. Tengku Datin Paduka Setia Zatashah Binti Sultan Sharafuddin Idris Shah (Royal Patron); Datuk Stuart Ramalingam (Chairman); Dato' Sri Dr Nick Low (Vice Chairman); Mahesh Ramesh (Treasurer); Sammy Chan (Secretary); Irene Tan (Chief Executive Officer)",
+  "taxExemption": {
+   "statement": "LHDN.AG.600-12/1/4-6.7208, valid 01 January 2026 to 31 December 2035",
+   "source": "https://makeawish.org.my"
+  },
+  "accounts": "Audited financial statements public for 2016-2025 (2018 missing). Latest: 2025 https://makeawish.org.my/wp-content/uploads/2026/05/Make-A-Wish-Malaysia-Audit-Report-2025.pdf ; 2024 https://makeawish.org.my/wp-content/uploads/2025/05/MAW-2024-Signed-AFS.pdf (index: https://makeawish.org.my/financial-reports/)"
+ },
+ "contact": {
+  "address": "A-13-13, Level 13 Block A, Menara UOA Bangsar, No.5 Jalan Bangsar Utama 1, 59000 Kuala Lumpur",
+  "phone": "+603 2738 9939",
+  "email": "info@makeawish.org.my",
+  "website": "https://makeawish.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/makeawishmalaysia/",
+   "facebook": "https://www.facebook.com/MakeawishMalaysia/",
+   "youtube": "https://www.youtube.com/channel/UC19F-9luwx-A2nxMHTKkE7w"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from the site (https://www.youtube.com/channel/UC19F-9luwx-A2nxMHTKkE7w); video count and live streaming not checked"
+ },
+ "donationsToday": "Online donation portal (https://donate.makeawish.org.my/web_donation); donation form; corporate partnerships and events. E-receipts for RM30 and above.",
+ "sources": [
+  "https://makeawish.org.my",
+  "https://makeawish.org.my/contact-us/",
+  "https://makeawish.org.my/board-of-directors/",
+  "https://makeawish.org.my/meet-the-team/",
+  "https://makeawish.org.my/financial-reports/",
+  "https://makeawish.org.my/mission-statement-core-values/",
+  "https://www.thestar.com.my/metro/metro-news/2026/08/06/rallying-to-grant-wishes-of-ailing-kids"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/make-a-wish-malaysia.jpg",
+  "credit": "D.W. Fisher-Freberg",
+  "licence": "CC BY-SA 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Wau_bulan_Pasir_Gudang.JPG",
+  "alt": "A decorated wau bulan kite",
+  "illustrative": true
+ }
+}

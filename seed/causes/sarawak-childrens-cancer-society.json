@@ -1,0 +1,71 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "sarawak-childrens-cancer-society",
+ "name": "Sarawak Children's Cancer Society (SCCS)",
+ "legalName": "Sarawak Children's Cancer Society",
+ "category": "Health",
+ "location": {
+  "town": "Kuching",
+  "state": "Sarawak",
+  "country": "MY"
+ },
+ "summary": "Supports children with cancer in Sarawak and their families with practical, financial and emotional help, so no child faces cancer alone.",
+ "programmes": [
+  "Counselling, buddy programme and palliative-care home visits",
+  "Two halfway homes for families travelling for treatment",
+  "Subsidies for drugs, procedures, lab tests and equipment",
+  "Awareness and training for healthcare providers",
+  "Recreation and family activities; GoBald fundraising campaign"
+ ],
+ "impact": [
+  "About 1,800 families supported across Sarawak over 25 years (Borneo Post, 28 Mar 2026)",
+  "Over RM14 million raised through GoBald since 2009 (Borneo Post, 28 Mar 2026)",
+  "41 families stayed at the Halfway Home in 2025 (website)"
+ ],
+ "beneficiaries": "Children with cancer in Sarawak and their families",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM 001-13-26112001 / SP 1485",
+  "registrationSource": "https://sccs.org.my/contact-us/",
+  "founded": "2001",
+  "founders": "",
+  "leadership": "Mary Kiu Ai Ling (President); Dr Joshua Tiong Hung Sung (Vice President); Wilin Main (Honorary Secretary); Rodney Wong Kai Heng (Honorary Treasurer); Jodie Sim (Executive Director)",
+  "taxExemption": {
+   "statement": "Stated, no reference (site says SCCS is approved under sub-section 44(6) ITA 1967; e-receipts for RM10 and above)",
+   "source": "https://sccs.org.my"
+  },
+  "accounts": "Annual Reviews 2020-2024 and Annual Activities Reports 2021-2025 public. Latest: Annual Review 2024 https://sccs.org.my/sccsv4/wp-content/uploads/2025/09/SCCS-Annual-Review-2024-Digital_compressed.pdf ; Activities Report 2025 https://sccs.org.my/sccsv4/wp-content/uploads/2026/02/Annual-Activities-report-2025-_compressed.pdf (index: https://sccs.org.my/about-us/annual-review/). Audited financial statements are not linked separately."
+ },
+ "contact": {
+  "address": "Lot 5493, Lorong 15, Taman Desa Wira, Jalan Batu Kawa, 93250 Kuching, Sarawak, Malaysia",
+  "phone": "+6082-686276",
+  "email": "administrator@sccs.org.my",
+  "website": "https://sccs.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/sccsmy/",
+   "facebook": "https://www.facebook.com/sccsmy",
+   "youtube": "https://www.youtube.com/@sccsmy",
+   "tiktok": "https://www.tiktok.com/@sccsmy"
+  }
+ },
+ "live": {
+  "note": "YouTube channel and TikTok linked from the site (https://www.youtube.com/@sccsmy); video count and live streaming not checked"
+ },
+ "donationsToday": "Online one-off or monthly gifts (preset RM10/30/50 or custom) with tax e-receipts; GoBald campaign; corporate partnerships. Donation enquiries: heartofgold@sccs.org.my",
+ "sources": [
+  "https://sccs.org.my",
+  "https://sccs.org.my/about-us/our-team/",
+  "https://sccs.org.my/about-us/annual-review/",
+  "https://sccs.org.my/contact-us/",
+  "https://www.theborneopost.com/2026/03/28/sccs-launches-gobald-2026-to-mark-25-years-of-supporting-children-with-cancer/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/sarawak-childrens-cancer-society.jpg",
+  "credit": "Laitche",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cranes_made_by_Origami_paper.jpg",
+  "alt": "Two origami paper cranes",
+  "illustrative": true
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "furrykids-safehaven",
+ "name": "Furrykids Safehaven (FKSH)",
+ "legalName": "Persatuan Penyelamat Haiwan Terbiar Furrykids Safehaven",
+ "category": "Animals",
+ "location": {
+  "town": "Seremban",
+  "state": "Negeri Sembilan",
+  "country": "MY"
+ },
+ "summary": "Rescue, rehabilitate and give a second chance to stray dogs facing culling or abandonment.",
+ "programmes": [
+  "Dog rescue (incl. Mission Pawsible response to Negeri Sembilan culling)",
+  "Shelter and rehabilitation",
+  "Sponsorship and The 2000 CLUB",
+  "Adoption",
+  "Volunteering"
+ ],
+ "impact": [
+  "Over 2,000 dogs sheltered (site; also Malaysiakini, March 2025)"
+ ],
+ "beneficiaries": "Stray and rescued dogs, mainly from the Klang Valley and Negeri Sembilan",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2017",
+  "founders": "Founded by a small group of individuals after DBKL put 84 dogs on death row (names not published)",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "furrykidsafehaven@gmail.com",
+  "website": "https://www.furrykids.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/furrykids.safehaven",
+   "facebook": "https://www.facebook.com/furrykidssafehaven",
+   "youtube": "https://www.youtube.com/@furrykidssafehaven6128",
+   "tiktok": "https://www.tiktok.com/@furrykidssafehaven"
+  }
+ },
+ "live": {
+  "note": "YouTube and TikTok accounts linked from site; activity not checked. https://www.tiktok.com/@furrykidssafehaven"
+ },
+ "donationsToday": "SenangPay online (one-off or monthly, RM10-RM1,000 or any amount), direct bank transfer, item sponsorship by email; PayPal not accepted",
+ "sources": [
+  "https://www.furrykids.org/",
+  "https://www.furrykids.org/about",
+  "https://www.furrykids.org/donations",
+  "https://www.furrykids.org/contact",
+  "https://www.malaysiakini.com/news/737418",
+  "https://thesun.my/news/malaysia-news/negri-sembilan-s-furrykids-safehaven-receives-access-road-reprieve-thanks-to-state-govt-hk13808285/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/furrykids-safehaven.jpg",
+  "credit": "CezarADA",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:DOG_VILLAGE_-_ADA_Fundation_-_Poland_(2).jpg",
+  "alt": "Colourful dog houses at an animal sanctuary",
+  "illustrative": true
+ }
+}

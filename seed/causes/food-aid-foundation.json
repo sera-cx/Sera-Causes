@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "food-aid-foundation",
+ "name": "Food Aid Foundation",
+ "legalName": "",
+ "category": "Food & poverty",
+ "location": {
+  "town": "Cheras",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Food bank that collects surplus food from businesses and redistributes it to welfare homes and low-income families, cutting both hunger and waste.",
+ "programmes": [
+  "Food rescue from manufacturers, distributors and retailers",
+  "Distribution to welfare homes, refugee groups, soup kitchens and low-income families",
+  "Emergency food relief",
+  "Food drives with schools and companies",
+  "Basic culinary and entrepreneurship training"
+ ],
+ "impact": [
+  "1,232,139 kg of food collected in 2024",
+  "RM20,431,564 worth of food distributed in 2024",
+  "3,405,261 meals distributed in 2024"
+ ],
+ "beneficiaries": "Welfare homes, refugee communities, low-income families and the homeless, mainly in the Klang Valley",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "201301022112 (1051942-D)",
+  "registrationSource": "https://foodaidfoundation.org/",
+  "founded": "2013",
+  "founders": "Rick Chee (Founder), ex-food and beverage industry veteran who funded the launch from his savings; Faisal Ghazali (Co-Founder)",
+  "leadership": "Rick Chee (Founder, Director); Faisal Ghazali (Co-Founder, Director); Khairulbariah Binti Dzun Nurin, S. S Rajaa, Melvin Khoo (Directors); Afraz Said (General Manager); Dato' Seri Hj. Ibrahim Hj Ahmad Badawi (Chairman, Board of Advisors)",
+  "taxExemption": {
+   "statement": "LHDN.01/35/42/51/179-6.7900 (validity period not printed)",
+   "source": "https://foodaidfoundation.org/donate/cash/"
+  },
+  "accounts": "Audit Report 2024: https://foodaidfoundation.org/wp-content/uploads/2025/10/Audit-Report-Food-Aid-Foundation-2024.pdf; Annual Report 2024: https://foodaidfoundation.org/wp-content/uploads/2025/08/Food-Aid-Foundation-Annual-Report-2024.pdf; 2020-2023 also at https://foodaidfoundation.org/annual-report/"
+ },
+ "contact": {
+  "address": "No. 9 Jalan 7/118B, Desa Tun Razak, Cheras, 56000 Kuala Lumpur, Malaysia",
+  "phone": "+603 9226 5500",
+  "email": "info@foodaidfoundation.org",
+  "website": "https://foodaidfoundation.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/foodaidfoundation/",
+   "facebook": "https://www.facebook.com/foodaidfoundation/"
+  }
+ },
+ "live": {
+  "note": "No YouTube or TikTok channel linked from site"
+ },
+ "donationsToday": "Bank transfer (Maybank), cash donation page, food rescue/in-kind food, food drives; 44(6) receipt for RM50 and above",
+ "sources": [
+  "https://foodaidfoundation.org/",
+  "https://foodaidfoundation.org/about-us/",
+  "https://foodaidfoundation.org/contact/",
+  "https://foodaidfoundation.org/annual-report/",
+  "https://foodaidfoundation.org/donate/cash/",
+  "https://fmtv5.freemalaysiatoday.com/category/leisure/2025/02/17/no-food-waste-no-hungry-families-ngos-mission-since-2013"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/food-aid-foundation.jpg",
+  "credit": "USDA",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:USDA_Foods_-_Community_FoodBank_of_New_Jersey_(20160120-FNS-LSC-0290).jpg",
+  "alt": "A volunteer stocking shelves at a food bank",
+  "illustrative": true
+ }
+}

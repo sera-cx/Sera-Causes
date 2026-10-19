@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "mycat",
+ "name": "Malaysian Conservation Alliance for Tigers (MYCAT)",
+ "legalName": "Programmes administered by Wildlife Society of Selangor (WILD)",
+ "category": "Wildlife",
+ "location": {
+  "town": "Merapoh",
+  "state": "Pahang & Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Coordinate government and NGO action to save the Malayan tiger, with on-the-ground protection and habitat restoration around Taman Negara.",
+ "programmes": [
+  "Citizen Action for Tigers (CAT) Walks",
+  "Community Ranger patrols with Orang Asli (Bateq) community",
+  "Wildlife Crime Hotline (since 2007)",
+  "Sungai Yu Ecological Corridor reforestation",
+  "Public awareness and policy work"
+ ],
+ "impact": [
+  "128 ha next to Sungai Yu viaduct gazetted as forest reserve (2019)",
+  "7,462 native saplings planted, rangers patrolled 8,000+ km and disarmed 103 snares (2020-2021, GlobalGiving report Oct 2021)"
+ ],
+ "beneficiaries": "Malayan tigers and their habitat; Orang Asli communities employed in protection and restoration",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2003",
+  "founders": "Alliance founded by DWNP Peninsular Malaysia, Malaysian Nature Society, TRAFFIC and WWF-Malaysia; Dr Kae Kawanishi described as founder in Current Conservation (2020)",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated (only US tax-deductibility via GlobalGiving and UK Gift Aid mentioned)",
+   "source": "https://www.mycat.my/donate"
+  },
+  "accounts": "Annual reports 2009-2015 listed at https://mycat.my/reports; nothing newer found"
+ },
+ "contact": {
+  "address": "Unit T3-16-15, 3 Towers, Jalan Ampang, 50450 Kuala Lumpur (field office: Kampung Kubang Rusa, Merapoh, Lipis, Pahang)",
+  "phone": "+60 3 2715 6701",
+  "email": "mycat@malayantiger.net",
+  "website": "https://www.mycat.my",
+  "socials": {
+   "facebook": "https://www.facebook.com/themalayantiger (per GlobalGiving listing)"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found on site"
+ },
+ "donationsToday": "Online form (one-time/monthly/yearly, RM10-RM500 or custom), bank transfer to Wildlife Society of Selangor (Maybank), GlobalGiving for international donors",
+ "sources": [
+  "https://www.mycat.my/",
+  "https://mycat.my/about-us",
+  "https://mycat.my/reports",
+  "https://mycat.my/contact",
+  "https://www.mycat.my/donate",
+  "https://www.globalgiving.org/projects/protect-the-malayan-tiger-and-restore-its-habitat/reports/?pageNo=3",
+  "https://www.currentconservation.org/the-tigers-of-taman-negara-a-journey-into-citizen-cat-conservation/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/mycat.jpg",
+  "credit": "Jean from Shelbyville, KY",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Malayan_Tiger_(Panthera_tigris_jacksoni)_(52325197471).jpg",
+  "alt": "Close-up of a Malayan tiger",
+  "illustrative": true
+ }
+}

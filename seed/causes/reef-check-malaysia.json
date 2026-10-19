@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "reef-check-malaysia",
+ "name": "Reef Check Malaysia",
+ "legalName": "",
+ "category": "Marine",
+ "location": {
+  "town": "Kuala Lumpur",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Brings divers, communities, government and business together to monitor, manage and restore Malaysia's coral reefs and marine ecosystems.",
+ "programmes": [
+  "National Reef Check survey programme",
+  "Coral reef rehabilitation (Adopt seKarang)",
+  "Coral bleaching and resilience monitoring",
+  "Community marine conservation groups on islands",
+  "EcoDiver training and International Coastal Cleanup"
+ ],
+ "impact": [
+  "297 reef sites surveyed in 2025 (315 in 2024)",
+  "6,617 coral fragments rescued and planted across 11 sites in 2025",
+  "49,460 kg of waste collected and 3,356 kg of ghost nets removed in 2025",
+  "12,951 crown-of-thorns starfish removed in 2025"
+ ],
+ "beneficiaries": "Coral reefs and island communities in Tioman, Mersing, Redang, Semporna, Mantanani and south Johor",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2007",
+  "founders": "",
+  "leadership": "Julian Hyde, CEO; Theresa Ng, COO; Alvin Chelliah, Chief Programmes Officer; Jasmin Mohd Saad, Chief Public Policy and Advocacy Officer",
+  "taxExemption": {
+   "statement": "No. Kelulusan: 6522 (Subsection 44(6) ITA 1967; validity period not printed)",
+   "source": "https://reefcheck.org.my/donate/"
+  },
+  "accounts": "Annual reports 2020-2025 (2025: https://reefcheck.org.my/wp-content/uploads/2026/04/RCM-Annual-Report-2025.pdf) and financial statements 2013-2024 (2024: https://reefcheck.org.my/wp-content/uploads/2025/08/2024-Financial-Statements.pdf) public"
+ },
+ "contact": {
+  "address": "Box 606, Lot 5.19-5.22, Wisma Central, Jalan Ampang, 50450 Kuala Lumpur, Malaysia",
+  "phone": "03-9771 9742",
+  "email": "hello@reefcheck.org.my",
+  "website": "https://reefcheck.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/reefcheckmalaysia/",
+   "facebook": "https://www.facebook.com/reefcheckmalaysia/",
+   "youtube": "https://www.youtube.com/@reefcheckmalaysiarcm"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from website (https://www.youtube.com/@reefcheckmalaysiarcm); no live streaming found"
+ },
+ "donationsToday": "Online card via Razorpay (one-off or monthly); Touch 'n Go / DuitNow QR; GlobalGiving (international); Adopt seKarang (min RM200); Patreon",
+ "sources": [
+  "https://reefcheck.org.my/",
+  "https://reefcheck.org.my/about-us/",
+  "https://reefcheck.org.my/our-team/",
+  "https://reefcheck.org.my/donate/",
+  "https://reefcheck.org.my/reports/",
+  "https://reefcheck.org.my/rcmfinancialstatement/",
+  "https://reefcheck.org.my/wp-content/uploads/2026/04/RCM-Annual-Report-2025.pdf"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/reef-check-malaysia.jpg",
+  "credit": "Chamberlain of Nilai",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Coral_reef_of_Perhentian_Islands.jpg",
+  "alt": "Clear water over the coral reef at the Perhentian Islands",
+  "illustrative": true
+ }
+}

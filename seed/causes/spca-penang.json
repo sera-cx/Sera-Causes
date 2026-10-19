@@ -1,0 +1,67 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "spca-penang",
+ "name": "SPCA Penang",
+ "legalName": "Society for the Prevention of Cruelty to Animals (Penang)",
+ "category": "Animals",
+ "location": {
+  "town": "Jelutong",
+  "state": "Penang",
+  "country": "MY"
+ },
+ "summary": "Take in and care for abandoned animals, prevent cruelty, and teach responsible pet ownership in Penang.",
+ "programmes": [
+  "Temporary shelter and care for strays",
+  "Adoption and fostering",
+  "Anti-cruelty and abuse reporting",
+  "Public education on responsible pet ownership",
+  "Kennel sponsorship and membership"
+ ],
+ "impact": [
+  "436 strays (386 cats, 50 dogs) taken in, FYE 2025",
+  "49 adoptions, FYE 2025"
+ ],
+ "beneficiaries": "Stray and abandoned cats and dogs in Penang",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-004-07-22031950",
+  "registrationSource": "https://www.spca-penang.net/",
+  "founded": "1948",
+  "founders": "",
+  "leadership": "Cynthia Ng, Hon. Secretary (Annual Report 2025)",
+  "taxExemption": {
+   "statement": "Stated, no reference (issues \"tax exempt receipt\" on request)",
+   "source": "https://spca-penang.net/contribute/"
+  },
+  "accounts": "Annual Report 2025 (Hon. Secretary's report, no financial statements): https://spca-penang.net/annual_reports/annual_report_2025.pdf; reports 2011-2025 listed"
+ },
+ "contact": {
+  "address": "Jalan Jeti Jelutong, 11600 Penang",
+  "phone": "04-281 6559",
+  "email": "info@spca-penang.net",
+  "website": "https://spca-penang.net",
+  "socials": {}
+ },
+ "live": {
+  "note": "No live or video channel found"
+ },
+ "donationsToday": "Maybank transfer or cash deposit, PayPal/card (one-time or monthly RM5-RM500), Touch 'n Go eWallet QR, in-kind items",
+ "sources": [
+  "https://www.spca-penang.net/",
+  "https://spca-penang.net/about-us/",
+  "https://spca-penang.net/contribute/",
+  "https://spca-penang.net/annual-reports/",
+  "https://spca-penang.net/annual_reports/annual_report_2025.pdf",
+  "https://www.malaymail.com/news/malaysia/2025/02/10/lack-of-burial-facility-blamed-for-cat-carcasses-found-in-jelutong-bin/166146",
+  "https://www.therakyatpost.com/news/2025/02/10/spca-penang-criticised-for-throwing-dead-cats-in-bin-bags-heres-what-happened/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/spca-penang.jpg",
+  "credit": "Alexey Komarov",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cat-george-town-penang.jpg",
+  "alt": "A street cat on a motorbike seat in George Town",
+  "illustrative": true
+ }
+}

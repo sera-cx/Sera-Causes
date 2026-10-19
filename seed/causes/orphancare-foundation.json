@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "orphancare-foundation",
+ "name": "OrphanCare Foundation",
+ "legalName": "",
+ "category": "Children",
+ "location": {
+  "town": "",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Works so that children in institutions and unplanned newborns can grow up in a family, through baby hatches, adoption and reintegrating children with their families.",
+ "programmes": [
+  "Baby Hatch network",
+  "Adoption services",
+  "Deinstitutionalisation and family reintegration",
+  "Counselling for women with unplanned pregnancies",
+  "Advocacy and reproductive-health awareness talks"
+ ],
+ "impact": [
+  "765 babies rescued nationwide since 2008 (website, 2026)",
+  "Nine baby hatches operating in Peninsular Malaysia as of November 2025 (FMT, 20 Nov 2025)",
+  "81 Baby Hatch rescues in 2024 up to November, up from 55 in 2023 (NST, Dec 2024)",
+  "More than 400 of 639 rescued babies legally adopted (NST, Dec 2024)"
+ ],
+ "beneficiaries": "Abandoned or unplanned newborns, children in institutions, women facing unplanned pregnancies, adoptive families",
+ "organisation": {
+  "entityType": "Foundation",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2008",
+  "founders": "The late Dato' Adnan Mohd Tahir, who founded it with a group of friends and was its first president (died 2011); first registered as 'Pertubuhan Kebajikan Dan Pengurusan Anak-Anak Yatim, Kuala Lumpur (OrphanCARE)', then re-established as OrphanCare Foundation in 2012",
+  "leadership": "Tan Sri Faizah binti Mohd Tahir (Chairman); Zakiah A Rahman (General Manager, per FMT Nov 2025)",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "admin@orphancare.org.my",
+  "website": "https://orphancare.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/orphancare.foundation",
+   "facebook": "https://www.facebook.com/OrphanCARE.Foundation.Malaysia",
+   "youtube": "https://www.youtube.com/channel/UCyS_LEUFqTGD1ExRUGXS5mw"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from the site (https://www.youtube.com/channel/UCyS_LEUFqTGD1ExRUGXS5mw); video count and live streaming not checked"
+ },
+ "donationsToday": "Online donations through the site (https://orphancare.org.my/?form=donate-now) and campaign pages at donate.orphancare.org.my; GivingHub campaign. No other methods published.",
+ "sources": [
+  "https://orphancare.org.my",
+  "https://orphancare.org.my/about/",
+  "https://orphancare.org.my/our-impact/",
+  "https://orphancare.org.my/donate/send-donation/",
+  "https://orphancare.org.my/nurturing-hope-for-15-years-orphancares-legacy-of-changing-childrens-lives/",
+  "https://master.nst.com.my/amp/news/nation/2024/12/1154055/639-newborns-rescued-16-years-through-orphancares-baby-hatch-initiative",
+  "https://fmtv5.freemalaysiatoday.com/category/leisure/2025/11/20/no-child-left-without-the-love-of-family"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/orphancare-foundation.jpg",
+  "credit": "Shixart1985",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Child_engaged_in_drawing_activity_with_colorful_crayons_at_a_wooden_table.jpg",
+  "alt": "A young child drawing in a notebook",
+  "illustrative": true
+ }
+}

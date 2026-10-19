@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "cpsm",
+ "name": "Children's Protection Society Malaysia (CPSM)",
+ "legalName": "Persatuan Perlindungan Kanak-Kanak Malaysia",
+ "category": "Children",
+ "location": {
+  "town": "George Town",
+  "state": "Penang",
+  "country": "MY"
+ },
+ "summary": "Protects vulnerable children through safe shelter, rehabilitation, education and family reintegration, and campaigns to prevent abuse nationwide.",
+ "programmes": [
+  "Children's shelter in Penang",
+  "Counselling, rehabilitation and family reintegration",
+  "Safe Child, Strong Nation national campaign (June 2026 - May 2027)",
+  "Safe Child, Strong Nation podcast",
+  "National Child Protection Leadership Conference 2026",
+  "Abuse-reporting guidance (SaveMe999)"
+ ],
+ "impact": [
+  "5,000+ children supported over 30+ years (website, 2026)"
+ ],
+ "beneficiaries": "Neglected, abused, abandoned and otherwise vulnerable children",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-001-07-28121991",
+  "registrationSource": "https://www.cpsm.org.my/donate",
+  "founded": "1991",
+  "founders": "Dato' Seri Nazir Ariff with co-founders Datin Dr. Chandra Kanagalingam and Datin Seri Elizabeth Devaraj; began in Penang as a temporary shelter for neglected and abandoned children, launched April 1992",
+  "leadership": "Tengku Amir Shah Ibni Sultan Sharafuddin Idris Shah, Raja Muda Selangor (Royal Patron); Dato' Seri Nazir Ariff (President); Suraya Ibrahim and Sharmila Kanagalingam (Vice Presidents); Magdeline Leong (Executive Director & Honorary Secretary); Rachel Rajendran (Honorary Treasurer)",
+  "taxExemption": {
+   "statement": "LHDN.01/35/42/51/179-6.4010 (validity not stated)",
+   "source": "https://www.cpsm.org.my/donate"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "258, Jalan Air Itam, 10460 Penang, Malaysia",
+  "phone": "+604-2284046",
+  "email": "admin@cpsm.org.my",
+  "website": "https://www.cpsm.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/childrensprotectionsociety/",
+   "facebook": "https://www.facebook.com/profile.php?id=100064872030417",
+   "youtube": "https://www.youtube.com/@ChildrensProtectionSociety",
+   "tiktok": "https://www.tiktok.com/@jangansentuhsaya_"
+  }
+ },
+ "live": {
+  "note": "Runs the 'Safe Child, Strong Nation' podcast on Spotify and YouTube (2026); YouTube channel https://www.youtube.com/@ChildrensProtectionSociety"
+ },
+ "donationsToday": "One-time online gift; monthly Stripe plans (RM25/50/100/custom); bank transfer (Maybank, Greenlane Branch, Penang; SWIFT available for overseas); Touch 'n Go QR. Email proof to admin@cpsm.org.my for a receipt.",
+ "sources": [
+  "https://cpsm.org.my",
+  "https://www.cpsm.org.my/about-us",
+  "https://www.cpsm.org.my/donate",
+  "https://www.cpsm.org.my/contact"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/cpsm.jpg",
+  "credit": "Jiechao Cheng",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:The_Beach_of_Penang_National_Park_2.jpg",
+  "alt": "Sunset over a Penang beach",
+  "illustrative": true
+ }
+}

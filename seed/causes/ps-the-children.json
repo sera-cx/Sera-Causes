@@ -1,0 +1,69 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "ps-the-children",
+ "name": "Protect & Save The Children (P.S. The Children)",
+ "legalName": "Protect And Save The Children Association of Selangor and Kuala Lumpur",
+ "category": "Children",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Works only on child sexual abuse in Malaysia: preventing it, stepping in when it happens, and helping survivors recover.",
+ "programmes": [
+  "Case management and access to justice for abused children",
+  "Counselling and play therapy",
+  "'Keeping Me Safe' child-safety education",
+  "Safeguarding training for professionals and communities",
+  "Public guidance on reporting abuse"
+ ],
+ "impact": [
+  "23,000+ adults and professionals trained in safeguarding (website, cumulative)",
+  "15,000+ children trained in safeguarding (website, cumulative)",
+  "4,000+ hours of counselling and play therapy (website, cumulative)"
+ ],
+ "beneficiaries": "Children and young people affected by sexual abuse, their families and caregivers, educators and child-protection professionals",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-001-10-01092002",
+  "registrationSource": "https://psthechildren.org.my/about-us/",
+  "founded": "1999",
+  "founders": "Madeleine Yong (Founder); registered with ROS in January 2002",
+  "leadership": "Tunku Kamariah Aminah Maimunah Iskandariah (Patron); Suriawati Zainal (President); Datin Che Nariza Hajjar Hashim (Vice President); Paramesvari Ramasamy (Secretary); Nur Suzeebaayah Jalani (Treasurer); Amnani A. Kadir (Executive Director)",
+  "taxExemption": {
+   "statement": "Stated, no reference (site says LHDN granted tax-exempt status and eligible donations are deductible)",
+   "source": "https://psthechildren.org.my"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Menara Melawangi, Amcorp Mall, Amcorp Trade Centre, No. 18, Jalan Persiaran Barat, 46050 Petaling Jaya, Selangor, Malaysia",
+  "phone": "",
+  "email": "protect@psthechildren.org.my",
+  "website": "https://psthechildren.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/psthechildren/",
+   "facebook": "https://www.facebook.com/P.S.TheChildren",
+   "youtube": "https://www.youtube.com/@p.s.thechildrenmalaysia910",
+   "tiktok": "https://www.tiktok.com/@psthechildren"
+  }
+ },
+ "live": {
+  "note": "YouTube awareness videos; the site links two different channels (https://www.youtube.com/@p.s.thechildrenmalaysia910 and https://www.youtube.com/@protectsavethechildren5404); video count not checked"
+ },
+ "donationsToday": "Online 'Donate' calls to action on the site (methods not listed); GivingHub campaigns (e.g. 'Sponsor therapy for child sexual abuse survivors')",
+ "sources": [
+  "https://psthechildren.org.my",
+  "https://psthechildren.org.my/about-us/",
+  "https://www.psthechildren.org.my/board-and-patrons"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/ps-the-children.jpg",
+  "credit": "D.W. Fisher-Freberg",
+  "licence": "CC BY-SA 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Wau_Pasir_Gudang.JPG",
+  "alt": "A traditional Malaysian wau kite",
+  "illustrative": true
+ }
+}

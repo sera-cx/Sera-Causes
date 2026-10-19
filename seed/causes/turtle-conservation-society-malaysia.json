@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "turtle-conservation-society-malaysia",
+ "name": "Turtle Conservation Society of Malaysia (TCS)",
+ "legalName": "Persatuan Pemuliharaan Tuntung, Kura-Kura dan Penyu Malaysia",
+ "category": "Turtles",
+ "location": {
+  "town": "Kemaman",
+  "state": "Terengganu",
+  "country": "MY"
+ },
+ "summary": "Recovers Malaysia's depleted wild turtle populations, especially freshwater turtles and terrapins, through research, nest protection, rehabilitation and community education.",
+ "programmes": [
+  "Kemaman River Terrapin Conservation Project",
+  "Painted Terrapin Conservation Project",
+  "Terrapin Conservation Centre and Turtle Camps",
+  "Junior Scientist Programme and nature discovery trips",
+  "Empowerment livelihood programme for local women",
+  "Adopt-a-Nest / Adopt-a-Terrapin"
+ ],
+ "impact": [
+  "1,673 river terrapin eggs collected and 1,254 hatchlings emerged in 2026; 690 juveniles released into the Kemaman River (The Star, Oct 2026)",
+  "1,825 eggs collected in 2025 (The Star, Oct 2026)",
+  "13,224 eggs incubated and over 8,000 hatchlings released since 2012 (The Star, Oct 2026)"
+ ],
+ "beneficiaries": "River terrapins and other freshwater turtles in Kemaman, Terengganu; local communities and schoolchildren",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-001-11-10062011",
+  "registrationSource": "https://www.turtleconservationsociety.org.my/about/",
+  "founded": "2011",
+  "founders": "Dr Chan Eng Heng and Dr Chen Pelf Nyok (turtle scientists; Dr Chen remains Executive Director)",
+  "leadership": "Committee 2024-2026: President Dr Maketab Mohamed; Vice President Dr Chen Pelf Nyok; Secretary Nurul 'Ain Najwa; Treasurer Hadifah Ruhaizi. Staff: Executive Director Dr Chen Pelf Nyok",
+  "taxExemption": {
+   "statement": "Stated, no reference (approved under Subsection 44(6) ITA 1967; no LHDN reference or validity printed)",
+   "source": "https://www.turtleconservationsociety.org.my/about/"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "13538 Lorong Solehah 3A, Taman Desa Solehah, 24000 Kemaman, Terengganu, Malaysia",
+  "phone": "+60 11-5417 3577 (WhatsApp, as published on contact page)",
+  "email": "pelf@turtleconservationsociety.org.my",
+  "website": "https://www.turtleconservationsociety.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/tcsmalaysia/",
+   "facebook": "https://www.facebook.com/TurtleConservationSocietyofMalaysia/"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found on website (no YouTube/TikTok linked); Facebook page active"
+ },
+ "donationsToday": "Online card/FPX/e-wallet via website donation page; PayPal; Touch 'n Go and Boost QR; bank transfer (CIMB); Adopt-a-Nest/Adopt-a-Terrapin; membership; merchandise (website shop and Shopee). Official receipts issued.",
+ "sources": [
+  "https://turtleconservationsociety.org.my/",
+  "https://www.turtleconservationsociety.org.my/about/",
+  "https://www.turtleconservationsociety.org.my/donate/",
+  "https://www.turtleconservationsociety.org.my/contact/",
+  "https://www.thestar.com.my/news/nation/2026/10/10/record-release-of-terrapins"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/turtle-conservation-society-malaysia.jpg",
+  "credit": "Bernard Dupont",
+  "licence": "CC BY-SA 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Painted_Terrapin_(Batagur_borneoensis)_(7781281590).jpg",
+  "alt": "Painted terrapin with its red-striped head raised",
+  "illustrative": true
+ }
+}

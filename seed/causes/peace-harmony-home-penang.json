@@ -1,0 +1,63 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "peace-harmony-home-penang",
+ "name": "Peace & Harmony Home",
+ "legalName": "Persatuan Kebajikan Warga Emas Harmoni Pulau Pinang",
+ "category": "Elderly",
+ "location": {
+  "town": "Jelutong",
+  "state": "Penang",
+  "country": "MY"
+ },
+ "summary": "Non-profit nursing home in Penang caring for elderly people who are sick, abandoned or have no family to look after them.",
+ "programmes": [
+  "Residential care for abandoned and sick elderly",
+  "Daily meals and basic medical care",
+  "Volunteer visits and community activities"
+ ],
+ "impact": [
+  "31 residents (FMT, March 2025)",
+  "RM15,000 donation received from Che Hoon Khor Moral Uplifting Society (January 2025)"
+ ],
+ "beneficiaries": "Abandoned, sick and low-income elderly people in Penang",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2015",
+  "founders": "Tan Swee Ban, social worker who founded the home and runs its daily care",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Stated, no reference (Tatler Asia beneficiary profile, 2024)",
+   "source": "https://www.tatlerasia.com/profile/persatuan-kebajikan-warga-emas-harmoni-pulau-pinang-aka-peace-harmony-home?listId=285"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "",
+  "website": "",
+  "socials": {}
+ },
+ "live": {
+  "note": "No live or video channel found (SAYS 2025 article references a TikTok caption but no official account URL found)"
+ },
+ "donationsToday": "Public donations; Tatler Asia profile links to a give.asia donation page (not opened)",
+ "sources": [
+  "https://www.tatlerasia.com/profile/persatuan-kebajikan-warga-emas-harmoni-pulau-pinang-aka-peace-harmony-home?listId=285",
+  "https://fmtv5.freemalaysiatoday.com/category/leisure/2025/03/10/devoting-his-life-to-caring-for-sick-and-neglected-elderly-folk",
+  "https://says.com/my/news/i-saved-so-many-but-i-couldn-t-save-him-peace-and-harmony-home-founder",
+  "https://www.thevibes.com/articles/lifestyle/104464/society-donates-close-to-rm200000-to-13-charitable-organisations-in-penang",
+  "https://cbil.com.hk/news-and-insights/280"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/peace-harmony-home-penang.jpg",
+  "credit": "Nenad Stojkovic",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Elderly_woman_sitting_in_an_armchair_and_holding_her_glasses_while_typing_on_a_laptop._(51531777613).jpg",
+  "alt": "An older woman reading at home",
+  "illustrative": true
+ }
+}

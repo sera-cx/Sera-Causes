@@ -1,0 +1,62 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "kudat-turtle-conservation-society",
+ "name": "Kudat Turtle Conservation Society (KTCS)",
+ "legalName": "",
+ "category": "Turtles",
+ "location": {
+  "town": "Kudat",
+  "state": "Sabah",
+  "country": "MY"
+ },
+ "summary": "Creates safe nesting areas for sea turtles in Kudat and Tun Mustapha Park, working with local communities on protection and awareness.",
+ "programmes": [
+  "Community turtle nest protection and hatchling release",
+  "Education centre at Kampung Bavang Jamal",
+  "Beach clean-ups",
+  "Awareness talks in schools and villages",
+  "Turtle eco-tourism"
+ ],
+ "impact": [
+  "About 4,500 hatchlings released since 2012 (reported July 2017; no newer figures found)"
+ ],
+ "beneficiaries": "Sea turtles of Kudat and Tun Mustapha Park; coastal villages in northern Sabah",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2011",
+  "founders": "Roland Agansai and Francesca Winfield (per Sabah state government news page, 2017)",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "",
+  "phone": "",
+  "email": "",
+  "website": "https://ktcsborneo.org",
+  "socials": {}
+ },
+ "live": {
+  "note": "No live or video channel found"
+ },
+ "donationsToday": "",
+ "sources": [
+  "https://kepkas.sabah.gov.my/100-sea-turtles-for-release",
+  "https://www.theborneopost.com/?p=671857",
+  "https://malaysianwildlife.org/conservation/kudat-turtle-conservation/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/kudat-turtle-conservation-society.jpg",
+  "credit": "Thomas Brown",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hatchling_Green_Turtle_(Chelonia_mydas)_(6161271899).jpg",
+  "alt": "Green turtle hatchling in shallow water",
+  "illustrative": true
+ }
+}

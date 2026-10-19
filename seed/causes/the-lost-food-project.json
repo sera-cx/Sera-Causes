@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "the-lost-food-project",
+ "name": "The Lost Food Project",
+ "legalName": "",
+ "category": "Food & poverty",
+ "location": {
+  "town": "",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Rescues good surplus food before it goes to landfill and delivers it to charities and low-income families.",
+ "programmes": [
+  "Surplus food rescue from retailers and suppliers",
+  "Distribution to charity partners and urban poor families",
+  "Bread rescue and produce sorting with volunteers",
+  "Outreach and education on food waste",
+  "Corporate volunteering"
+ ],
+ "impact": [
+  "2.9 million kg of food rescued, about 8.5 million meals, in 2025 (NST, June 2026)",
+  "Over 11 million kg rescued and 33 million meals delivered from 2016 to January 2026 (NST, June 2026)"
+ ],
+ "beneficiaries": "Charity partners and low-income urban families, mainly in the Klang Valley",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-006-14-13022015",
+  "registrationSource": "https://thelostfoodproject.org/",
+  "founded": "2016",
+  "founders": "Suzanne Mooney MBE, who moved to Malaysia in 2014 and started the project after charity work showed her the need for food",
+  "leadership": "Geoff King (President); Sarah Grasset (Vice President); Nadiah Hanim Abdul Latif (Secretary); Seow Pek Chin (Treasurer)",
+  "taxExemption": {
+   "statement": "Stated, no reference",
+   "source": "https://www.thelostfoodproject.org/donation/"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "TLFP warehouse, Pusat Bekalan POS Malaysia, Jalan Chan Sow Lin, 55200 Kuala Lumpur",
+  "phone": "012-329 3256",
+  "email": "info@thelostfoodproject.org",
+  "website": "https://www.thelostfoodproject.org",
+  "socials": {
+   "instagram": "https://instagram.com/thelostfoodproject",
+   "facebook": "https://www.facebook.com/thelostfoodproject/",
+   "tiktok": "https://www.tiktok.com/@lostfoodproject"
+  }
+ },
+ "live": {
+  "note": "TikTok account linked from site (https://www.tiktok.com/@lostfoodproject); no YouTube channel linked; live streaming not found"
+ },
+ "donationsToday": "Bank transfer, Giving Asia, SenangPay, Simply Giving fundraising page, food and goods donations",
+ "sources": [
+  "https://thelostfoodproject.org/",
+  "https://www.thelostfoodproject.org/about-us/",
+  "https://www.thelostfoodproject.org/our-founder/",
+  "https://www.thelostfoodproject.org/committee/",
+  "https://www.thelostfoodproject.org/contact-us/",
+  "https://www.thelostfoodproject.org/donation/",
+  "https://www.optionstheedge.com/topic/people/lost-food-project-rescues-surplus-food-feed-hungry",
+  "https://www.nst.com.my/amp/news/nation/2026/06/1463430/malaysians-throw-away-6000-tonnes-edible-food-daily",
+  "https://www.ambankgroup.com/newsroom/announcements/ambank-group-renews-rm75-000-sponsorship-with-the-lost-food-project"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/the-lost-food-project.jpg",
+  "credit": "Food Banking Kenya",
+  "licence": "CC BY-SA 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rescued_Food_Distribution.jpg",
+  "alt": "Volunteers handing out rescued vegetables",
+  "illustrative": true
+ }
+}

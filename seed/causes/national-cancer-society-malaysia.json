@@ -1,0 +1,67 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "national-cancer-society-malaysia",
+ "name": "National Cancer Society of Malaysia",
+ "legalName": "Persatuan Kanser Kebangsaan Malaysia",
+ "category": "Health",
+ "location": {
+  "town": "Kuala Lumpur",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Works to cut cancer deaths in Malaysia through public education, affordable screening, and care and support for patients and families.",
+ "programmes": [
+  "Cancer and health screening clinic (breast, cervical, colorectal, prostate)",
+  "Nuclear medicine centre and quit-smoking clinic",
+  "Community awareness and prevention talks",
+  "Psychosocial support and peer support groups",
+  "Homes of Hope for children and adults travelling for treatment",
+  "Relay For Life Malaysia"
+ ],
+ "impact": [],
+ "beneficiaries": "Cancer patients, survivors and families, and the general public needing screening and information",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1966",
+  "founders": "The late Dato' Dr S.K. Dharmalingam, Malaysia's first oncologist; launched by then Prime Minister Tun Abdul Razak",
+  "leadership": "Dato' Dr Saunthari Somasundaram (President); Dato' Seri Dr T Devaraj, Dr Felix Sundram, Dr Lam Chin Chyou (Vice Presidents); Pan Choi Yen (Hon. Gen. Secretary); Ravi Navaratnam (Hon. Gen. Treasurer); Patron: Sultan Nazrin Muizzuddin Shah of Perak",
+  "taxExemption": {
+   "statement": "LHDN.01/35/42/51/179.6.1229, Gazette No. 808, valid 1 Jan 2021 to 31 Dec 2025 (as printed; renewal for 2026 not shown)",
+   "source": "https://cancer.org.my/donate/"
+  },
+  "accounts": "Financial Statements 2020: https://cancer.org.my/wp-content/uploads/2023/06/Report-Financial-Statements-2020.pdf; Impact Report 2025 linked on homepage (not opened)"
+ },
+ "contact": {
+  "address": "No 66, Jalan Raja Muda Abdul Aziz, 50300 Kuala Lumpur, Malaysia",
+  "phone": "03-2698 7300",
+  "email": "",
+  "website": "https://cancer.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/nationalcancersocietymy/",
+   "facebook": "https://www.facebook.com/nationalcancersocietymalaysia",
+   "youtube": "https://www.youtube.com/NCSMalaysia"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site (https://www.youtube.com/NCSMalaysia); video count and live streaming not verified"
+ },
+ "donationsToday": "Online one-time and recurring, DuitNow QR, Touch 'n Go, GrabPay, Boost, Shopee, Lazada, JomPAY (biller 97121), bank transfer, cheque/bank draft, Direct Debit Donor Programme, telefundraising; tax-deductible from RM50",
+ "sources": [
+  "https://www.cancer.org.my/",
+  "https://cancer.org.my/our-profile/",
+  "https://cancer.org.my/about/board-members/",
+  "https://cancer.org.my/annual-reports/",
+  "https://cancer.org.my/donate/"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/national-cancer-society-malaysia.jpg",
+  "credit": "MIKI Yoshihito",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pink_ribbon._(3976973198).jpg",
+  "alt": "A building lit pink with a cancer awareness ribbon",
+  "illustrative": true
+ }
+}

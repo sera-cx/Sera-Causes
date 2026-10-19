@@ -1,0 +1,71 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "free-tree-society",
+ "name": "Free Tree Society",
+ "legalName": "Free Tree Society Kuala Lumpur",
+ "category": "Environment",
+ "location": {
+  "town": "",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Give trees away free to build environmental stewardship, then move people into hands-on conservation and restoration.",
+ "programmes": [
+  "Free tree giveaways from Bangsar and Taman Tugu nurseries",
+  "Pulai Trail urban forest restoration",
+  "On-the-Go community outreach",
+  "Hutan Malaysia",
+  "Corporate workshops, talks and CSR"
+ ],
+ "impact": [
+  "95,490+ free trees given away since 2013 (site)",
+  "81,905+ environmental stewards engaged (site)",
+  "101 ha under restoration and conservation at KPARC and Pulai Trail (site)"
+ ],
+ "beneficiaries": "Kuala Lumpur residents, schools, marginalised communities and urban forest habitats",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-010-14-21052012",
+  "registrationSource": "https://www.freetreesociety.org/_files/ugd/17b9f8_cb9fd338e6bd453da7f4e16dea4dee49.pdf",
+  "founded": "",
+  "founders": "Baida Hercus, described as founder (The Beat, May 2024); now Executive Director",
+  "leadership": "Omar Fateh, President; Melissa Tan, Vice President; Tay Rey Geok, Treasurer; Adhuna Kamarul Ariffin, Secretary; Baida Hercus, Executive Director",
+  "taxExemption": {
+   "statement": "LHDN.AG.600-12/1/4-6.8888, valid 1 April 2025 to 31 March 2030",
+   "source": "https://www.freetreesociety.org/donate"
+  },
+  "accounts": "Not public (constitution published)"
+ },
+ "contact": {
+  "address": "JKR 2624 (5), Jalan Negeri Sembilan, Bukit Persekutuan, 50480 Kuala Lumpur",
+  "phone": "",
+  "email": "info@freetreesociety.org",
+  "website": "https://www.freetreesociety.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/freetreesociety/",
+   "facebook": "https://www.facebook.com/FreeTreeSociety/",
+   "youtube": "https://www.youtube.com/@freetreesocietykl"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site; activity not checked. https://www.youtube.com/@freetreesocietykl"
+ },
+ "donationsToday": "Online donation \"coming soon\"; tax receipts issued on emailing proof of payment to finance@freetreesociety.org",
+ "sources": [
+  "https://www.freetreesociety.org/",
+  "https://www.freetreesociety.org/about",
+  "https://www.freetreesociety.org/donate",
+  "https://www.freetreesociety.org/contact",
+  "https://www.freetreesociety.org/_files/ugd/17b9f8_cb9fd338e6bd453da7f4e16dea4dee49.pdf",
+  "https://thebeat.asia/kuala-lumpur/terra/nature/why-the-free-tree-society-is-giving-away-free-seedlings-to-malaysians"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/free-tree-society.jpg",
+  "credit": "Joshua Tree National Park",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Native_Plant_Nursery_(53729725629).jpg",
+  "alt": "Rows of tree seedlings in a nursery",
+  "illustrative": true
+ }
+}

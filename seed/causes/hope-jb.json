@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "hope-jb",
+ "name": "H.O.P.E. (Homeless & Orphan Pets Exist)",
+ "legalName": "Persatuan Perlindungan Dan Peliharaan Haiwan Terbiar Skudai",
+ "category": "Animals",
+ "location": {
+  "town": "Pekan Nenas",
+  "state": "Johor",
+  "country": "MY"
+ },
+ "summary": "Rescue, rehome and sterilise stray cats and dogs in Johor and raise awareness of responsible pet ownership.",
+ "programmes": [
+  "Rescue and sheltering",
+  "Adoption",
+  "Trap-Neuter-Release-Manage (TNR)",
+  "Education",
+  "Dog food sponsorship",
+  "Friends of HOPE volunteering"
+ ],
+ "impact": [
+  "Over 2,000 cats and dogs sheltered (undated, site)",
+  "Food costs over RM140,000 a month plus RM20,000-30,000 medical bills (site)"
+ ],
+ "beneficiaries": "Stray cats and dogs in Johor",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "2008",
+  "founders": "Chong Siew Chin (\"Aunty Jia Jia\"), who began rescuing about 120 strays in 2007",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Stated, no reference (\"ALL DONATION and SPONSORSHIP to HOPE are now tax-deductible\")",
+   "source": "https://www.hopejb.org.my/usr/pagesub.aspx?pgid=15&lang=en"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Pekan Nenas, Johor",
+  "phone": "+6012-716 7123 (SMS only)",
+  "email": "hopejbdonation@gmail.com",
+  "website": "https://www.hopejb.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/hope_jb",
+   "facebook": "https://www.facebook.com/hopejb"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found"
+ },
+ "donationsToday": "iPay88 (local one-time), PayPal (international), monthly sponsorship RM80/150/250, Maybank transfer, cheque, cash",
+ "sources": [
+  "https://www.hopejb.org.my/",
+  "https://www.hopejb.org.my/usr/pagesub.aspx?pgid=3&lang=en",
+  "https://www.hopejb.org.my/usr/contactus.aspx?pgid=16&lang=en",
+  "https://www.hopejb.org.my/usr/pagesub.aspx?pgid=15&lang=en",
+  "https://PetFinder.my/members/HOPE",
+  "https://causes.benevity.org/causes/458-5745701580240_efda?lang=pl"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/hope-jb.jpg",
+  "credit": "SapphireDreamPhotography",
+  "licence": "CC BY 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bloodhound_Rescue_Puppy.JPG",
+  "alt": "A rescue puppy resting on grass",
+  "illustrative": true
+ }
+}

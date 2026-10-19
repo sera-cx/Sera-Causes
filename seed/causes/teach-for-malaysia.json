@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "teach-for-malaysia",
+ "name": "Teach For Malaysia",
+ "legalName": "TFM Foundation",
+ "category": "Children",
+ "location": {
+  "town": "",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Builds a network of teachers and education leaders so that every child in Malaysia, especially in high-need schools, gets a good education.",
+ "programmes": [
+  "Two-year Fellowship (Guru Muda) placing teachers in high-need schools",
+  "Program Duta Guru teacher development",
+  "KALIS programme",
+  "Community mobilisation (Program Komuniti Perkasa) with B40 families",
+  "Student leadership camps and summits"
+ ],
+ "impact": [
+  "Over 190,000 students reached in 2025 (Impact Report 2025)",
+  "181,000+ students in 823 schools through Program Duta Guru in 2025 (Impact Report 2025)",
+  "56 Fellows teaching 5,600 students in 30 schools in 2025 (Impact Report 2025)",
+  "Merdeka Award, Education and Community category, 2022"
+ ],
+ "beneficiaries": "Students in high-need, low-income (B40) and PPR communities, and their teachers",
+ "organisation": {
+  "entityType": "Foundation",
+  "registration": "TFM Foundation (919785 P)",
+  "registrationSource": "https://teachformalaysia.org/contact-us/",
+  "founded": "2010",
+  "founders": "",
+  "leadership": "YAM Tunku Ali Redhauddin ibni Tuanku Muhriz (Chairman & Founding Trustee); Chan Soon Seng (Chief Executive Officer); Trustees: Chen Li-Kai, Dato' Tharuma Rajah, Shahnaz Al-Sadat Mohsein (Founding Trustee), Datuk Yvonne Chia, YBhg. Datuk Dr. Habibah Abdul Rahim",
+  "taxExemption": {
+   "statement": "Stated, no reference (donate page cites LHDN Subseksyen 44(6) and calls TFM a Ministry of Finance tax-exempt organisation; no reference or validity printed)",
+   "source": "https://teachformalaysia.org/donate/"
+  },
+  "accounts": "Impact/annual reports public for 2012-2025. Latest: Impact Report 2025 https://teachformalaysia.org/wp-content/uploads/2026/06/TFM-Impact-Report-2025-Eng.pdf (reports 2025 income and expenditure of RM23.7m each). Audited financial statements are not linked."
+ },
+ "contact": {
+  "address": "Level 1, Ming Annexe, 9 Jalan Ampang, 50450 Kuala Lumpur, Malaysia",
+  "phone": "+603 2026 0701",
+  "email": "",
+  "website": "https://teachformalaysia.org",
+  "socials": {
+   "instagram": "https://www.instagram.com/teachformsia/",
+   "facebook": "https://www.facebook.com/teachformalaysia/",
+   "youtube": "https://www.youtube.com/user/TeachForMalaysia",
+   "tiktok": "https://www.tiktok.com/@teachformsia"
+  }
+ },
+ "live": {
+  "note": "YouTube channel and TikTok linked from the site (https://www.youtube.com/user/TeachForMalaysia); video count and live streaming not checked"
+ },
+ "donationsToday": "Cheque, online banking and DuitNow to TFM Foundation (CIMB Islamic); email the slip for a receipt (4-6 weeks)",
+ "sources": [
+  "https://teachformalaysia.org",
+  "https://teachformalaysia.org/people/",
+  "https://teachformalaysia.org/contact-us/",
+  "https://teachformalaysia.org/donate/",
+  "https://teachformalaysia.org/our-impact/",
+  "https://teachformalaysia.org/wp-content/uploads/2026/06/TFM-Impact-Report-2025-Eng.pdf"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/teach-for-malaysia.jpg",
+  "credit": "CEphoto, Uwe Aranas",
+  "licence": "CC BY-SA 3.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sapulut_Sabah_SMK-Sapulut-07.jpg",
+  "alt": "A secondary school in Sapulut, Sabah",
+  "illustrative": true
+ }
+}

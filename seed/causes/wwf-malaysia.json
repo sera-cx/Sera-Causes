@@ -1,0 +1,64 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "wwf-malaysia",
+ "name": "WWF-Malaysia",
+ "legalName": "",
+ "category": "Wildlife",
+ "location": {
+  "town": "Petaling Jaya",
+  "state": "Nationwide",
+  "country": "MY"
+ },
+ "summary": "Stop the degradation of Malaysia's natural environment and build a future where people live in harmony with nature.",
+ "programmes": [
+  "Forests",
+  "Oceans",
+  "Wildlife",
+  "Food",
+  "Climate and energy",
+  "Freshwater"
+ ],
+ "impact": [],
+ "beneficiaries": "Malaysian ecosystems and wildlife; communities, schools and businesses",
+ "organisation": {
+  "entityType": "Other",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1972",
+  "founders": "",
+  "leadership": "Sophia Lim, Executive Director/CEO; Dr Henry Chan, Senior Director of Conservation; Tay Mooi Geok, Senior Director of Finance and Administration",
+  "taxExemption": {
+   "statement": "Stated, no reference (\"approved under Subsection 44(6) of the Income Tax Act 1967\")",
+   "source": "https://www.wwf.org.my/index_faq/donation_faq1"
+  },
+  "accounts": "Annual Reviews referenced at https://wwf.org.my/media_and_information/publications/wwf_malaysia_annual_review; no year/PDF URL confirmed"
+ },
+ "contact": {
+  "address": "No. 1 Jalan PJS 5/28A, Petaling Jaya Commercial Centre (PJCC), 46150 Petaling Jaya, Selangor",
+  "phone": "+603 7450 3773",
+  "email": "contactus@wwf.org.my",
+  "website": "https://www.wwf.org.my",
+  "socials": {}
+ },
+ "live": {
+  "note": "Not verified"
+ },
+ "donationsToday": "Online donation, mailed donation form, Maybank2U/CIMB Clicks bill payment (biller \"WWF Malaysia\"), Shopee app",
+ "sources": [
+  "https://www.wwf.org.my/",
+  "https://www.wwf.org.my/about_wwf/",
+  "https://wwf.org.my/about_wwf/senior_leadership",
+  "https://www.wwf.org.my/contact-wwf-malaysia/",
+  "https://www.wwf.org.my/index_faq/donation_faq1",
+  "https://wwf.org.my/media_and_information/publications/wwf_malaysia_annual_review"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/wwf-malaysia.jpg",
+  "credit": "Vyacheslav Argenberg",
+  "licence": "CC BY 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Taman_Negara,_Malaysia,_Tree_Canopy.jpg",
+  "alt": "Looking up into the rainforest canopy at Taman Negara",
+  "illustrative": true
+ }
+}

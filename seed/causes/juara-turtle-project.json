@@ -1,0 +1,70 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "juara-turtle-project",
+ "name": "Juara Turtle Project (JTP)",
+ "legalName": "",
+ "category": "Turtles",
+ "location": {
+  "town": "Pulau Tioman",
+  "state": "Pahang",
+  "country": "MY"
+ },
+ "summary": "Protects marine biodiversity around Tioman Island through sea turtle conservation, coral restoration, research and community education.",
+ "programmes": [
+  "Sea turtle nest relocation and hatchery",
+  "Coral reef restoration",
+  "Marine debris and waste programme",
+  "Education and community outreach",
+  "Volunteer, internship and field-study programmes",
+  "Research diving and eco-skills courses"
+ ],
+ "impact": [
+  "211 nests documented in 2025",
+  "19,761 eggs relocated and 16,217 hatchlings released in 2025 (82% hatching success)",
+  "49 turtles photo-identified in 2025 (37 new, 12 returning)",
+  "2,040+ hours of beach monitoring in 2025"
+ ],
+ "beneficiaries": "Sea turtles and coral reefs of Pulau Tioman; Kampung Juara community; students and volunteers",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "NGO REG# PPM-024-06-10052016",
+  "registrationSource": "https://www.juaraturtleproject.com/",
+  "founded": "2001 (as a Department of Fisheries hatchery; independent NGO from 2006)",
+  "founders": "Started in 2001 by the Department of Fisheries Malaysia; John Amos took over the work in 2006",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": "https://www.juaraturtleproject.com/donate"
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "26800 Kampung Juara, Pulau Tioman, Pahang, Malaysia",
+  "phone": "+60 9-419 3244",
+  "email": "contact@juaraturtleproject.com",
+  "website": "https://www.juaraturtleproject.com",
+  "socials": {
+   "instagram": "https://www.instagram.com/juaraturtleproject/",
+   "facebook": "https://www.facebook.com/juaraturtleproject.tioman"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found on website"
+ },
+ "donationsToday": "Online donation form (one-off or recurring, MYR) at donate.juaraturtleproject.com",
+ "sources": [
+  "https://juaraturtleproject.com/",
+  "https://www.juaraturtleproject.com/about",
+  "https://www.juaraturtleproject.com/donate",
+  "https://www.juaraturtleproject.com/contact-us"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/juara-turtle-project.jpg",
+  "credit": "Bangsamoro Ministry of Environment",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hatchlings_released_at_Turtle_Islands_Wildlife_Sanctuary.jpg",
+  "alt": "Turtle hatchlings released from a basket onto the sand",
+  "illustrative": true
+ }
+}

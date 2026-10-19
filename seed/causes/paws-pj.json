@@ -1,0 +1,67 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "paws-pj",
+ "name": "PAWS Animal Welfare Society",
+ "legalName": "PAWS Animal Welfare Society Petaling Jaya (as bank account holder name)",
+ "category": "Animals",
+ "location": {
+  "town": "Ara Damansara",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Shelter abandoned, stray and unwanted cats and dogs, get them vaccinated and neutered, and find them new homes.",
+ "programmes": [
+  "Shelter care, vaccination and neutering",
+  "Adoption",
+  "Sponsor-a-Pet",
+  "Owner surrender intake",
+  "Volunteering",
+  "Building Fund"
+ ],
+ "impact": [
+  "Over 250 dogs and 250 cats in the shelter (undated, About page)"
+ ],
+ "beneficiaries": "Abandoned and stray cats and dogs in the Klang Valley",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "",
+  "registrationSource": "",
+  "founded": "1987",
+  "founders": "",
+  "leadership": "",
+  "taxExemption": {
+   "statement": "Not stated",
+   "source": ""
+  },
+  "accounts": "Not public"
+ },
+ "contact": {
+  "address": "Lot 93316-93317, Jalan PJU 1A/20, Ara Damansara, 47301 Petaling Jaya, Selangor",
+  "phone": "017-284 7500",
+  "email": "pawshelter@gmail.com",
+  "website": "https://www.paws.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/pawspj/",
+   "facebook": "https://www.facebook.com/PawsPJ/"
+  }
+ },
+ "live": {
+  "note": "No live or video channel found"
+ },
+ "donationsToday": "Bank transfer (Public Bank), DuitNow QR, QR codes at Pet Lovers Centre outlets, event donation boxes, in-kind wishlist items",
+ "sources": [
+  "https://www.paws.org.my/",
+  "https://www.paws.org.my/about/",
+  "https://www.paws.org.my/donate/",
+  "https://fundraiser.givinghub.asia/organizations/paws-animal-welfare-society"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/paws-pj.jpg",
+  "credit": "Lisa Zins",
+  "licence": "CC BY 2.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Brown_and_white_cat-_Flickr_-_Lisa_Zins.jpg",
+  "alt": "A long-haired white and grey cat",
+  "illustrative": true
+ }
+}

@@ -1,0 +1,102 @@
+{
+ "causes": [
+  "kasih-turtle-conservation-project",
+  "juara-turtle-project",
+  "kudat-turtle-conservation-society",
+  "perhentian-turtle-project",
+  "pulihara",
+  "tengah-island-conservation",
+  "turtle-conservation-society-malaysia",
+  "marecet",
+  "reef-check-malaysia",
+  "bsbcc",
+  "mycat",
+  "seratu-aatai",
+  "wwf-malaysia",
+  "free-tree-society",
+  "global-environment-centre",
+  "malaysian-nature-society",
+  "furrykids-safehaven",
+  "hope-jb",
+  "paws-pj",
+  "scas",
+  "spca-penang",
+  "spca-selangor",
+  "cpsm",
+  "dignity-for-children",
+  "make-a-wish-malaysia",
+  "nasom",
+  "orphancare-foundation",
+  "ps-the-children",
+  "rumah-kids",
+  "shelter-home-for-children",
+  "teach-for-malaysia",
+  "yayasan-chow-kit",
+  "hospis-malaysia",
+  "national-cancer-society-malaysia",
+  "nkf-malaysia",
+  "sarawak-childrens-cancer-society",
+  "food-aid-foundation",
+  "kechara-soup-kitchen",
+  "the-lost-food-project",
+  "malaysian-relief-agency",
+  "mercy-malaysia",
+  "peace-harmony-home-penang",
+  "womens-aid-organisation",
+  "malaysian-association-for-the-blind"
+ ],
+ "attest": {
+  "perhentian-turtle-project": {
+   "kind": "concern",
+   "text": "Not a registered charity on its own site: run by Fuze Ecoteer Outdoor Adventures Sdn Bhd (a private company), so donations would not be tax-deductible and there is no published registration."
+  },
+  "kudat-turtle-conservation-society": {
+   "kind": "concern",
+   "text": "No 2024-2026 news or activity found; most recent dated coverage is 2017. Website blocks automated reading, so current status unconfirmed."
+  },
+  "malaysian-nature-society": {
+   "kind": "note",
+   "text": "Executive Director I. S. Shanmugaraj Subramaniam's tenure ended July 2026; MNS gave no reason and appointed an acting ED. No controversy reported."
+  },
+  "furrykids-safehaven": {
+   "kind": "note",
+   "text": "March 2025: dispute with private landowner over sole access road to Seremban shelter; state reps sponsored RM18,000 for a reserve road (Malaysiakini, The Sun). Not a misconduct issue but an operational risk."
+  },
+  "spca-penang": {
+   "kind": "concern",
+   "text": "Feb 2025: SPCA Penang admitted dumping about 10 dead cats in a Jelutong roadside bin, citing loss of council incinerator access; DVS found no evidence of cruelty but said investigation continues (Malay Mail, TRP)."
+  },
+  "nasom": {
+   "kind": "concern",
+   "text": "No controversy found. Website security issue: the NASOM homepage contained injected gambling and casino spam text and links when fetched on 2026-10-17. Tell NASOM before linking to the site."
+  },
+  "rumah-kids": {
+   "kind": "concern",
+   "text": "No controversy found. Website security issue: the Rumah KIDS pages contained injected spam (a 'traditionrolex.com' link and a casino advert) when fetched on 2026-10-17. Confirm bank details with the organisation directly."
+  },
+  "nkf-malaysia": {
+   "kind": "concern",
+   "text": "IRB revoked 44(6) tax-exempt status in Aug 2019 after an audit (NKF said no misuse of funds was found). NKF won judicial review; Court of Appeal dismissed IRB appeal on leave (1 Apr 2024) and High Court quashed the revocation (28 Nov 2024). Whether IRB appealed further not found."
+  },
+  "national-cancer-society-malaysia": {
+   "kind": "concern",
+   "text": "Printed 44(6) approval period ended 31 Dec 2025; no renewed reference shown on site. Homepage contains injected links to gambling/supplement sites (possible site compromise)."
+  },
+  "womens-aid-organisation": {
+   "kind": "concern",
+   "text": "March-April 2024 governance dispute: seven exco members resigned, executive director Sumitra Visvanathan was suspended and left, claiming the new exco was unlawful; WAO said appointments were registered with RoS and it was not under RoS probe. Also: WAO website pages contain injected gambling/adult links (possible site compromise)."
+  },
+  "malaysian-relief-agency": {
+   "kind": "concern",
+   "text": "Website looks compromised: impact counters show 0 and an unrelated pharmacy advert is embedded. Alert them before linking."
+  },
+  "peace-harmony-home-penang": {
+   "kind": "concern",
+   "text": "No website, no verified social accounts and no published office contact. Confirm directly before onboarding."
+  },
+  "kasih-turtle-conservation-project": {
+   "kind": "open-question",
+   "text": "No registration number, website or named operator found online yet. Confirm who runs the hatchery and request its registration certificate before verification."
+  }
+ }
+}

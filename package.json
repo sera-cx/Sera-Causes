@@ -1,0 +1,18 @@
+{
+  "name": "sera-causes",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Care Share Donate: open-source crypto giving for causes.sera.cx, settled on Sera.cx",
+  "packageManager": "pnpm@10.4.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/*' --filter ./contracts --filter ./indexer --filter './apps/*' build",
+    "test": "pnpm -r test",
+    "check": "pnpm -r check",
+    "dev:api": "pnpm --filter @sera-causes/indexer dev",
+    "dev:web": "pnpm --filter @sera-causes/web dev",
+    "db:migrate": "pnpm --filter @sera-causes/indexer db:migrate",
+    "db:seed": "pnpm --filter @sera-causes/indexer db:seed",
+    "demo": "pnpm --filter @sera-causes/contracts demo"
+  }
+}

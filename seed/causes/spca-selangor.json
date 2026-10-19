@@ -1,0 +1,72 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "spca-selangor",
+ "name": "SPCA Selangor",
+ "legalName": "Society for the Prevention of Cruelty to Animals (Persatuan Pencegahan Penganiayaan Haiwan)",
+ "category": "Animals",
+ "location": {
+  "town": "Ampang",
+  "state": "Selangor",
+  "country": "MY"
+ },
+ "summary": "Prevent cruelty to animals in Selangor through sheltering and rehoming, neutering, inspection of cruelty cases and public education.",
+ "programmes": [
+  "Shelter, rehabilitation and rehoming",
+  "Spay and neuter (incl. Stray Free Selangor)",
+  "Inspectorate for cruelty cases",
+  "Education and campaigns",
+  "Farm animal welfare (added 2020)"
+ ],
+ "impact": [
+  "187 animals adopted in 2024",
+  "Over 4,300 animals neutered in 2024 (4,340 in stats table; 4,387 in chairman's message)",
+  "1,183 neutered under Stray Free Selangor in 2024"
+ ],
+ "beneficiaries": "Stray and abused cats and dogs in the Klang Valley; pet owners and the public",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-001-10-12011958 (website footer also shows \"Reg No. 1320\")",
+  "registrationSource": "https://www.spca.org.my/wp-content/uploads/2025/04/SPCA_AR2024c.pdf",
+  "founded": "1958",
+  "founders": "",
+  "leadership": "Patron: Tan Sri Lee Lam Thye; Hon. Chairman: Christine Chin; Hon. Secretary: Gerald Tan; Hon. Treasurer: Edmond Cheah (Annual Review 2024)",
+  "taxExemption": {
+   "statement": "Stated, no reference (\"All cash donations are tax-exempt\")",
+   "source": "https://www.spca.org.my/what-you-can-do-to-help/donate/"
+  },
+  "accounts": "Annual Review 2024: https://www.spca.org.my/wp-content/uploads/2025/04/SPCA_AR2024c.pdf (no income/expenditure figures inside)"
+ },
+ "contact": {
+  "address": "Jalan Kerja Ayer Lama, Ampang Jaya, 68000 Ampang, Selangor",
+  "phone": "03-4256 5312",
+  "email": "enquiries@spca.org.my",
+  "website": "https://www.spca.org.my",
+  "socials": {
+   "instagram": "https://www.instagram.com/spca_selangor/",
+   "facebook": "https://www.facebook.com/SPCASelangor",
+   "youtube": "https://www.youtube.com/channel/UChOUc7LVqrj9kQIN2zTbj3w"
+  }
+ },
+ "live": {
+  "note": "YouTube channel linked from site; activity not checked. https://www.youtube.com/channel/UChOUc7LVqrj9kQIN2zTbj3w"
+ },
+ "donationsToday": "Online card or direct debit (one-time/monthly), cheque/postal order, QR Pay via bank or e-wallet, legacy gifts",
+ "sources": [
+  "https://www.spca.org.my/",
+  "https://www.spca.org.my/who-we-are/our-history/",
+  "https://www.spca.org.my/contact-us/",
+  "https://www.spca.org.my/what-you-can-do-to-help/donate/",
+  "https://www.spca.org.my/media-centre/annual-review/",
+  "https://www.spca.org.my/wp-content/uploads/2025/04/SPCA_AR2024c.pdf",
+  "https://www.malaysiakini.com/news/730521"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/spca-selangor.jpg",
+  "credit": "Sgt. Valerie Eppler",
+  "licence": "Public domain",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Families_find_new_furry_friends_at_adoption_event_140726-M-DN141-001.jpg",
+  "alt": "A man hugging a dog at an adoption event",
+  "illustrative": true
+ }
+}

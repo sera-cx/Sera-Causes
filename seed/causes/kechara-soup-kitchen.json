@@ -1,0 +1,73 @@
+{
+ "schema": "csd.cause/1",
+ "slug": "kechara-soup-kitchen",
+ "name": "Kechara Soup Kitchen",
+ "legalName": "Kechara Soup Kitchen Society",
+ "category": "Food & poverty",
+ "location": {
+  "town": "Jalan Imbi",
+  "state": "Kuala Lumpur",
+  "country": "MY"
+ },
+ "summary": "Fights hunger and poverty in Malaysia by distributing food and helping the homeless, urban poor and Orang Asli move towards self-sufficiency.",
+ "programmes": [
+  "Soup kitchen meal distribution",
+  "Food bank for families and partner charities",
+  "Empowerment and skills training",
+  "Education support for Orang Asli children",
+  "Dual food distribution kitchen and empowerment centre in Jalan Barat (opened 2026)"
+ ],
+ "impact": [
+  "212K individuals served annually (site, 2026)",
+  "2,500+ families supported monthly (site, 2026)",
+  "1,300+ meals served daily (site, 2026)",
+  "280 charity partners (site, 2026)"
+ ],
+ "beneficiaries": "Homeless people, urban poor families and Orang Asli communities",
+ "organisation": {
+  "entityType": "Society (ROS)",
+  "registration": "PPM-012-14-26052008 (0926-06-SEL)",
+  "registrationSource": "https://www.kecharasoupkitchen.com/about-us",
+  "founded": "2008",
+  "founders": "",
+  "leadership": "Henry Ooi (President); Li Kim (Vice President); Su Ming (Secretary); Beng Kooi (Treasurer); Justin Cheah Kok Leong (General Manager, per The Star Aug 2026)",
+  "taxExemption": {
+   "statement": "Stated, no reference",
+   "source": "https://www.kecharasoupkitchen.com/donation"
+  },
+  "accounts": "Annual reports 2021-2025 and financial reports 2018-2025 public at https://www.kecharasoupkitchen.com/reports (2025 financial report: https://cdn.sanity.io/files/qmiz5sgj/production/a8763413908ca8d82da1659f2635ecc5227e13b1.pdf); audit status not stated"
+ },
+ "contact": {
+  "address": "17, Jalan Barat, Off Jalan Imbi, 55100 Kuala Lumpur",
+  "phone": "+6012-615 0260",
+  "email": "ksk@kechara.com",
+  "website": "https://www.kecharasoupkitchen.com",
+  "socials": {
+   "instagram": "https://www.instagram.com/kecharasoupkitchensociety/",
+   "facebook": "https://www.facebook.com/KecharaSoupKitchen",
+   "youtube": "https://www.youtube.com/@kecharasoupkitchen2038",
+   "tiktok": "https://www.tiktok.com/@kskkechara"
+  }
+ },
+ "live": {
+  "note": "YouTube and TikTok channels linked from site (https://www.youtube.com/@kecharasoupkitchen2038); video count and live streaming not verified"
+ },
+ "donationsToday": "Online one-time or monthly donation, in-kind donations, campaigns (Feed a Family, Host a Fundraiser, Run For a Reason); 44(6) receipt for RM50 and above",
+ "sources": [
+  "https://www.kecharasoupkitchen.com/",
+  "https://www.kecharasoupkitchen.com/about-us",
+  "https://www.kecharasoupkitchen.com/board-of-directors",
+  "https://www.kecharasoupkitchen.com/reports",
+  "https://www.kecharasoupkitchen.com/donation",
+  "https://www.thestar.com.my/metro/metro-news/2026/08/19/makeover-for-soup-kitchen-in-kl"
+ ],
+ "profileCheckedOn": "2026-10-17",
+ "image": {
+  "src": "photos/kechara-soup-kitchen.jpg",
+  "credit": "Elizabeth Xiong",
+  "licence": "CC BY 4.0",
+  "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kuala_Lumpur_skyline_and_Petronas_Twin_Towers_night_view_from_Kampung_Baru.jpg_01.jpg",
+  "alt": "Kuala Lumpur at night from Kampung Baru",
+  "illustrative": true
+ }
+}
