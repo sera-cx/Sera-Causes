@@ -1,0 +1,129 @@
+name: Deploy to causes.sera.cx
+
+# Same shape as the sera.cx workflow: the box holds the checkout and builds
+# the images itself, so a deploy is a git reset plus `compose up -d --build`,
+# and a rollback is retagging the previous image.
+#
+# A pull request runs the checks only. It never touches the server.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Never cancel a deploy mid-flight, and collapse a burst of pushes to the
+# newest queued run.
+concurrency:
+  group: deploy-causes-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: check and test every package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sera_causes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sera_causes_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The web app's typecheck resolves @sera-causes/shared through its built
+      # declarations, and the indexer's ABI test reads the compiled contract,
+      # so the build has to come before the checks.
+      - run: pnpm --filter @sera-causes/indexer db:generate
+      - run: pnpm --filter @sera-causes/contracts compile
+      - run: pnpm -r build
+
+      - run: pnpm -r check
+      - run: pnpm -r test
+
+  deploy:
+    name: SSH and rebuild on the server
+    needs: checks
+    # A pull request verifies the code, never the server.
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    steps:
+      - name: Trigger remote pull and rebuild
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.CAUSES_DEPLOY_PATH }}"
+
+            echo "==> Disk state before"
+            df -h /
+
+            echo "==> Pulling latest from main"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "==> Tagging the current images for rollback"
+            STAMP=$(date +%Y%m%d%H%M%S)
+            for svc in sera-causes-api sera-causes-web; do
+              if docker image inspect "$svc:latest" >/dev/null 2>&1; then
+                docker image tag "$svc:latest" "$svc:rollback-$STAMP"
+              fi
+            done
+
+            echo "==> Rebuilding and restarting"
+            docker compose up -d --build
+
+            echo "==> Waiting for the API to report healthy"
+            ok=""
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:${API_HOST_PORT:-3401}/health >/dev/null 2>&1; then
+                ok=yes
+                break
+              fi
+              sleep 5
+            done
+            if [ -z "$ok" ]; then
+              echo "API did not come up; see 'docker compose logs api'." >&2
+              exit 1
+            fi
+
+            echo "==> Done. Current commit:"
+            git log -1 --oneline
