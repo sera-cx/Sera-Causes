@@ -1,19 +1,147 @@
-# contracts
+# @sera-causes/contracts
 
-The Care Share Donate cause registry on Ethereum.
+`CauseRegistry.sol` v1.1: the shared cause registry behind causes.sera.cx and
+any other front end built on Sera Causes. One contract holds the list of
+causes, the escrow per cause and stablecoin, the per-claim verification
+outcomes and the help requests. Everything a front end shows is rebuilt from
+its events.
 
-Planned contents, per [docs/PRODUCT-BRIEF.md](../docs/PRODUCT-BRIEF.md)
-section 11:
+The package exports the ABI (`@sera-causes/contracts/abi`) and the address
+book (`@sera-causes/contracts/deployments/<chainId>.json`). The spec is
+[ARCHITECTURE.md](../ARCHITECTURE.md) section 2; the product rules are in
+[docs/PRODUCT-BRIEF.md](../docs/PRODUCT-BRIEF.md) sections 5, 7 and 11.
 
-- `CauseRegistry.sol` (v0.1 exists with 10 passing tests): list, update,
-  payout change (drops Verified), owner transfer, attest, donate into escrow per
-  cause and stablecoin, claim, refund after 90 days or on suspend/close,
-  progress posts, help requests and pledges, council-managed accepted
-  stablecoins.
-- Changes for v1.1: per-claim `finaliseClaim`, automatic Verified when all
-  required claims are final, `commitRound` for weekly highlights, and a
-  finaliser role replacing the verifier role.
+## Toolchain
 
-The registry is fully open. Anyone may build their own front end on it.
-Escrow, claim and refund logic must pass an independent security review before
-mainnet.
+solc-js 0.8.24, ganache 7 (in-process chain), ethers 6, `node:test`. No
+Foundry, no Hardhat, no Docker, no network needed for anything but deploys.
+
+```sh
+pnpm install            # from the repo root
+pnpm compile            # contracts/*.sol -> build/*.json ({ contractName, abi, bytecode })
+pnpm test               # compile, then node --test on an in-process ganache chain
+pnpm demo               # compile, seed 44 causes on a local chain, write build/demo-snapshot.json
+pnpm check              # syntax check of every script and test
+```
+
+Compiler settings: optimizer on (200 runs), EVM `paris`. The deployed bytecode
+is about 12.3 KB, well under the 24 KB limit.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `contracts/CauseRegistry.sol` | The registry. Plain-English NatSpec on every public function. |
+| `contracts/mocks/MockTokens.sol` | `MockStable` (USDC-like) and `MockUSDT` (returns nothing from `transfer`, like real USDT). Tests and demo only. |
+| `test/registry.test.mjs` | 21 tests: the 10 v0.1 behaviours ported to the new API, plus the v1.1 rules. |
+| `scripts/compile.mjs` | solc-js compile into `build/`. |
+| `scripts/deploy.mjs` | Deploy to a real network and write `deployments/<chainId>.json`. |
+| `scripts/seed.mjs` | List the 44 researched causes from `../seed/` with attestations and help requests. Importable or CLI. |
+| `scripts/snapshot.mjs` | Rebuild a JSON snapshot from events (the small indexer; the Postgres one lives in `../indexer`). Importable or CLI. |
+| `scripts/demo-chain.mjs` | Local end-to-end run: deploy, roles, tokens, seed, finalise two causes, snapshot. |
+| `deployments/` | One JSON per chain id: `{ address, block, council, deployedAt, ... }`. |
+
+## The role model
+
+| Role | Who | Can |
+| --- | --- | --- |
+| council | A multisig, set in the constructor | `setFinaliser`, `setSteward`, `setToken`, `setCouncil`. Nothing else. |
+| finaliser | Steward multisig in phases 0 and 1, later a proven tally | `finaliseClaim`: record a claim outcome whose inputs anyone can recompute (`resultRoot` is the Merkle root of the published votes). |
+| steward | Sera.cx steward multisig in phases 0 and 1 | `suspend`, `reinstate`, `closeBySteward`, `setRequiresCareLicence`. Every call carries a written reason or is re-evaluated on-chain. |
+| owner | Whoever listed the cause, or was given it | `updateCause`, `setPayout`, `transferCauseOwnership`, `closeCause`, `postProgress`, `postNeed`, `closeNeed`, `claim` (payout address can also claim). |
+| anyone | Any wallet | `listCause`, `attest`, `donate`, `refund` (own gifts), `pledge`, every view. |
+
+There is no verifier role and no `verify` call. A cause becomes Verified only
+when every required claim has been finalised as Verified.
+
+## Claims and status
+
+```
+ClaimType    C1_Registered, C2_Current, C3_Payout, C4_WorkReal, C5_TaxExempt, C6_CareLicence, C7_Accounts
+ClaimOutcome Open, Verified, NotVerified, NeedsMore
+Status       None, Listed, Verified, Suspended, Closed
+```
+
+Required for Verified: C1 to C4, plus C6 when `requiresCareLicence[causeId]`
+is set (children's homes and elderly care centres; set at listing, a steward
+can toggle it). C5 and C7 are badges and never change status. The views
+`isRequired`, `requiredClaimsMet` and `verifiedRequiredCount` expose the rule
+so front ends show "2 of 4" without re-implementing it.
+
+Rules the contract enforces:
+
+- `finaliseClaim` on a Listed cause: when every required claim is Verified
+  the cause becomes Verified, `verifiedAt` is set and `StatusChanged` carries
+  the note `all required claims verified`.
+- `finaliseClaim` setting a required claim to NotVerified on a Verified cause:
+  the cause is Suspended with note `required claim overturned`. Refunds open.
+- `finaliseClaim` setting a required claim back to Open or NeedsMore on a
+  Verified cause: the cause drops to Listed with note `required claim
+  reopened`. Not a fail, so gifts are still accepted.
+- `setPayout` resets C3 to Open and drops a Verified cause to Listed with a
+  fresh refund clock. A stolen owner key cannot redirect funds.
+- `reinstate` moves Suspended to Listed with a fresh `waitingSince`, then
+  straight to Verified if the required claims still hold.
+- `setRequiresCareLicence` re-evaluates: a Verified cause that now needs an
+  unverified C6 drops to Listed; a Listed cause whose claims are now all met
+  becomes Verified.
+- Closed causes take no further results.
+
+Escrow, `claim`, `refund` (90 days without Verified, or at once on suspend or
+close, capped at what is still held), `attest`, progress, needs and pledges
+are unchanged from v0.1.
+
+## Deploy to Sepolia
+
+```sh
+cd contracts
+RPC_URL=https://sepolia.infura.io/v3/<key> \
+DEPLOYER_KEY=0x<deployer private key> \
+COUNCIL=0x<council multisig> \
+pnpm deploy
+```
+
+This compiles, deploys `CauseRegistry(COUNCIL)` and writes
+`deployments/11155111.json`. If the deployer is also the council you can pass
+`FINALISER=0x...`, `STEWARD=0x...` and `TOKENS=0x...,0x...` to set roles and
+accepted stablecoins in the same run; otherwise the council multisig calls
+`setFinaliser`, `setSteward` and `setToken` itself.
+
+Then seed the researched causes (pin `../seed/causes` to IPFS first):
+
+```sh
+RPC_URL=... REGISTRY=0x<address> LISTER_KEY=0x... RESEARCH_KEY=0x... \
+URI_BASE=ipfs://<cid>/ pnpm seed
+```
+
+The lister passes `needsCareLicence=true` for causes in the Children or
+Elderly categories. Copy the address into `.env` as `REGISTRY_ADDRESS` and
+`VITE_REGISTRY_ADDRESS` for the indexer and the web app.
+
+## Demo chain
+
+`pnpm demo` starts ganache in-process, deploys the registry with a council, a
+finaliser and a steward, accepts a mock USDT and USDC, lists the 44 causes
+from `../seed` with Sera research's attestations and help requests, finalises
+C1 to C4 for Free Tree Society and Make-A-Wish Malaysia so both are Verified,
+marks three more as partly checked, and writes `build/demo-snapshot.json`
+from the event log. Make-A-Wish is listed in the Children category, so the
+lister flags a care licence; the demo steward then unflags it with a written
+attestation because it grants wishes rather than running a care centre.
+
+## Using the ABI from another package
+
+```js
+import abi from "@sera-causes/contracts/abi" with { type: "json" };
+import sepolia from "@sera-causes/contracts/deployments/11155111.json" with { type: "json" };
+```
+
+Enum values match the Solidity order: `ClaimType` 0 to 6 is C1 to C7,
+`ClaimOutcome` 0 to 3 is Open, Verified, NotVerified, NeedsMore, `Status` 0 to
+4 is None, Listed, Verified, Suspended, Closed.
+
+## Licence
+
+The repository licence is MIT plus a settlement condition (see `../LICENSE`).
+The registry contract itself is open: anyone may read it, build a front end on
+it or deploy their own copy.

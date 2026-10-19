@@ -1,0 +1,36 @@
+{
+  "name": "@sera-causes/contracts",
+  "version": "0.1.0",
+  "description": "CauseRegistry v1.1: the shared cause registry for Sera Causes. ABI, address book, tests and demo chain.",
+  "type": "module",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "files": [
+    "contracts",
+    "build/CauseRegistry.json",
+    "build/MockStable.json",
+    "build/MockUSDT.json",
+    "deployments",
+    "scripts",
+    "README.md"
+  ],
+  "exports": {
+    "./abi": "./build/CauseRegistry.json",
+    "./abi/mocks/*": "./build/*.json",
+    "./deployments/*.json": "./deployments/*.json",
+    "./snapshot": "./scripts/snapshot.mjs"
+  },
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "build": "node scripts/compile.mjs",
+    "test": "node scripts/compile.mjs && node --test test/registry.test.mjs",
+    "demo": "node scripts/compile.mjs && node scripts/demo-chain.mjs",
+    "deploy": "node scripts/compile.mjs && node scripts/deploy.mjs",
+    "seed": "node scripts/seed.mjs",
+    "check": "for f in scripts/*.mjs test/*.mjs; do node --check \"$f\" || exit 1; done"
+  },
+  "devDependencies": {
+    "ethers": "^6.13.2",
+    "ganache": "^7.9.2",
+    "solc": "^0.8.24"
+  }
+}
