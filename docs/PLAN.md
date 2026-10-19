@@ -144,3 +144,21 @@ Dependency added: Privy embedded wallets per cause and delegated signing for
 auto-convert. If delegated signing is unavailable for a wallet (for example an
 external wallet owner who declined it), that cause falls back to manual
 conversion.
+
+## 7. Helpers earn XP, not gSera (decision 19 October 2026, pending community assessment)
+
+Douglas's decision: gSera is for gifts only. Every helper action (listing,
+evidence, verification paths, votes, help requests, translations, visits,
+upheld challenges) earns XP on community.sera.cx instead, and the community
+programme collapses to two tracks, Care (helping causes) and Build (building
+for Sera), retiring Earn and Evangelise.
+
+The proposal, XP table and integration contract are in the brief sent to the
+community team: "Cause helpers on community.sera.cx". Until they respond:
+
+- Brief section 6.3 (helper gSera) is superseded. The shared rules package's
+  helper reward table and the indexer's helper credit calls are to be replaced
+  by `care_*` XP events through a new `packages/community-client`.
+- gSera on Sera Causes: credited on gifts only, spent on challenge stakes only.
+- Nothing is implemented on either side until the XP amounts and the partner
+  route are agreed.
