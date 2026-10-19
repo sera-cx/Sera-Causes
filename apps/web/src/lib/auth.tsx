@@ -4,9 +4,10 @@
  *   privy    real sign-in through Sera.cx's Privy app. Picked whenever
  *            VITE_PRIVY_APP_ID is set. Lives in ./privy, loaded on demand so a
  *            site without Privy never downloads the SDK.
- *   mock     the demo wallet, signing for real with the dev key in
- *            ./devWallet so EIP-712 signatures verify against `X-Dev-Wallet`
- *            on the API. Dev builds only.
+ *   mock     the demo wallet, signing for real with the local test account
+ *            ./devWallet derives, so EIP-712 signatures verify against
+ *            `X-Dev-Wallet` on the API. Dev builds only, and no private key
+ *            is committed for it.
  *   readonly no account at all. What a production build falls back to when
  *            Privy is not configured: reads work, writes are not offered, and
  *            the dev signer is never reachable.
@@ -88,7 +89,7 @@ function writeStorage(signedIn: boolean) {
 }
 
 /**
- * The dev key, loaded only here and only in a dev build. Vite folds
+ * The local test signer, loaded only here and only in a dev build. Vite folds
  * `import.meta.env.DEV` to `false` in a production build and drops the branch
  * with its chunk, and `vite.config.ts` aliases the module away as well.
  */
@@ -116,7 +117,7 @@ export const mockAdapter: AuthAdapter = {
     writeStorage(false);
   },
   async signTypedData(data) {
-    // A real secp256k1 signature from the dev key, so verifyTypedData on the API passes.
+    // A real secp256k1 signature from the local test account, so verifyTypedData on the API passes.
     const { devAccount } = await devSigner();
     return devAccount.signTypedData(data as unknown as Parameters<typeof devAccount.signTypedData>[0]);
   },
