@@ -1,0 +1,114 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sera}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sera}
+      POSTGRES_DB: ${POSTGRES_DB:-sera_causes}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sera} -d ${POSTGRES_DB:-sera_causes}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # One-shot: applies prisma/migrations, then exits. api and worker wait on it.
+  migrate:
+    build:
+      context: .
+      target: indexer
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+    command: ["sh", "-c", "cd /app/indexer && ./node_modules/.bin/prisma migrate deploy"]
+    restart: "no"
+
+  # Optional demo data (44 causes, gifts, etc.). Run with:
+  #   docker compose --profile seed run --rm seed
+  seed:
+    build:
+      context: .
+      target: indexer
+    profiles: ["seed"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+    command: ["node", "dist/seed/seed.js", "--reset", "--with-gifts"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: indexer
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3001}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3100}
+    # Optional chain / integration / secrets live in a project .env (see
+    # .env.example): RPC_URL, REGISTRY_ADDRESS, FINALISER_PRIVATE_KEY,
+    # PRIVY_APP_ID, SERA_API_KEY, GSERA_MODE, KYT_MODE, RESEND_API_KEY, ...
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "${API_PORT:-3001}:3001"
+    volumes:
+      - uploads-data:/app/indexer/uploads
+      - public-data:/app/indexer/public
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: indexer
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3001}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3100}
+    env_file:
+      - path: .env
+        required: false
+    command: ["node", "dist/workers/index.js"]
+    volumes:
+      - public-data:/app/indexer/public
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+        VITE_PRIVY_APP_ID: ${VITE_PRIVY_APP_ID:-}
+        VITE_CHAIN_ID: ${VITE_CHAIN_ID:-11155111}
+        VITE_REGISTRY_ADDRESS: ${VITE_REGISTRY_ADDRESS:-}
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-3100}:80"
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  uploads-data:
+  public-data:

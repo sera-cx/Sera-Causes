@@ -1,0 +1,36 @@
+.git
+.github
+.gitignore
+
+# Dependencies (reinstalled inside the image)
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build output (rebuilt inside the image)
+**/dist/
+contracts/build/
+build/
+out/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local runtime state
+uploads/
+logs/
+*.log
+*.tsbuildinfo
+
+# Tooling
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+.editorconfig
+.idea/
+.vscode/
