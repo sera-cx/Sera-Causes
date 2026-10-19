@@ -1,4 +1,9 @@
-# Sera Causes architecture (phase 0)
+# Sera Causes architecture (v1)
+
+> Revised 19 October 2026 after the decisions in docs/PLAN.md: no highlight
+> rounds or boosts, creator-controlled homepage, sharing tools and a creator
+> dashboard. Where this file and PLAN.md disagree, PLAN.md wins until this
+> file is updated.
 
 This is the shared contract between every package in the monorepo. Change it
 here first, then in code. Product rules come from
@@ -44,7 +49,6 @@ mapping(uint256 => bool) public requiresCareLicence;   // set at listing, stewar
 
 function listCause(string uri, address payout, bytes32 category, bytes32 frontend, bool needsCareLicence) returns (uint256);
 function finaliseClaim(uint256 causeId, ClaimType claim, ClaimOutcome outcome, bytes32 resultRoot) onlyFinaliser;
-function commitRound(uint64 roundId, bytes32 resultsRoot, uint256 causeOfWeek, uint256[] featured, uint256[] rising) onlyFinaliser;
 function suspend(uint256 causeId, string reason) onlySteward;
 function reinstate(uint256 causeId) onlySteward;           // Suspended -> Listed, then re-evaluates Verified
 function closeBySteward(uint256 causeId, string reason) onlySteward;
@@ -55,7 +59,6 @@ function requiredClaimsMet(uint256 causeId) view returns (bool);
 function verifiedRequiredCount(uint256 causeId) view returns (uint8 done, uint8 total);
 
 event ClaimFinalised(uint256 indexed causeId, ClaimType indexed claim, ClaimOutcome outcome, bytes32 resultRoot, address by);
-event RoundCommitted(uint64 indexed roundId, bytes32 resultsRoot, uint256 causeOfWeek, uint256[] featured, uint256[] rising);
 event RequiresCareLicenceSet(uint256 indexed causeId, bool on);
 event FinaliserSet(address indexed who, bool on);  event StewardSet(address indexed who, bool on);
 ```
@@ -72,17 +75,12 @@ Rules enforced on-chain:
   Verified (existing behaviour).
 - `reinstate` moves Suspended to Listed with a fresh `waitingSince`, then if
   `requiredClaimsMet` the cause goes straight back to Verified.
-- `commitRound`: `causeOfWeek` must be `Verified` and must differ from the
-  previous round's `causeOfWeek`; every `featured` id must have at least one
-  required claim `Verified`; every `rising` id must exist; `roundId` must be
-  greater than the last committed. `featured.length <= 6`, `rising.length <= 6`.
 - Remove `verify` and the verifier role entirely.
 
 Tests: port the 10 v0.1 tests to the new API and add: per-claim finalisation
 flips status automatically; overturning a required claim suspends and opens
 refunds; payout change reopens C3; reinstate re-verifies when claims still
-hold; commitRound rejects unverified cause of the week, repeat winner, and
-unchecked featured; only finaliser/steward/council can call their functions;
+hold; only finaliser/steward/council can call their functions;
 C6 required only when flagged.
 
 Deploy script: `scripts/deploy.mjs` (ethers, env `RPC_URL`,
@@ -97,22 +95,18 @@ export const CLAIMS = ['C1','C2','C3','C4','C5','C6','C7'] as const;        // i
 export const REQUIRED_CLAIMS = ['C1','C2','C3','C4'];                        // + C6 when flagged
 export const VOTING = { minPaths: 2, periodDays: 5, minHours: 48, quorumWeight: 7, thresholdPct: 75, challengeWindowHours: 72 };
 export const CHALLENGE_STAKE = 5000;
-export const BOOST_MIN = 1000;
-export const GSERA = { perUsd: 100, compoundCap: 10, heat: { urgent: 2.5, causeOfWeek: 1.5, normal: 1 },
+export const GSERA = { perUsd: 100, compoundCap: 10, heat: { urgent: 2.5, normal: 1 },
   helper: { listingVerified: 2500, pathAgrees: 1000, voteAgrees: 100, helpFulfilled: 500, challengeWin: 2000 },
   giftCapUsdPerWalletPerCausePer30d: 1000, vestDays: 90 };
-export const ROUND = { weekStartsUtc: 'Monday 00:00', featured: 6, rising: 6 };
 
 export function giftGsera(usd, { heat, volumeTier, streak }): number;        // usd*100*min(10, heat*volume*streak), floor
 export function voteWeight(reputation: number): number;                       // 1 + min(4, log2(1 + rep))
-export function boostScore(amount: number): number;                           // sqrt
 export function tallyClaim(votes: Vote[], reputations): { verified, not, more, quorumMet, passed };
-export function scoreRound(boosts: Boost[]): Map<causeId, { score, boosters }>;
-export function assignSlots(scores, causes, lastCauseOfWeek): RoundSlots;
+export function feedOrder(causes, events): Cause[];                           // homepage feed by recent activity
 export function merkleRoot(leaves: Hex[]): Hex;                               // keccak256, sorted pairs
 ```
 
-`scripts/recompute.ts`: given a published inputs JSON (votes or boosts, with
+`scripts/recompute.ts`: given a published inputs JSON (votes with
 reputations), prints the tally and Merkle root so anyone can check an on-chain
 `resultRoot`.
 
@@ -123,7 +117,7 @@ Domain: `{ name: "Sera Causes", version: "1", chainId, verifyingContract: <regis
 ```
 Path(uint256 causeId,uint8 claimType,uint32 epoch,bytes32 contentHash,uint8 result,uint64 checkedAt)
 Vote(uint256 causeId,uint8 claimType,uint32 epoch,uint8 choice,bytes32 reasonHash,uint64 signedAt)
-Boost(uint64 roundId,uint256 causeId,uint256 amount,uint64 signedAt,bytes32 nonce)
+HomepageToggle(uint256 causeId,bool shown,uint64 signedAt)
 Challenge(uint256 causeId,uint8 claimType,uint32 epoch,uint256 stake,bytes32 contentHash,uint64 signedAt)
 HelpConfirm(uint256 needId,address helper,uint64 signedAt)
 ```
@@ -137,7 +131,7 @@ HelpConfirm(uint256 needId,address helper,uint64 signedAt)
   verified, 2 not, 3 needs_more.
 - The API verifies every signature with viem `verifyTypedData` against the
   wallet in the request, rejects duplicates by (type, wallet, causeId,
-  claimType, epoch) or by `nonce` for boosts, and rejects messages whose
+  claimType, epoch), and rejects messages whose
   `signedAt` is more than 10 minutes off server time.
 
 ## 5. Database (`indexer/prisma/schema.prisma`)
@@ -151,10 +145,11 @@ Postgres. Addresses lowercase. Amounts as `Decimal` or string of raw units.
 - `Path { id, causeId, claimType, epoch, author, body Json, contentHash, result, checkedAt, signature, createdAt, outcomeAgreed Boolean? }`
 - `Vote { id, causeId, claimType, epoch, voter, choice, reason, weight, signature, signedAt, @@unique([causeId, claimType, epoch, voter]) }`
 - `Challenge { id, causeId, claimType, epoch, challenger, stake, contentHash, body Json, signature, state (open|upheld|rejected), resolvedAt }`
-- `Round { id (uint64), startsAt, endsAt, state (open|committed), resultsRoot, slots Json, txHash }`
-- `Boost { id, roundId, causeId, wallet, amount, nonce, signature, signedAt, @@unique([nonce]) }`
+- `HomepageFlag { causeId, shown, setBy, signature, updatedAt, stewardHiddenReason? }`
+- `UrgentAppeal { id, causeId, reason, setBy, startsAt, endsAt }`
+- `ShareEvent { id, causeId, channel, at }` (counts only, no personal data)
 - `Gift { id, causeId, giver, token, amount, usd Decimal, frontend, txHash, logIndex, tradeId?, settlementState, kytState, createdAt, refundedAt, claimedAt, @@unique([txHash, logIndex]) }`
-- `LedgerEntry { id, wallet, amount, reason (gift|path|vote|help|listing|challenge_win|boost|challenge_stake), sourceTag (charity), sourceRef, multipliers Json, state (pending|vested|cancelled|spent|burned), vestsAt, gseraRef (remote id), createdAt }`
+- `LedgerEntry { id, wallet, amount, reason (gift|path|vote|help|listing|challenge_win|challenge_stake), sourceTag (charity), sourceRef, multipliers Json, state (pending|vested|cancelled|spent|burned), vestsAt, gseraRef (remote id), createdAt }`
 - `Reputation { wallet, score, @@id([wallet]) }` plus `ReputationEntry { id, wallet, delta, reason, sourceRef, createdAt }`
 - `Wallet { address, kytState (unknown|clear|flagged), kytCheckedAt, privyUserId?, leaderboardOptOut }`
 - `Need`, `Pledge`, `Progress`, `Attestation`, `RecordEvent { id, causeId, type, block, txHash, at, data Json }` mirrored from chain (shapes from the v0.1 indexer).
@@ -168,14 +163,15 @@ auth. Dev bypass `X-Dev-Wallet` only when `NODE_ENV !== 'production'`.
 Reads:
 `GET /stats`, `GET /causes?cat&state&status&q&sort`, `GET /causes/:id`,
 `GET /causes/:id/record`, `GET /claims?tab=needs_evidence|needs_checking|open_for_votes|challenged|recently_verified`,
-`GET /claims/:causeId/:claimType`, `GET /rounds/current`, `GET /rounds/:id`,
+`GET /claims/:causeId/:claimType`, `GET /home` (urgent appeal, feed, new),
 `GET /me` (auth), `GET /leaderboards?board=givers|helpers|causes&period`,
-`GET /profiles/:hash.json` (cause metadata the site hosts until IPFS pinning).
+`GET /profiles/:hash.json` (cause metadata the site hosts until IPFS pinning),
+`GET /og/cause/:id.png` (Open Graph image), `GET /causes/:id/poster.pdf`, `GET /embed/give/:id` (iframe HTML).
 
 Writes (auth + signature where noted):
 `POST /causes/prepare` (metadata JSON → stores it, returns `{ uri, duplicates[] }`; the browser then calls `listCause`),
 `POST /evidence` (multipart, 10 MB, pdf/png/jpg/webp/mp4 or a link),
-`POST /paths` (Path), `POST /votes` (Vote), `POST /boosts` (Boost, checks spendable via gsera-client, writes a `boost` LedgerEntry and calls spend),
+`POST /paths` (Path), `POST /votes` (Vote), `POST /causes/:id/homepage` (HomepageToggle by the owner), `POST /stewards/urgent-appeal` and `POST /stewards/hide` (steward wallet, public reason),
 `POST /challenges` (Challenge, stake via spend), `POST /needs/:id/confirm` (HelpConfirm by cause owner),
 `POST /gifts/quote` `{ causeId, fromToken, amountRaw }` → if `fromToken` is accepted by the cause's token set, returns a direct-donate plan; else returns a Sera.cx quote with signing payloads (settlement adapter),
 `POST /gifts/submit` `{ quoteId, signature, permitSignature?, permitDeadline? }` → `{ tradeId }`, then donate is a second on-chain step the browser performs once settled,
@@ -185,13 +181,13 @@ Workers (`indexer/src/workers`): `chain-listener` (viem `getLogs` from cursor, e
 
 Finaliser CLI (`indexer/src/finaliser`): `tally-claim <causeId> <claim>`,
 `finalise-claim …` (publishes inputs JSON, computes root, sends
-`finaliseClaim`), `tally-round`, `commit-round`. Phase 0: stewards run these.
+`finaliseClaim`), Stewards run these until the finaliser is automated.
 
 ## 7. gSera integration
 
 - gSera today has no pending state, no source tags and no burn endpoint.
   CSD keeps its own ledger (`LedgerEntry`) and only pushes **vested** credits
-  and **spends** to g.sera.cx.
+  and **spends** (challenge stakes) to g.sera.cx.
 - Two endpoints to add in the gSera repo, both guarded by
   `requireHmac(CAUSES_HMAC_KEY)` in the same style as the promo and referral
   partner routes: `POST /v1/causes/credit { wallet, amount_gsera, grant_type, reference_id, reason }`
@@ -225,17 +221,15 @@ on the server. No webhooks: poll.
 
 ## 9. Web app
 
-- Routes (root of causes.sera.cx): `/`, `/causes`, `/c/:id-:slug`, `/give/:id` (also a sheet), `/add`, `/verify`, `/verify/:causeId/:claim`, `/highlights`, `/me`, `/leaderboards`, `/technology`, `/rules`.
-- Nav: Causes · Verify · Highlights · Add a cause · Technology. Right: gSera chip, Sign in.
+- Routes: see docs/PLAN.md section 2.5.
+- Nav: Causes · Verify · Add a cause · Technology. Signed in: Dashboard. Right: gSera chip, Sign in.
 - Design: copy `index.css` tokens, fonts (IBM Plex Sans/Mono, Instrument Serif), `components.json`, `cn()`, Nav/Footer/SectionHeader patterns from sera.cx. Warm paper backgrounds, Sera green fills with ink text, `#007A3D` for green text, giving accent `#C2410C` on Give buttons and thank-you only. Status is always icon + word + colour. WCAG 2.2 AA, dark mode via system, 360 px wide with no sideways scroll.
 - Copy: "Sera.cx" not "Sera", British spelling, no em dashes, short sentences. Every tunable number comes from `@sera-causes/shared` and is shown only on `/rules`.
-- Wallet: Privy (`@privy-io/react-auth`) for sign-in and embedded or external wallets; viem wallet client for `approve`, `donate`, `listCause`, `claim`, `refund`, `postProgress`, `postNeed`, `pledge`; `signTypedData` for paths, votes, boosts, challenges and Sera.cx intents. The site renders read-only when `VITE_PRIVY_APP_ID` is unset.
+- Wallet: Privy (`@privy-io/react-auth`) for sign-in and embedded or external wallets; viem wallet client for `approve`, `donate`, `listCause`, `claim`, `refund`, `postProgress`, `postNeed`, `pledge`; `signTypedData` for paths, votes, challenges, the homepage toggle and Sera.cx intents. The site renders read-only when `VITE_PRIVY_APP_ID` is unset.
 - Data: fetch from `VITE_API_URL`; SSR pre-fetches the home and cause pages for SEO like sera.cx's `server/ssr.ts`.
 
-## 10. Phase 0 scope and deferrals
+## 10. Scope and deferrals
 
-In: everything above on Sepolia with mock gSera. Stewards run the finaliser
-CLI; votes are shown as advisory tallies.
-Deferred: IPFS pinning (profiles and evidence served from the API with
-hashes recorded), live stream embeds beyond a YouTube/Twitch iframe, email
-notifications (in-app only), KYT beyond sanctions, ZK finaliser.
+See docs/PLAN.md sections 3 and 4. Deferred: IPFS pinning (profiles and
+evidence served from the API with hashes recorded until mainnet), KYT beyond
+the Chainalysis sanctions screen, ZK finaliser.
