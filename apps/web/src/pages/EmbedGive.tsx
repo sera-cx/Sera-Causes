@@ -4,6 +4,7 @@ import { SeraLogo } from "@/components/SeraLogo";
 import { useSeo } from "@/hooks/useSeo";
 import { SITE_ORIGIN } from "@/lib/constants";
 import { fmtUsd } from "@/lib/format";
+import { causeImage } from "@/lib/images";
 import { useCause } from "@/lib/queries";
 
 export function EmbedGivePage() {
@@ -16,14 +17,14 @@ export function EmbedGivePage() {
   return (
     <div className="flex h-screen items-center bg-paper p-3">
       <div className="flex w-full items-center gap-3 rounded-xl border border-rule bg-card p-3">
-        {cause?.profile.image?.src && <img src={cause.profile.image.src} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
+        {cause && <img src={causeImage(cause).src} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <SeraLogo className="h-3.5" />
             <span className="font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink-subtle">Causes</span>
           </div>
           <p className="truncate font-display text-[15px] font-semibold leading-tight mt-0.5">{cause?.name ?? "Loading"}</p>
-          {cause && <p className="font-mono text-[10.5px] text-ink-muted tnum">{fmtUsd(cause.givenUsd)} given</p>}
+          {cause && <p className="font-mono text-[10.5px] text-ink-muted tnum">{fmtUsd(Number(cause.givenUsd))} given</p>}
         </div>
         <a href={href} target="_top" rel="noopener" className="shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold" style={{ background: "var(--give)", color: "var(--give-foreground)" }}>
           Give

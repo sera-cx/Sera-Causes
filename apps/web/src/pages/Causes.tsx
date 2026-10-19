@@ -6,7 +6,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { useSeo } from "@/hooks/useSeo";
-import { CATEGORIES, MALAYSIAN_STATES, STAGE_INFO, type CauseStage } from "@/lib/constants";
+import { CATEGORIES, STAGE_INFO, STATE_NAMES, type CauseStage } from "@/lib/constants";
 import { useCauses } from "@/lib/queries";
 import type { CauseFilters } from "@/lib/types";
 
@@ -61,7 +61,7 @@ export function CausesPage() {
           <Label htmlFor="state">State</Label>
           <Select id="state" value={filters.state} onChange={(e) => set({ state: e.target.value })}>
             <option value="">All</option>
-            {MALAYSIAN_STATES.map((s) => (
+            {STATE_NAMES.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>

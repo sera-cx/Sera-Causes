@@ -13,13 +13,20 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { keccak256, toBytes } from 'viem';
 import type { Prisma } from '@prisma/client';
-import { CLAIMS, type CauseProfile } from '@sera-causes/shared';
+import { CLAIMS, findCategory, type CauseProfile } from '@sera-causes/shared';
 import { config } from '../config.js';
 import { db, disconnectDb } from '../db.js';
 import { listStablecoins } from '../chain/stablecoins.js';
 import { applyTransfer, type TransferLog } from '../chain/listener.js';
 
-/** Ganache's deterministic accounts, as used by the demo chain. */
+/**
+ * Ganache's deterministic accounts, as used by the demo chain.
+ *
+ * `giver` is also the web app's demo wallet (apps/web/src/lib/devWallet.ts
+ * derives it from Ganache account 5's private key): it owns cause 1 and
+ * cause 14 and, with `--with-gifts`, sends a few of the demo gifts, so the
+ * dashboard, /me and voting eligibility have something to show in dev.
+ */
 export const DEMO = {
   council: '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',
   finaliser: '0xffcf8fdee72ac11b5c542428b35eef5769c409f0',
@@ -29,17 +36,22 @@ export const DEMO = {
   giver: '0x95ced938f7991cd0dfcb48f0a06a40fa1af46ebc',
 } as const;
 
+/** Causes the web demo wallet owns (kasih-turtle-conservation-project and free-tree-society). */
+export const DEMO_OWNED_CAUSE_IDS: readonly number[] = [1, 14];
+
 export const DEMO_LABELS: Record<string, string> = {
   [DEMO.council]: 'Sera Causes council (demo)',
   [DEMO.finaliser]: 'Finaliser (demo)',
   [DEMO.steward]: 'Steward (demo)',
   [DEMO.lister]: 'Sera onboarding',
   [DEMO.research]: 'Sera research',
+  [DEMO.giver]: 'Demo wallet',
 };
 
 const T0 = new Date('2026-10-19T01:00:00Z');
 const CARE_LICENCE_CATEGORIES = new Set(['children', 'elderly']);
-export const catKey = (c: string) => c.toLowerCase().replace(/[^a-z]+/g, '-').replace(/-+$/, '');
+/** The shared category slug for a profile category (`Food & poverty` is `food`), falling back to a slugified name. */
+export const catKey = (c: string) => findCategory(c)?.slug ?? c.toLowerCase().replace(/[^a-z]+/g, '-').replace(/-+$/, '');
 const dataUri = (obj: unknown) => `data:application/json,${encodeURIComponent(JSON.stringify(obj))}`;
 const tx = (s: string) => keccak256(toBytes(`seed:${s}`));
 
@@ -112,13 +124,14 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
     const requiresCareLicence = CARE_LICENCE_CATEGORIES.has(category);
     const uri = `seed/causes/${m.slug}.json`;
     const photo = m.image?.src ? path.basename(m.image.src) : null;
+    const owner = DEMO_OWNED_CAUSE_IDS.includes(id) ? DEMO.giver : DEMO.lister;
     await db().cause.create({
       data: {
         id,
         chainId: c.CHAIN_ID,
         slug: m.slug,
-        owner: DEMO.lister,
-        payout: DEMO.lister,
+        owner,
+        payout: owner,
         lister: DEMO.lister,
         category,
         uri,
@@ -153,7 +166,7 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
       await record(id, 'NeedPosted', { needId, uri: u, ...n }, T0, `need:${needId}`);
       block += 1;
     }
-    await db().homepageFlag.create({ data: { causeId: id, shown: true, setBy: DEMO.lister, signature: 'seed', signedAt: T0 } });
+    await db().homepageFlag.create({ data: { causeId: id, shown: true, setBy: owner, signature: 'seed', signedAt: T0 } });
     if ((i + 1) % 10 === 0) log(`listed ${i + 1}`);
   }
 
@@ -203,11 +216,13 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
     ];
     for (const [j, [slug, usd, g]] of plan.entries()) {
       const causeId = ids[slug]!;
-      const sender = `0x${(0x95ced938f7991cd0dfcb48f0a06a40fa1af46eb0n + BigInt(g)).toString(16).padStart(40, '0')}`;
+      // Giver 1 is the web demo wallet; the others are synthetic neighbours of it.
+      const sender = g === 1 ? DEMO.giver : `0x${(0x95ced938f7991cd0dfcb48f0a06a40fa1af46eb0n + BigInt(g)).toString(16).padStart(40, '0')}`;
+      const to = DEMO_OWNED_CAUSE_IDS.includes(causeId) ? DEMO.giver : DEMO.lister;
       const t: TransferLog = {
         token: usdt.address,
         from: sender,
-        to: DEMO.lister,
+        to,
         value: BigInt(usd) * 10n ** BigInt(usdt.decimals),
         blockNumber: BigInt(block + j),
         transactionHash: tx(`gift:${j}`),

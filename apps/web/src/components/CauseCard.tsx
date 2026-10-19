@@ -1,22 +1,26 @@
 import { ArrowRight, Flame } from "lucide-react";
 import { Link } from "wouter";
+import { categoryLabel } from "@/lib/constants";
+import { causeImage } from "@/lib/images";
 import { causeHref } from "@/lib/rules";
-import type { CauseCardData } from "@/lib/types";
+import type { CauseView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { ChecksBar } from "./ChecksBar";
 import { StatusPill } from "./StatusPill";
 
 /** Cause card per brief 10.2. Photo 16:10, category, pill, name, place, summary, checks bar, Give, Read more. */
-export function CauseCard({ cause, className, compact }: { cause: CauseCardData; className?: string; compact?: boolean }) {
+export function CauseCard({ cause, className, compact }: { cause: CauseView; className?: string; compact?: boolean }) {
   const href = causeHref(cause.id, cause.slug);
   const canGive = cause.stage !== "paused" && cause.stage !== "closed";
+  const img = causeImage(cause);
+  const loc = cause.profile?.location;
   return (
     <article className={cn("group flex flex-col overflow-hidden rounded-xl border border-rule bg-card", className)}>
       <Link href={href} className="relative block aspect-[16/10] overflow-hidden bg-paper-warm focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${cause.name}, read more`}>
-        <img src={cause.image?.src ?? "/photos/hero.jpg"} alt={cause.image?.alt ?? cause.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        <img src={img.src} alt={img.alt} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-white/90 px-2 h-6 inline-flex items-center font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#0B1426]">{cause.category}</span>
+          <span className="rounded-full bg-white/90 px-2 h-6 inline-flex items-center font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#0B1426]">{categoryLabel(cause.category)}</span>
           {cause.urgent && (
             <span className="rounded-full bg-[#0B1426] px-2 h-6 inline-flex items-center gap-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#00E676]">
               <Flame className="h-3 w-3" aria-hidden /> Urgent appeal
@@ -31,8 +35,8 @@ export function CauseCard({ cause, className, compact }: { cause: CauseCardData;
             {cause.name}
           </Link>
         </h3>
-        <p className="mt-0.5 font-mono text-[11.5px] text-ink-subtle">{[cause.town, cause.state].filter(Boolean).join(", ") || "Malaysia"}</p>
-        {!compact && <p className="mt-2 text-[14.5px] leading-[1.5] text-ink-muted line-clamp-3">{cause.summary}</p>}
+        <p className="mt-0.5 font-mono text-[11.5px] text-ink-subtle">{[loc?.town, loc?.state].filter(Boolean).join(", ") || "Malaysia"}</p>
+        {!compact && <p className="mt-2 text-[14.5px] leading-[1.5] text-ink-muted line-clamp-3">{cause.profile?.summary}</p>}
         <div className="mt-auto pt-4 flex items-center justify-between gap-3">
           <ChecksBar done={cause.checksDone} total={cause.checksTotal} />
         </div>

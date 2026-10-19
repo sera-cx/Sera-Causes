@@ -9,12 +9,13 @@ import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
-import { recordShare } from "@/lib/api";
+import { API_URL, recordShare } from "@/lib/api";
 import { SITE_ORIGIN } from "@/lib/constants";
 import { fmtUsd } from "@/lib/format";
+import { causeImage } from "@/lib/images";
 import { useCause } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
-import type { Cause } from "@/lib/types";
+import type { CauseDetail } from "@/lib/types";
 import { NotFoundPage } from "./NotFound";
 
 export function SharePage() {
@@ -27,7 +28,7 @@ export function SharePage() {
   return <ShareTools cause={cause} />;
 }
 
-function ShareTools({ cause }: { cause: Cause }) {
+function ShareTools({ cause }: { cause: CauseDetail }) {
   const url = shareUrlFor(cause.id, cause.slug);
   const { copied, copy } = useCopy();
   return (
@@ -66,23 +67,42 @@ function ShareTools({ cause }: { cause: Cause }) {
               <Printer className="h-4 w-4" aria-hidden /> Open the poster
             </Link>
           </Button>
+          {API_URL && (
+            <Button asChild variant="outline">
+              <a href={cause.posterUrl} target="_blank" rel="noopener noreferrer">
+                A4 PDF from the API
+              </a>
+            </Button>
+          )}
         </div>
       </section>
     </div>
   );
 }
 
-function OgPreview({ cause }: { cause: Cause }) {
+function OgPreview({ cause }: { cause: CauseDetail }) {
+  if (API_URL) {
+    return (
+      <div className="mt-6">
+        <Eyebrow>Preview card (how the link looks in chat apps)</Eyebrow>
+        <div className="mt-2 max-w-md overflow-hidden rounded-xl border border-rule bg-card">
+          <img src={cause.ogImageUrl} alt={`Preview card for ${cause.name}`} className="aspect-[1200/630] w-full object-cover bg-paper-warm" />
+          <div className="px-4 py-2.5 font-mono text-[11px] text-ink-subtle">causes.sera.cx</div>
+        </div>
+        <p className="mt-2 text-[12.5px] text-ink-muted">Rendered by the API at /og/cause/{cause.id}.png.</p>
+      </div>
+    );
+  }
   return (
     <div className="mt-6">
       <Eyebrow>Preview card (how the link looks in chat apps)</Eyebrow>
       <div className="mt-2 max-w-md overflow-hidden rounded-xl border border-rule bg-card">
         <div className="relative aspect-[1200/630] bg-paper-warm">
-          <img src={cause.profile.image?.src} alt="" className="h-full w-full object-cover" />
+          <img src={causeImage(cause).src} alt="" className="h-full w-full object-cover" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0B1426]/90 to-transparent p-4 pt-10 text-white">
             <div className="flex items-center gap-2">
               <StatusPill stage={cause.stage} checksDone={cause.checksDone} checksTotal={cause.checksTotal} />
-              <span className="font-mono text-[11px] tnum text-white/80">{fmtUsd(cause.givenUsd)} given</span>
+              <span className="font-mono text-[11px] tnum text-white/80">{fmtUsd(Number(cause.givenUsd))} given</span>
             </div>
             <p className="mt-2 font-display text-[20px] font-semibold leading-tight">{cause.name}</p>
             <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#00E676]">Give in stablecoins on causes.sera.cx</p>
@@ -95,11 +115,13 @@ function OgPreview({ cause }: { cause: Cause }) {
   );
 }
 
-function EmbedSnippet({ cause }: { cause: Cause }) {
+function EmbedSnippet({ cause }: { cause: CauseDetail }) {
   const [tab, setTab] = useState<"script" | "iframe">("iframe");
   const { copied, copy } = useCopy();
-  const iframe = `<iframe src="${SITE_ORIGIN}/embed/give/${cause.id}" title="Give to ${cause.name} on Sera.cx" width="320" height="120" style="border:0;overflow:hidden" loading="lazy"></iframe>`;
-  const script = `<div data-sera-give="${cause.id}"></div>\n<script async src="${SITE_ORIGIN}/embed.js"></script>`;
+  const embedSrc = API_URL ? cause.embedUrl : `${SITE_ORIGIN}/embed/give/${cause.id}`;
+  const scriptSrc = API_URL ? `${API_URL}/embed.js` : `${SITE_ORIGIN}/embed.js`;
+  const iframe = `<iframe src="${embedSrc}" title="Give to ${cause.name} on Sera.cx" width="360" height="120" style="border:0;overflow:hidden" loading="lazy"></iframe>`;
+  const script = `<div data-sera-give="${cause.id}"></div>\n<script async src="${scriptSrc}"></script>`;
   const code = tab === "iframe" ? iframe : script;
   return (
     <section className="mt-12" aria-labelledby="embed-h">
@@ -123,7 +145,7 @@ function EmbedSnippet({ cause }: { cause: Cause }) {
         <div>
           <Eyebrow>Preview</Eyebrow>
           <div className="mt-2 rounded-xl border border-dashed border-rule p-4 bg-paper-warm/50">
-            <iframe src={`/embed/give/${cause.id}`} title={`Give to ${cause.name} on Sera.cx, preview`} width="320" height="120" style={{ border: 0, maxWidth: "100%" }} />
+            <iframe src={API_URL ? cause.embedUrl : `/embed/give/${cause.id}`} title={`Give to ${cause.name} on Sera.cx, preview`} width="360" height="120" style={{ border: 0, maxWidth: "100%" }} />
           </div>
         </div>
       </div>

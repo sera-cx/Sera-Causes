@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { CLAIMS } from "@/lib/constants";
 import * as api from "@/lib/mock/handlers";
-import { DEMO_WALLET } from "@/lib/mock/state";
+import { DEMO_WALLET, MOCK_STABLECOINS } from "@/lib/mock/state";
+import { claimOf } from "@/lib/rules";
 
-describe("mock world built from the seed", () => {
-  it("has 44 causes with ids 1 to 44 in seed order", async () => {
+describe("mock world built from the seed, in the API's shapes", () => {
+  it("has 44 causes with ids 1 to 44 in seed order, two owned by the demo wallet", async () => {
     const all = await api.listCauses({ sort: "name" });
     expect(all).toHaveLength(44);
     const kasih = await api.getCause(1);
@@ -13,20 +14,24 @@ describe("mock world built from the seed", () => {
     const freeTree = await api.getCause(14);
     expect(freeTree?.slug).toBe("free-tree-society");
     expect(freeTree?.owner).toBe(DEMO_WALLET);
+    expect(DEMO_WALLET).toBe("0x95ced938f7991cd0dfcb48f0a06a40fa1af46ebc");
   });
 
   it("verifies free-tree-society and make-a-wish-malaysia with C1 to C4 and the C5 badge", async () => {
     for (const id of [14, 25]) {
       const c = (await api.getCause(id))!;
+      expect(c.status).toBe("verified");
       expect(c.stage).toBe("verified");
       expect(c.checksDone).toBe(c.checksTotal);
-      for (const code of ["C1", "C2", "C3", "C4"] as const) expect(c.claims[code].outcome).toBe("verified");
+      for (const code of ["C1", "C2", "C3", "C4"] as const) expect(claimOf(c, code)?.outcome).toBe("verified");
       expect(c.badges.taxExempt).toBe(true);
+      expect(typeof c.givenUsd).toBe("string");
     }
   });
 
   it("pauses perhentian-turtle-project with its concern", async () => {
     const c = (await api.getCause(4))!;
+    expect(c.status).toBe("suspended");
     expect(c.stage).toBe("paused");
     expect(c.pausedReason).toMatch(/Fuze Ecoteer/);
   });
@@ -42,55 +47,80 @@ describe("mock world built from the seed", () => {
     const home = await api.getHome();
     expect(home.urgent?.cause.slug).toBe("mercy-malaysia");
     expect(home.urgent?.reason).toBe("Flood relief, Kelantan");
-    expect(home.feed).toHaveLength(25);
-    expect(home.newest).toHaveLength(6);
+    expect(home.feed).toHaveLength(24);
+    expect(home.feed.some((c) => c.id === home.urgent?.cause.id)).toBe(false);
+    expect(home.new).toHaveLength(6);
+    expect(home.stats.causes).toBe(43);
   });
 
   it("builds claim workspaces with evidence, paths, tallies and one open challenge", async () => {
-    const claim = (await api.getClaim(33, "C3"))!;
-    expect(claim.state).toBe("voting");
-    expect(claim.paths.length).toBeGreaterThanOrEqual(2);
-    expect(claim.tally.quorumMet).toBe(true);
-    expect(claim.tally.passed).toBe(true);
-    expect(claim.mode).toBe("advisory");
+    const ws = (await api.getClaim(33, "C3"))!;
+    expect(ws.claim.state).toBe("voting");
+    expect(ws.paths.length).toBeGreaterThanOrEqual(2);
+    expect(ws.paths[0]?.body.steps.length).toBeGreaterThan(0);
+    expect(ws.tally.quorumMet).toBe(true);
+    expect(ws.tally.passed).toBe(true);
+    expect(ws.decidedBy).toBe("stewards");
     const challenged = await api.listClaims("challenged");
     expect(challenged).toHaveLength(1);
-    expect(challenged[0]?.causeSlug).toBe("teach-for-malaysia");
+    expect(challenged[0]?.cause.slug).toBe("teach-for-malaysia");
+    expect(challenged[0]?.cause.category).toBe("children");
     for (const tab of ["needs_evidence", "needs_checking", "open_for_votes", "recently_verified"] as const) {
       expect((await api.listClaims(tab)).length).toBeGreaterThan(0);
     }
     expect(CLAIMS).toHaveLength(7);
   });
 
-  it("signs in the demo wallet with gSera, reputation 3, two gifts and three accepted paths", async () => {
+  it("signs in the demo wallet with gSera, reputation 3, two gifts and three agreed paths", async () => {
     const me = await api.getMe();
     expect(me.wallet).toBe(DEMO_WALLET);
     expect(me.reputation).toBe(3);
-    expect(me.voteWeight).toBe(3);
     expect(me.gifts).toHaveLength(2);
-    expect(me.contributions.filter((c) => c.kind === "path" && c.outcome === "agreed")).toHaveLength(3);
-    expect(me.gsera.spendable).toBeGreaterThan(0);
-    expect(me.gsera.charityTagged).toBeLessThanOrEqual(me.gsera.spendable);
+    expect(me.paths.filter((p) => p.outcomeAgreed)).toHaveLength(3);
+    expect(me.gsera?.spendable).toBeGreaterThan(0);
+    expect(me.ledger.credited).toBeGreaterThan(0);
+    expect(me.eligibility.canVote).toBe(true);
+    expect(me.causes.some((c) => c.slug === "mercy-malaysia")).toBe(true);
   });
 
   it("locks the vote until the paths were opened, then records it", async () => {
-    await expect(api.postVote({ causeId: 13, claim: "C4", choice: "verified", reason: "Checked" })).rejects.toThrow(/paths/);
-    await api.markPathsOpened(13, "C4");
-    await api.postVote({ causeId: 13, claim: "C4", choice: "verified", reason: "Checked" });
-    const claim = (await api.getClaim(13, "C4"))!;
-    expect(claim.votes.some((v) => v.voter === DEMO_WALLET)).toBe(true);
+    await expect(api.postVote({ causeId: 33, claim: "C3", epoch: 0, choice: "verified", reason: "Checked" })).rejects.toThrow(/paths/);
+    await api.markPathsOpened(33, "C3");
+    await api.postVote({ causeId: 33, claim: "C3", epoch: 0, choice: "verified", reason: "Checked" });
+    const ws = (await api.getClaim(33, "C3"))!;
+    expect(ws.votes.some((v) => v.voter === DEMO_WALLET)).toBe(true);
+    await expect(api.postVote({ causeId: 33, claim: "C3", epoch: 0, choice: "verified", reason: "Again" })).rejects.toThrow(/already voted/);
   });
 
   it("quotes a swap when the cause keeps a different stablecoin and credits gSera on arrival", async () => {
-    const quote = await api.quoteGift(2, "USDT", 25);
-    expect(quote.swap?.toToken).toBe("MYRT");
-    expect(quote.gsera.earns).toBe(true);
-    const before = (await api.getMe()).gsera.spendable;
+    const usdt = MOCK_STABLECOINS.find((t) => t.symbol === "USDT")!;
+    const quote = await api.quoteGift(2, usdt, "25000000");
+    expect(quote.kind).toBe("swap");
+    if (quote.kind !== "swap") throw new Error("expected a swap");
+    expect(quote.to.symbol).toBe("MYRT");
+    const before = (await api.getMe()).gsera!.spendable;
     const r = await api.submitGift(quote);
-    expect(r.route).toBe("swap");
-    const after = (await api.getMe()).gsera.spendable;
-    expect(after - before).toBe(quote.gsera.amount);
+    expect(r.status).toBe("settled");
+    const after = (await api.getMe()).gsera!.spendable;
+    expect(after - before).toBeCloseTo(25 * 100 * 1.2 * 1.1, 6);
     const record = await api.getRecord(2);
-    expect(record[0]?.type).toBe("gift");
+    expect(record.at(-1)?.type).toBe("GiftReceived");
+  });
+
+  it("opens voting once two different wallets have signed paths, and the dashboard lists the owned causes", async () => {
+    const before = (await api.getClaim(1, "C1"))!;
+    expect(before.claim.state).toBe("open");
+    const r = await api.postPath({
+      causeId: 1,
+      claim: "C1",
+      epoch: 0,
+      body: { source: "ROS", steps: ["Opened eROSES", "Searched"], exactQuery: "PPM-001", findings: "Found", matches: true, checkedAt: new Date().toISOString(), result: "verified", caveats: "", conflictOfInterest: "None" },
+      screenshot: null,
+      redactionConfirmed: true,
+    });
+    expect(r.path.author).toBe(DEMO_WALLET);
+    const dash = await api.getDashboard();
+    expect(dash.causes.map((c) => c.id).sort()).toEqual([1, 14]);
+    expect(dash.tokens.length).toBe(4);
   });
 });

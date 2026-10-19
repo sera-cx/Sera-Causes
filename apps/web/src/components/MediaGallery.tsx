@@ -1,65 +1,35 @@
 /* Photos plus embeddable video links. Embeds are click-to-load so no third
-   party script or cookie loads until the visitor asks for it. */
+   party script or cookie loads until the visitor asks for it. The player URL
+   comes from the API (shared `embedFor`), never rebuilt here. */
 import { ExternalLink, Play } from "lucide-react";
 import { useState } from "react";
-import type { MediaItem } from "@/lib/types";
+import { EMBED_PROVIDERS } from "@sera-causes/shared";
+import { imageUrl } from "@/lib/images";
+import type { MediaView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const PROVIDER_LABEL: Record<NonNullable<MediaItem["provider"]>, string> = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram", x: "X", other: "Embedded video" };
-
-function youtubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1) || null;
-    if (u.searchParams.get("v")) return u.searchParams.get("v");
-    const m = u.pathname.match(/\/(embed|shorts)\/([^/]+)/);
-    return m?.[2] ?? null;
-  } catch {
-    return null;
-  }
+export function providerLabel(provider: string | undefined): string {
+  return EMBED_PROVIDERS.find((p) => p.provider === provider)?.label ?? "Embedded video";
 }
 
-function embedSrc(item: MediaItem): string | null {
-  switch (item.provider) {
-    case "youtube": {
-      const id = youtubeId(item.url);
-      return id ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1` : null;
-    }
-    case "tiktok": {
-      const m = item.url.match(/\/video\/(\d+)/);
-      return m ? `https://www.tiktok.com/embed/v2/${m[1]}` : null;
-    }
-    case "instagram": {
-      const m = item.url.match(/instagram\.com\/(p|reel)\/([^/?]+)/);
-      return m ? `https://www.instagram.com/${m[1]}/${m[2]}/embed` : null;
-    }
-    case "x": {
-      const m = item.url.match(/status\/(\d+)/);
-      return m ? `https://platform.twitter.com/embed/Tweet.html?id=${m[1]}&dnt=true` : null;
-    }
-    default:
-      return null;
-  }
-}
-
-function VideoTile({ item }: { item: MediaItem }) {
+function VideoTile({ item }: { item: MediaView }) {
   const [loaded, setLoaded] = useState(false);
-  const src = embedSrc(item);
-  const label = PROVIDER_LABEL[item.provider ?? "other"];
+  const src = item.embedUrl;
+  const label = providerLabel(item.provider);
+  const title = item.caption || `Video on ${label}`;
   if (loaded && src) {
     return (
       <div className="overflow-hidden rounded-xl border border-rule bg-black aspect-video">
-        <iframe src={src} title={item.title} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" />
+        <iframe src={src} title={title} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" />
       </div>
     );
   }
   return (
     <div className="relative overflow-hidden rounded-xl border border-rule bg-[#0B1426] aspect-video text-white">
-      {item.thumbnail && <img src={item.thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />}
       <div className="relative flex h-full flex-col items-start justify-between p-4">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">{label}</span>
         <div>
-          <p className="font-display text-[16px] font-semibold leading-tight">{item.title}</p>
+          <p className="font-display text-[16px] font-semibold leading-tight">{title}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {src ? (
               <button type="button" onClick={() => setLoaded(true)} className="inline-flex h-9 items-center gap-2 rounded-full bg-sera px-4 text-[13px] font-semibold text-[#06120C] hover:bg-[#00E676] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00E676]">
@@ -77,7 +47,7 @@ function VideoTile({ item }: { item: MediaItem }) {
   );
 }
 
-export function MediaGallery({ items, className }: { items: MediaItem[]; className?: string }) {
+export function MediaGallery({ items, className }: { items: MediaView[]; className?: string }) {
   if (items.length === 0) return null;
   return (
     <ul className={cn("grid gap-4 sm:grid-cols-2", className)}>
@@ -86,10 +56,10 @@ export function MediaGallery({ items, className }: { items: MediaItem[]; classNa
           {m.kind === "photo" ? (
             <figure>
               <div className="overflow-hidden rounded-xl border border-rule bg-paper-warm aspect-video">
-                <img src={m.url} alt={m.alt ?? m.title} loading="lazy" className="h-full w-full object-cover" />
+                <img src={imageUrl(m.url)} alt={m.caption} loading="lazy" className="h-full w-full object-cover" />
               </div>
               <figcaption className="mt-1.5 text-[13px] text-ink-muted">
-                <span>{m.title}</span>
+                <span>{m.caption || "Photo"}</span>
                 {m.credit && <span className="block font-mono text-[10.5px] text-ink-subtle">Photo: {m.credit}</span>}
               </figcaption>
             </figure>

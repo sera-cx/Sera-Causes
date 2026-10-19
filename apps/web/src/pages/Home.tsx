@@ -12,12 +12,13 @@ import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
 import { GSERA, LINKS } from "@/lib/constants";
 import { fmtCompactUsd, fmtInt, fmtMultiplier } from "@/lib/format";
+import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
 import type { HomeData } from "@/lib/types";
 
 const HERO_IMAGE = {
-  src: "/photos/hero.jpg",
+  src: imageUrl(HERO_IMAGE_SRC),
   alt: "Green turtle hatchling resting in a coconut shell on the sand at Pantai Chendor",
   credit: "Kasih Turtle Conservation Project, Pantai Chendor",
   licence: "Supplied",
@@ -84,12 +85,13 @@ function Hero() {
 
 function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
   const c = urgent.cause;
+  const img = causeImage(c);
   return (
     <section aria-labelledby="urgent-heading" className="border-b border-rule bg-paper-warm">
       <div className="container py-8 md:py-10">
         <div className="grid gap-6 md:grid-cols-[1fr_1.2fr] md:items-center">
           <Link href={causeHref(c.id, c.slug)} className="block overflow-hidden rounded-xl aspect-[16/10] bg-ink/10 focus-visible:outline-2 focus-visible:outline-ring" aria-label={`${c.name}, read their story`}>
-            <img src={c.image?.src} alt={c.image?.alt ?? c.name} className="h-full w-full object-cover" loading="lazy" />
+            <img src={img.src} alt={img.alt} className="h-full w-full object-cover" loading="lazy" />
           </Link>
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#0B1426] px-3 h-7 font-mono text-[11px] uppercase tracking-[0.12em] text-[#00E676]">
@@ -99,7 +101,7 @@ function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
               {urgent.reason}
             </h2>
             <p className="mt-2 text-[16px] text-ink-muted">
-              <span className="font-medium text-ink">{c.name}</span>. {c.summary}
+              <span className="font-medium text-ink">{c.name}</span>. {c.profile?.summary}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <StatusPill stage={c.stage} checksDone={c.checksDone} checksTotal={c.checksTotal} size="md" />
@@ -122,14 +124,15 @@ function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
 }
 
 function NumbersStrip({ stats }: { stats?: HomeData["stats"] }) {
-  const showGiven = (stats?.givenUsd ?? 0) >= 1000;
+  const givenUsd = Number(stats?.givenUsd ?? 0);
+  const showGiven = givenUsd >= 1000;
   return (
     <GreenField kicker="Care Share Donate" title="Every gift, every check, in the open." footer={false} className="border-b border-rule">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy={!stats}>
-        <GfCard label="Causes listed" ticker="Malaysia" figure={stats ? fmtInt(stats.causes) : "…"} meta={[{ label: "verified", value: stats ? fmtInt(stats.verified) : "" }, { label: "givers", value: stats ? fmtInt(stats.giversCount) : "" }]} />
+        <GfCard label="Causes listed" ticker="Malaysia" figure={stats ? fmtInt(stats.causes) : "…"} meta={[{ label: "verified", value: stats ? fmtInt(stats.verified) : "" }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} />
         <GfCard label="Verified" ticker="All required checks done" figure={stats ? fmtInt(stats.verified) : "…"} meta={[{ label: "of", value: stats ? fmtInt(stats.causes) : "" }]} tab="#00E676" />
-        {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(stats.givenUsd) : "…"} meta={[{ label: "givers", value: stats ? fmtInt(stats.giversCount) : "" }]} tab="#59E39A" />}
-        <GfCard label="Helpers this month" ticker="Paths written" figure={stats ? fmtInt(stats.helpersThisMonth) : "…"} meta={[{ label: "earn", value: `${fmtInt(GSERA.helper.pathAgrees)} gSera per path` }]} tab="#FFFFFF" />
+        {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(givenUsd) : "…"} meta={[{ label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} tab="#59E39A" />}
+        <GfCard label="Helpers" ticker="Paths written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(GSERA.helper.pathAgrees)} gSera per path` }]} tab="#FFFFFF" />
       </div>
     </GreenField>
   );
@@ -167,7 +170,7 @@ function NewRail({ data }: { data?: HomeData }) {
       <div className="container py-12 md:py-14">
         <SectionHeader kicker="New" title={<span id="new-heading">Just added. Some are still being checked.</span>} size="sm" />
         <div className="mt-6 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 snap-x" role="list">
-          {data.newest.map((c) => (
+          {data.new.map((c) => (
             <div key={c.id} role="listitem" className="w-[260px] shrink-0 snap-start">
               <CauseCard cause={c} compact />
             </div>
@@ -262,9 +265,9 @@ function HowGseraWorks() {
             </li>
           ))}
         </ol>
-        {user && me.data && (
+        {user && me.data?.gsera?.multipliers && (
           <p className="mt-5 font-mono text-[12.5px] text-ink-muted tnum">
-            Your multipliers this week: volume tier {fmtMultiplier(me.data.multipliers.volumeTier)}, streak {fmtMultiplier(me.data.multipliers.streak)} ({me.data.multipliers.streakWeeks} weeks running).
+            Your multipliers this week: volume tier {fmtMultiplier(me.data.gsera.multipliers.volumeTier)}, streak {fmtMultiplier(me.data.gsera.multipliers.streak)}.
           </p>
         )}
       </div>

@@ -97,7 +97,7 @@ media.get(
       givers: causes.reduce((s, c) => s + c.giversCount, 0),
       causes: causes.length,
     };
-    res.json({ wallet: req.wallet, totals, causes });
+    res.json({ wallet: req.wallet, totals, causes, tokens: await listStablecoins() });
   }),
 );
 

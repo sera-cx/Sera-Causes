@@ -1,22 +1,22 @@
 import { ExternalLink } from "lucide-react";
 import { fmtDate } from "@/lib/format";
-import type { RecordEvent } from "@/lib/types";
+import type { RecordLine } from "@/lib/record";
 import { Wallet } from "./Wallet";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
-export function RecordList({ events, limit }: { events: RecordEvent[]; limit?: number }) {
+export function RecordList({ events, limit }: { events: RecordLine[]; limit?: number }) {
   const list = limit ? events.slice(0, limit) : events;
   if (list.length === 0) return <p className="text-[14.5px] text-ink-muted">Nothing on the record yet.</p>;
   return (
     <ol className="divide-y divide-rule border-y border-rule">
       {list.map((e) => (
-        <li key={e.id} className="grid gap-1 py-3 sm:grid-cols-[150px_1fr_auto] sm:gap-4 sm:items-baseline">
+        <li key={e.key} className="grid gap-1 py-3 sm:grid-cols-[150px_1fr_auto] sm:gap-4 sm:items-baseline">
           <time dateTime={e.at} className="font-mono text-[12px] text-ink-subtle tnum">
             {fmtDate(e.at, true)}
           </time>
           <div className="text-[14.5px] leading-snug">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{e.type.replace("_", " ")}</span>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{e.tag}</span>
             {e.summary}
             {e.by && (
               <span className="text-ink-muted">

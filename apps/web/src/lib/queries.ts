@@ -23,17 +23,22 @@ export const useCauses = (f: CauseFilters) => useQuery({ queryKey: keys.causes(f
 export const useCause = (id: number) => useQuery({ queryKey: keys.cause(id), queryFn: () => api.getCause(id), enabled: Number.isFinite(id) && id > 0 });
 export const useRecord = (id: number) => useQuery({ queryKey: keys.record(id), queryFn: () => api.getRecord(id), enabled: id > 0 });
 export const useClaims = (tab: ClaimTab) => useQuery({ queryKey: keys.claims(tab), queryFn: () => api.listClaims(tab) });
-export const useClaim = (causeId: number, claim: ClaimCode) => useQuery({ queryKey: keys.claim(causeId, claim), queryFn: () => api.getClaim(causeId, claim), enabled: causeId > 0 });
 export const useLatestEvents = (limit = 12) => useQuery({ queryKey: ["latest-events", limit], queryFn: () => api.getLatestEvents(limit) });
 export const useLeaderboards = (b: LeaderboardBoard, p: LeaderboardPeriod) => useQuery({ queryKey: keys.leaderboards(b, p), queryFn: () => api.getLeaderboards(b, p) });
 
+/** The claim workspace depends on who is signed in (eligibility), so the key carries the wallet. */
+export function useClaim(causeId: number, claim: ClaimCode) {
+  const { user } = useAuth();
+  return useQuery({ queryKey: [...keys.claim(causeId, claim), user?.wallet ?? null], queryFn: () => api.getClaim(causeId, claim), enabled: causeId > 0 });
+}
+
 export function useMe() {
   const { user } = useAuth();
-  return useQuery({ queryKey: keys.me, queryFn: api.getMe, enabled: !!user });
+  return useQuery({ queryKey: [...keys.me, user?.wallet ?? null], queryFn: api.getMe, enabled: !!user });
 }
 export function useDashboard() {
   const { user } = useAuth();
-  return useQuery({ queryKey: keys.dashboard, queryFn: api.getDashboard, enabled: !!user });
+  return useQuery({ queryKey: [...keys.dashboard, user?.wallet ?? null], queryFn: api.getDashboard, enabled: !!user });
 }
 
 /** Invalidate everything that could have changed after a write. */

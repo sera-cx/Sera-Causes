@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
-import { prepareCause, submitCause } from "@/lib/api";
+import { ONCHAIN_ONLY, prepareCause, submitCause } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CATEGORIES, CLAIM_INFO, GSERA, MALAYSIAN_STATES } from "@/lib/constants";
+import { CATEGORIES, CLAIM_INFO, GSERA, STATE_NAMES } from "@/lib/constants";
 import { fmtGsera } from "@/lib/format";
 import { useInvalidateAll } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
-import type { Cause, NewCauseDocument, NewCauseInput, OrgKind, PreparedCause } from "@/lib/types";
+import type { CauseDetail, NewCauseDocument, NewCauseInput, OrgKind, PreparedCause } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EMPTY: NewCauseInput = {
@@ -72,16 +72,20 @@ export function AddPage() {
   const [step, setStep] = useState<Step>("details");
   const [form, setForm] = useState<NewCauseInput>(EMPTY);
   const [prepared, setPrepared] = useState<PreparedCause | null>(null);
-  const [created, setCreated] = useState<Cause | null>(null);
+  const [created, setCreated] = useState<CauseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const set = <K extends keyof NewCauseInput>(k: K, v: NewCauseInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const validDetails = form.name.trim().length > 2 && form.category && form.state && form.summary.trim().length > 10 && form.summary.length <= 280 && form.photoPermission;
+  const validLink = /^https?:\/\/\S+\.\S+/i.test(form.link.trim());
+  const validDetails = form.name.trim().length > 2 && form.category && form.state && form.summary.trim().length > 10 && form.summary.length <= 280 && validLink && form.photoPermission;
 
   const toReview = async () => {
     setError(null);
+    if (!user) {
+      await signIn();
+    }
     setBusy(true);
     try {
       setPrepared(await prepareCause(form));
@@ -149,7 +153,7 @@ export function AddPage() {
             <Field label="State" htmlFor="state">
               <Select id="state" required value={form.state} onChange={(e) => set("state", e.target.value)}>
                 <option value="">Choose</option>
-                {MALAYSIAN_STATES.map((s) => (
+                {STATE_NAMES.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -164,8 +168,8 @@ export function AddPage() {
             <Textarea id="summary" required maxLength={280} value={form.summary} onChange={(e) => set("summary", e.target.value)} aria-describedby="summary-hint summary-count" />
             <p id="summary-count" className="mt-1 text-right font-mono text-[11px] text-ink-subtle tnum">{form.summary.length}/280</p>
           </Field>
-          <Field label="Official website or social link" htmlFor="link">
-            <Input id="link" type="url" value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://www.instagram.com/kasih.turtle/" />
+          <Field label="Official website or social link" htmlFor="link" hint="Needed for the duplicate check and as the first source on the profile.">
+            <Input id="link" type="url" required value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://www.instagram.com/kasih.turtle/" />
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Registration number, if known" htmlFor="registration" hint="PPM, SSM or PPAB number. Used for the duplicate check.">
@@ -255,7 +259,7 @@ export function AddPage() {
                           onChange={(e) => {
                             const f = e.target.files?.[0];
                             const rest = form.documents.filter((x) => x.claim !== d.claim);
-                            set("documents", f ? [...rest, { claim: d.claim, fileName: f.name, title: d.label }] : rest);
+                            set("documents", f ? [...rest, { claim: d.claim, file: f, fileName: f.name, title: d.label }] : rest);
                           }}
                         />
                         {existing && (
@@ -297,10 +301,7 @@ export function AddPage() {
                       <Link href={causeHref(d.id, d.slug)} className="font-medium text-[15px] hover:text-sera-text">
                         {d.name}
                       </Link>
-                      <p className="font-mono text-[11.5px] text-ink-muted">
-                        {d.reason}
-                        {d.registration ? ` · ${d.registration}` : ""}
-                      </p>
+                      <p className="font-mono text-[11.5px] text-ink-muted">{d.reason}</p>
                     </div>
                     <Button asChild size="sm" variant="outline">
                       <Link href={causeHref(d.id, d.slug)}>Open</Link>
@@ -329,13 +330,28 @@ export function AddPage() {
               </div>
             ))}
           </dl>
-          <p className="mt-4 text-[13.5px] text-ink-muted">Listing writes the profile hash to the registry and creates the cause's own deposit address. The profile URI is {prepared.uri}.</p>
+          <p className="mt-4 text-[13.5px] text-ink-muted break-words">
+            Listing writes the profile hash to the registry and creates the cause's own deposit address. The profile is stored at{" "}
+            <a href={prepared.uri} target="_blank" rel="noopener noreferrer" className="text-sera-text underline underline-offset-2">
+              {prepared.uri}
+            </a>{" "}
+            (hash <span className="font-mono">{prepared.hash.slice(0, 16)}…</span>).
+          </p>
+          {ONCHAIN_ONLY && (
+            <Notice tone="info" className="mt-4">
+              The profile is prepared. Listing itself is a registry transaction (`listCause`) sent from your wallet with this URI; it appears on the site once the indexer sees it.
+            </Notice>
+          )}
           {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
           <div className="mt-6 flex items-center justify-between gap-3">
             <Button variant="ghost" onClick={() => setStep("documents")}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Back
             </Button>
-            {user ? (
+            {ONCHAIN_ONLY ? (
+              <Button size="lg" disabled>
+                List this cause (from your wallet)
+              </Button>
+            ) : user ? (
               <Button size="lg" onClick={() => void submit()} disabled={busy}>
                 {busy ? "Listing" : "List this cause"}
               </Button>
@@ -351,8 +367,8 @@ export function AddPage() {
   );
 }
 
-function Done({ cause }: { cause: Cause }) {
-  const invite = `https://causes.sera.cx/c/${cause.id}-${cause.slug}?claim=invite`;
+function Done({ cause }: { cause: CauseDetail }) {
+  const invite = `${cause.shareUrl}?claim=invite`;
   const { copied, copy } = useCopy();
   return (
     <div className="container max-w-3xl py-10 md:py-14">
@@ -368,7 +384,7 @@ function Done({ cause }: { cause: Cause }) {
       </p>
       <ol className="mt-6 space-y-3 text-[15.5px]">
         {[
-          `It shows under New${cause.homepage ? " and on the homepage feed" : ""}, with a New pill until someone checks it.`,
+          `It shows under New${cause.showOnHomepage ? " and on the homepage feed" : ""}, with a New pill until someone checks it.`,
           "Anyone can upload evidence and write a verification path. Helpers earn gSera when the outcome agrees with them.",
           "Gifts go straight to the cause's address from day one. If you know the charity, invite them to claim the listing, set the payout wallet and post updates.",
         ].map((t, i) => (

@@ -30,7 +30,7 @@ export function Nav() {
   const linkCls = (path: string) =>
     cn("font-sans text-[15px] font-medium tracking-tight whitespace-nowrap transition-colors rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring", isActive(path) ? "text-sera-text" : "text-ink-muted hover:text-ink");
 
-  const gsera = me.data ? me.data.gsera.spendable : null;
+  const gsera = me.data ? (me.data.gsera?.spendable ?? me.data.ledger.credited) : null;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-rule backdrop-blur-sm no-print" style={{ background: "color-mix(in srgb, var(--paper) 90%, transparent)" }}>

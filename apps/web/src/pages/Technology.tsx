@@ -8,6 +8,7 @@ import { useSeo } from "@/hooks/useSeo";
 import { CHALLENGE_STAKE, GSERA, LINKS, VOTING } from "@/lib/constants";
 import { fmtDate, fmtGsera, fmtInt } from "@/lib/format";
 import { useLatestEvents } from "@/lib/queries";
+import { describeRecord } from "@/lib/record";
 import { causeHref } from "@/lib/rules";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
@@ -117,30 +118,33 @@ function LatestRecord() {
     <div className="my-6 rounded-2xl border border-rule bg-card p-4 sm:p-5">
       <Eyebrow>Latest events</Eyebrow>
       <ol className="mt-3 divide-y divide-rule">
-        {(q.data ?? []).map((e) => (
-          <li key={e.id} className="grid gap-0.5 py-2.5 sm:grid-cols-[150px_1fr_auto] sm:items-baseline sm:gap-3 text-[14px]">
-            <time dateTime={e.at} className="font-mono text-[11.5px] text-ink-subtle tnum">
-              {fmtDate(e.at, true)}
-            </time>
-            <span>
-              <Link href={causeHref(e.causeId, e.causeSlug)} className="font-medium hover:text-sera-text">
-                {e.causeName}
-              </Link>
-              <span className="text-ink-muted">: {e.summary}</span>
-              {e.by && (
-                <span className="text-ink-muted">
-                  {" "}
-                  by <Wallet address={e.by} you={false} />
-                </span>
+        {(q.data ?? []).map((e, i) => {
+          const line = describeRecord(e, i);
+          return (
+            <li key={line.key} className="grid gap-0.5 py-2.5 sm:grid-cols-[150px_1fr_auto] sm:items-baseline sm:gap-3 text-[14px]">
+              <time dateTime={e.at} className="font-mono text-[11.5px] text-ink-subtle tnum">
+                {fmtDate(e.at, true)}
+              </time>
+              <span>
+                <Link href={causeHref(e.causeId, e.causeSlug)} className="font-medium hover:text-sera-text">
+                  {e.causeName}
+                </Link>
+                <span className="text-ink-muted">: {line.summary}</span>
+                {line.by && (
+                  <span className="text-ink-muted">
+                    {" "}
+                    by <Wallet address={line.by} you={false} />
+                  </span>
+                )}
+              </span>
+              {line.txHash && (
+                <a href={`${EXPLORER}${line.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
+                  tx <ExternalLink className="h-3 w-3" aria-hidden />
+                </a>
               )}
-            </span>
-            {e.txHash && (
-              <a href={`${EXPLORER}${e.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
-                tx <ExternalLink className="h-3 w-3" aria-hidden />
-              </a>
-            )}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

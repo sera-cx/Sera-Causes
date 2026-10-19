@@ -1,64 +1,25 @@
-// mirror of @sera-causes/shared, swap when that package lands
-import { GSERA, VOTE_WEIGHT, VOTING, REQUIRED_CLAIMS, CARE_LICENCE_CLAIM, type ClaimCode } from "./constants";
-import type { Tally, Vote } from "./types";
+/**
+ * Rule functions come from @sera-causes/shared so the web, the API and the
+ * recompute script cannot drift. This file re-exports them and adds the few
+ * presentation helpers the pages use.
+ */
+import { giftGsera as sharedGiftGsera, voteWeight as sharedVoteWeight, type CauseProfile, type ClaimCode, type GiftMultiplierInput } from "@sera-causes/shared";
 
-export interface GiftMultiplierInput {
-  heat?: number;
-  volumeTier?: number;
-  streak?: number;
-}
+export { causeStage, feedOrder, giftMultiplier, isRequiredClaim, newestCauses, requiredClaimsFor, tallyClaim, votingCanOpen, challengeWindowEnd } from "@sera-causes/shared";
+export type { GiftMultiplierInput, StageResult, TallyVote } from "@sera-causes/shared";
 
-/** Compound multiplier for a gift, capped (brief 6.2). */
-export function giftMultiplier({ heat = 1, volumeTier = 1, streak = 1 }: GiftMultiplierInput = {}): number {
-  return Math.min(GSERA.compoundCap, heat * volumeTier * streak);
-}
-
-/** gSera per gift = gift_usd x 100 x heat x volume x streak, floored. */
+/** gSera for a gift. The shared rule throws on a negative amount; a form preview wants 0. */
 export function giftGsera(usd: number, input: GiftMultiplierInput = {}): number {
   if (!Number.isFinite(usd) || usd <= 0) return 0;
-  return Math.floor(usd * GSERA.perUsd * giftMultiplier(input));
+  return sharedGiftGsera(usd, input);
 }
 
-/** weight = 1 + min(4, log2(1 + reputation)), so between 1 and 5 (brief 7.6). */
+/** Vote weight rounded to two decimals for display. */
 export function voteWeight(reputation: number): number {
-  const rep = Math.max(0, reputation);
-  const w = VOTE_WEIGHT.min + Math.min(VOTE_WEIGHT.max - VOTE_WEIGHT.min, Math.log2(1 + rep));
-  return Math.round(w * 100) / 100;
+  return Math.round(sharedVoteWeight(reputation) * 100) / 100;
 }
 
-export function tallyClaim(votes: readonly Pick<Vote, "choice" | "weight">[]): Tally {
-  let verified = 0;
-  let not = 0;
-  let more = 0;
-  for (const v of votes) {
-    if (v.choice === "verified") verified += v.weight;
-    else if (v.choice === "not_verified") not += v.weight;
-    else more += v.weight;
-  }
-  const total = verified + not + more;
-  const quorumMet = total >= VOTING.quorumWeight;
-  const verifiedPct = total > 0 ? (verified / total) * 100 : 0;
-  const passed = quorumMet && verifiedPct >= VOTING.thresholdPct;
-  return {
-    verified: round1(verified),
-    not: round1(not),
-    more: round1(more),
-    total: round1(total),
-    quorumMet,
-    passed,
-    verifiedPct: Math.round(verifiedPct),
-  };
-}
-
-function round1(n: number) {
-  return Math.round(n * 10) / 10;
-}
-
-export function requiredClaimsFor(requiresCareLicence: boolean): ClaimCode[] {
-  return requiresCareLicence ? [...REQUIRED_CLAIMS, CARE_LICENCE_CLAIM] : [...REQUIRED_CLAIMS];
-}
-
-/** Short wallet, 0x5e7a...c0de. */
+/** Short wallet, 0x95ce...6ebc. */
 export function shortAddress(address: string): string {
   if (!address) return "";
   if (address.length <= 12) return address;
@@ -75,4 +36,50 @@ export function slugify(name: string): string {
 
 export function causeHref(id: number, slug: string): string {
   return `/c/${id}-${slug}`;
+}
+
+export function claimHref(causeId: number, claim: ClaimCode): string {
+  return `/verify/${causeId}/${claim}`;
+}
+
+/** The claim summary for a code on a cause view. */
+export function claimOf<T extends { claimType: ClaimCode }>(c: { claims: T[] }, code: ClaimCode): T | undefined {
+  return c.claims.find((k) => k.claimType === code);
+}
+
+/** A cause's profile, or an empty one when the metadata could not be fetched. */
+export function profileOf(c: { profile: CauseProfile | null; name: string; slug: string; category: string }): CauseProfile {
+  return (
+    c.profile ?? {
+      schema: "csd.cause/1",
+      slug: c.slug,
+      name: c.name,
+      legalName: "",
+      category: c.category,
+      location: { town: "", state: "", country: "MY" },
+      summary: "",
+      programmes: [],
+      impact: [],
+      beneficiaries: "",
+      organisation: { entityType: "", registration: "", registrationSource: "", founded: "", founders: "", leadership: "", taxExemption: { statement: "", source: "" }, accounts: "" },
+      contact: {},
+      sources: [],
+      profileCheckedOn: "",
+    }
+  );
+}
+
+/** The helper a help request is pledged to, if any. */
+export function pledgedBy(h: { helper: string | null; confirmedHelper: string | null; pledges: { helper: string }[] }): string | null {
+  return h.confirmedHelper ?? h.helper ?? h.pledges[0]?.helper ?? null;
+}
+
+/** Raw token units to a display number. */
+export function fromRaw(amountRaw: string, decimals = 6): number {
+  const s = (amountRaw ?? "0").replace(/[^0-9]/g, "") || "0";
+  return Number(BigInt(s)) / 10 ** decimals;
+}
+
+export function toRaw(units: number, decimals = 6): string {
+  return BigInt(Math.round(units * 10 ** decimals)).toString();
 }

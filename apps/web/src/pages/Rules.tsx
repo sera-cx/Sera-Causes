@@ -1,12 +1,15 @@
 /* Every tunable number is rendered from src/lib/constants.ts and shown only here. */
 import { SectionHeader } from "@/components/SectionHeader";
 import { useSeo } from "@/hooks/useSeo";
-import { CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, GSERA, LINKS, REPUTATION, VERIFICATION_MODE, VOTE_WEIGHT, VOTING } from "@/lib/constants";
+import { CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, DEFAULT_VERIFICATION_MODE, GSERA, LINKS, REPUTATION, VOTE_WEIGHT, VOTING } from "@/lib/constants";
 import { fmtInt, fmtMultiplier } from "@/lib/format";
+import { useStats } from "@/lib/queries";
 import { giftGsera, voteWeight } from "@/lib/rules";
 
 export function RulesPage() {
   useSeo("Rules", "The full points table, verification rules, steward powers, personal data rules and FAQ for Care Share Donate.");
+  const stats = useStats();
+  const verificationMode = stats.data?.verificationMode ?? DEFAULT_VERIFICATION_MODE;
   const example = giftGsera(50, { heat: GSERA.heat.urgent, volumeTier: 1.2, streak: 1.1 });
   return (
     <div className="container max-w-4xl py-10 md:py-14">
@@ -116,7 +119,7 @@ export function RulesPage() {
           </tbody>
         </table>
         <h3>Launch mode</h3>
-        <p>Current mode: <span className="font-mono">{VERIFICATION_MODE}</span>. In advisory mode, votes and tallies are shown and Sera.cx stewards finalise every claim. In community mode, votes decide and stewards act only on disputes and legal issues. Switching is one setting.</p>
+        <p>Current mode: <span className="font-mono">{verificationMode}</span>. In advisory mode, votes and tallies are shown and Sera.cx stewards finalise every claim. In community mode, votes decide and stewards act only on disputes and legal issues. Switching is one setting.</p>
 
         <h2 id="challenges" className="scroll-mt-24">Challenges</h2>
         <ul>

@@ -1,43 +1,50 @@
 /**
- * Mock implementations of the API in ARCHITECTURE.md section 6. State lives
+ * Mock implementations of the API routes in indexer/README.md. State lives
  * in memory for the session. Every write mutates the world and returns the
- * same shapes the real API will.
+ * same shapes the real API does (indexer/src/api/routes/*.ts).
  */
-import { CATEGORIES, CHALLENGE_STAKE, CLAIM_INFO, CLAIMS, GSERA, STABLECOINS, VERIFICATION_MODE, VOTING, type ClaimCode } from "../constants";
-import { giftGsera, requiredClaimsFor, slugify, tallyClaim, voteWeight } from "../rules";
+import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, GSERA, VOTING, contentHash, embedFor, giftGsera, tallyClaim, voteWeight, votingCanOpen, type ClaimCode, type PathBody } from "@sera-causes/shared";
+import { slugify } from "../rules";
 import type {
-  Cause,
-  CauseCardData,
+  CauseDetail,
   CauseFilters,
-  CauseSocials,
-  CauseUpdate,
-  Claim,
-  ConvertQuote,
-  MediaItem,
-  ClaimRow,
+  CauseRef,
+  CauseView,
+  Challenge,
+  ClaimListItem,
   ClaimTab,
+  ClaimWorkspace,
+  ConvertQuote,
   Dashboard,
-  Evidence,
-  Gift,
+  DashboardCause,
+  Eligibility,
+  EvidenceView,
+  GiftLookup,
   GiftQuote,
-  GiftReceipt,
+  GiftSubmitResult,
   HomeData,
+  LatestRecordEntry,
   LeaderboardBoard,
   LeaderboardPeriod,
   Leaderboards,
   Me,
+  MediaView,
   NewCauseInput,
   NewChallengeInput,
   NewEvidenceInput,
+  NewMediaInput,
   NewPathInput,
   NewVoteInput,
+  PathView,
   PreparedCause,
-  RecordEvent,
-  Stats,
-  VerificationPath,
+  RecordEntry,
+  Stablecoin,
+  StatsResponse,
+  VoteView,
+  WalletView,
+  WithdrawResult,
 } from "../types";
-import { photoUrl } from "./seed";
-import { DEMO_WALLET, HELPERS, NOW, ago, ahead, buildWorld, claimKey, fakeHash, fakeTx, type MockWorld } from "./state";
+import { API_ORIGIN, CHAIN_ID, DEMO_WALLET, HELPERS, MOCK_STABLECOINS, NOW, STEWARD_WALLET, ago, ahead, buildWorld, claimKey, claimOf, emptyClaim, fakeHash, fakeSig, fakeTx, makeMedia, recompute, secs, toRaw, tokenByAddress, tokenBySymbol, usdPerUnit, type MockWorld } from "./state";
 
 let world: MockWorld | null = null;
 export function getWorld(): MockWorld {
@@ -49,99 +56,113 @@ export function resetWorld() {
 }
 
 const delay = (ms = 120) => new Promise<void>((r) => setTimeout(r, ms));
+const nowIso = (w: MockWorld) => new Date(NOW + (w.nextId % 1000)).toISOString();
+const nextId = (w: MockWorld, prefix: string) => `${prefix}_${w.nextId++}`;
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-function toCard(c: Cause): CauseCardData {
+/** The list view: a cause without its detail arrays. */
+function toView(c: CauseDetail): CauseView {
+  const { acceptedTokens: _t, helpRequests: _h, updates: _u, attestations: _a, concerns: _c, pausedReason: _p, homepageHiddenBy: _b, wallet: _w, media: _m, recentGifts: _g, conversions: _cv, withdrawals: _wd, ...view } = c;
+  return { ...view, claims: view.claims.map((k) => ({ ...k })) };
+}
+
+const tabOf = (c: CauseDetail, code: ClaimCode): ClaimTab[] => {
+  const k = claimOf(c, code);
+  const tabs: ClaimTab[] = [];
+  if (c.status !== "listed" && c.status !== "verified") return tabs;
+  if (k.state === "open" && k.outcome !== "verified" && k.evidenceCount === 0) tabs.push("needs_evidence");
+  if (k.state === "open" && k.outcome !== "verified" && k.evidenceCount > 0 && k.pathCount < VOTING.minPaths) tabs.push("needs_checking");
+  if (k.state === "voting") tabs.push("open_for_votes");
+  if (k.challenged) tabs.push("challenged");
+  if (k.outcome === "verified" && k.finalisedAt && Date.parse(k.finalisedAt) >= NOW - 30 * 86400 * 1000) tabs.push("recently_verified");
+  return tabs;
+};
+
+function stats(w: MockWorld): StatsResponse {
+  const credited = w.ledger.filter((l) => l.state === "credited" && l.reason !== "challenge_stake").reduce((s, l) => s + l.amount, 0);
   return {
-    id: c.id,
-    slug: c.slug,
-    name: c.name,
-    stage: c.stage,
-    category: c.profile.category,
-    town: c.profile.location.town,
-    state: c.profile.location.state,
-    summary: c.profile.summary,
-    image: c.profile.image ? { ...c.profile.image, src: photoUrl(c.profile.image.src) } : undefined,
-    checksDone: c.checksDone,
-    checksTotal: c.checksTotal,
-    givenUsd: c.givenUsd,
-    giversCount: c.giversCount,
-    urgent: c.urgent ? { reason: c.urgent.reason } : undefined,
-    listedAt: c.listedAt,
-    lastActivityAt: c.lastActivityAt,
-    homepage: c.homepage,
+    causes: w.causes.filter((c) => c.status === "listed" || c.status === "verified").length,
+    verified: w.causes.filter((c) => c.status === "verified").length,
+    givenUsd: w.causes.reduce((s, c) => s + Number(c.givenUsd), 0).toFixed(2),
+    gifts: w.gifts.length,
+    givers: new Set(w.gifts.map((g) => g.sender)).size,
+    helpers: new Set(w.paths.map((p) => p.author)).size,
+    gseraCredited: credited,
+    gseraQueued: 0,
+    helpRequestsOpen: w.causes.reduce((s, c) => s + c.helpRequests.filter((h) => h.open).length, 0),
+    verificationMode: "advisory",
   };
 }
 
-function withPhoto(c: Cause): Cause {
-  return c.profile.image ? { ...c, profile: { ...c.profile, image: { ...c.profile.image, src: photoUrl(c.profile.image.src) } } } : c;
+function eligibilityOf(w: MockWorld, wallet: string): Eligibility {
+  const vestedGifts = w.ledger.filter((l) => l.wallet === wallet && l.reason === "gift" && l.state === "credited").length;
+  const contributions = w.paths.filter((p) => p.author === wallet).length + w.causes.reduce((s, c) => s + c.helpRequests.filter((h) => h.confirmedHelper === wallet).length, 0);
+  const reasons: string[] = [];
+  if (vestedGifts === 0 && contributions === 0) reasons.push("needs one gift with credited gSera or one accepted contribution");
+  return { canVote: reasons.length === 0, kytState: "clear", vestedGifts, contributions, reasons };
 }
 
-function recomputeCause(c: Cause) {
-  const required = requiredClaimsFor(c.requiresCareLicence);
-  c.checksDone = required.filter((k) => c.claims[k].outcome === "verified" && c.claims[k].state === "final").length;
-  c.checksTotal = required.length;
-  const w = getWorld();
-  const anyEvidence = w.evidence.some((e) => e.causeId === c.id);
-  if (c.stage === "paused" || c.stage === "closed") return;
-  if (c.checksDone === required.length) c.stage = "verified";
-  else if (c.checksDone > 0) c.stage = "partly_verified";
-  else if (anyEvidence) c.stage = "evidence_in";
-  else c.stage = "new";
+function ownedCause(causeId: number): CauseDetail {
+  const c = getWorld().causes.find((x) => x.id === causeId);
+  if (!c) throw new Error("cause not found");
+  if (c.owner !== DEMO_WALLET) throw new Error("only the cause owner can do this");
+  return c;
 }
 
-function statsOf(w: MockWorld): Stats {
-  const monthAgo = ago(24 * 30);
-  const helpers = new Set(w.paths.filter((p) => p.checkedAt > monthAgo).map((p) => p.author));
-  return {
-    causes: w.causes.length,
-    verified: w.causes.filter((c) => c.stage === "verified").length,
-    givenUsd: w.causes.reduce((s, c) => s + c.givenUsd, 0),
-    helpersThisMonth: helpers.size,
-    giversCount: w.causes.reduce((s, c) => s + c.giversCount, 0),
-  };
+function recordLine(w: MockWorld, causeId: number, type: string, data: Record<string, unknown>, source: RecordEntry["source"] = "api"): void {
+  const at = nowIso(w);
+  w.record.push({ causeId, at, source, type, data: source === "chain" ? { ...data, block: String(20000 + w.nextId), txHash: fakeTx(w.nextId), logIndex: 0 } : data });
+  const c = w.causes.find((x) => x.id === causeId);
+  if (c) c.lastActivityAt = at;
 }
 
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
 
-export async function getStats(): Promise<Stats> {
+export async function getStats(): Promise<StatsResponse> {
   await delay(60);
-  return statsOf(getWorld());
+  return stats(getWorld());
 }
 
 export async function getHome(): Promise<HomeData> {
   await delay();
   const w = getWorld();
-  const urgentCause = w.causes.find((c) => c.urgent && c.stage !== "paused" && c.stage !== "closed");
-  const feed = w.causes
-    .filter((c) => c.homepage && c.stage !== "paused" && c.stage !== "closed")
-    .sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt) || b.listedAt.localeCompare(a.listedAt))
-    .map(toCard);
-  const newest = [...w.causes].sort((a, b) => b.listedAt.localeCompare(a.listedAt)).slice(0, 6).map(toCard);
-  const categories = CATEGORIES.map((cat) => ({ slug: cat.slug, label: cat.label, count: w.causes.filter((c) => c.profile.category === cat.profileName).length }));
+  const live = w.causes.filter((c) => c.status === "listed" || c.status === "verified");
+  const urgentCause = live.find((c) => c.urgent);
+  const feed = live
+    .filter((c) => c.showOnHomepage && !c.homepageHiddenReason && c.id !== urgentCause?.id)
+    .sort((a, b) => (b.lastActivityAt ?? b.listedAt).localeCompare(a.lastActivityAt ?? a.listedAt) || b.listedAt.localeCompare(a.listedAt))
+    .map(toView);
+  const fresh = [...live]
+    .sort((a, b) => b.listedAt.localeCompare(a.listedAt) || b.id - a.id)
+    .slice(0, 6)
+    .map(toView);
+  const categories = CATEGORIES.map((cat) => ({ slug: cat.slug, label: cat.label, count: live.filter((c) => c.category === cat.slug).length }));
+  const helpRequests = live
+    .flatMap((c) => c.helpRequests.filter((h) => h.open))
+    .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
+    .slice(0, 6);
   return {
-    urgent: urgentCause ? { cause: toCard(urgentCause), reason: urgentCause.urgent!.reason } : undefined,
+    urgent: urgentCause?.urgent ? { label: "Urgent appeal, chosen by Sera.cx", reason: urgentCause.urgent.reason, setBy: urgentCause.urgent.setBy, since: urgentCause.urgent.since, endsAt: urgentCause.urgent.endsAt, cause: toView(urgentCause) } : null,
     feed,
-    newest,
+    new: fresh,
     categories,
-    stats: statsOf(w),
+    stats: stats(w),
+    helpRequests,
   };
 }
 
-export async function listCauses(f: CauseFilters = {}): Promise<CauseCardData[]> {
+export async function listCauses(f: CauseFilters = {}): Promise<CauseView[]> {
   await delay();
   const w = getWorld();
   let list = w.causes.slice();
-  if (f.cat) {
-    const cat = CATEGORIES.find((c) => c.slug === f.cat);
-    if (cat) list = list.filter((c) => c.profile.category === cat.profileName);
-  }
-  if (f.state) list = list.filter((c) => c.profile.location.state === f.state || (f.state !== "Nationwide" && c.profile.location.state.includes(f.state!)));
+  if (f.cat) list = list.filter((c) => c.category === f.cat);
+  if (f.state) list = list.filter((c) => c.profile?.location.state === f.state || (f.state !== "Nationwide" && !!c.profile?.location.state.includes(f.state!)));
   if (f.status) list = list.filter((c) => c.stage === f.status);
   if (f.q) {
     const q = f.q.toLowerCase();
-    list = list.filter((c) => [c.name, c.profile.legalName, c.profile.summary, c.profile.location.town, c.profile.location.state, c.profile.organisation.registration].join(" ").toLowerCase().includes(q));
+    list = list.filter((c) => [c.name, c.slug, c.profile?.legalName, c.profile?.summary, c.profile?.location.town, c.profile?.location.state, c.profile?.organisation.registration].join(" ").toLowerCase().includes(q));
   }
   const sort = f.sort ?? "activity";
   list.sort((a, b) => {
@@ -149,35 +170,36 @@ export async function listCauses(f: CauseFilters = {}): Promise<CauseCardData[]>
       case "newest":
         return b.listedAt.localeCompare(a.listedAt);
       case "given":
-        return b.givenUsd - a.givenUsd;
+        return Number(b.givenUsd) - Number(a.givenUsd);
       case "checks":
-        return b.checksDone / b.checksTotal - a.checksDone / a.checksTotal || b.givenUsd - a.givenUsd;
+        return b.checksDone / b.checksTotal - a.checksDone / a.checksTotal || Number(b.givenUsd) - Number(a.givenUsd);
       case "name":
         return a.name.localeCompare(b.name);
       default:
-        return b.lastActivityAt.localeCompare(a.lastActivityAt);
+        return (b.lastActivityAt ?? b.listedAt).localeCompare(a.lastActivityAt ?? a.listedAt);
     }
   });
-  return list.map(toCard);
+  return list.map(toView);
 }
 
-export async function getCause(id: number): Promise<Cause | null> {
+export async function getCause(id: number): Promise<CauseDetail | null> {
   await delay();
   const c = getWorld().causes.find((x) => x.id === id);
-  return c ? withPhoto(c) : null;
+  return c ? { ...c, claims: c.claims.map((k) => ({ ...k })) } : null;
 }
 
-export async function getRecord(id: number): Promise<RecordEvent[]> {
+export async function getRecord(id: number): Promise<RecordEntry[]> {
   await delay(80);
   return getWorld()
-    .events.filter((e) => e.causeId === id)
-    .sort((a, b) => b.at.localeCompare(a.at));
+    .record.filter((e) => e.causeId === id)
+    .map(({ causeId: _c, ...e }) => e)
+    .sort((a, b) => a.at.localeCompare(b.at));
 }
 
-export async function getLatestEvents(limit = 12): Promise<(RecordEvent & { causeName: string; causeSlug: string })[]> {
+export async function getLatestEvents(limit = 12): Promise<LatestRecordEntry[]> {
   await delay(80);
   const w = getWorld();
-  return [...w.events]
+  return [...w.record]
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, limit)
     .map((e) => {
@@ -186,167 +208,169 @@ export async function getLatestEvents(limit = 12): Promise<(RecordEvent & { caus
     });
 }
 
-function tabOf(c: Cause, code: ClaimCode): ClaimTab | null {
-  const s = c.claims[code];
-  if (c.stage === "paused" || c.stage === "closed") return null;
-  if (s.challenged) return "challenged";
-  if (s.state === "voting") return "open_for_votes";
-  if (s.outcome === "verified" && s.state === "final") return "recently_verified";
-  if (s.evidenceCount === 0) return "needs_evidence";
-  if (s.pathCount < VOTING.minPaths) return "needs_checking";
-  return "needs_checking";
-}
-
-function gseraOnOffer(tab: ClaimTab): number {
-  switch (tab) {
-    case "needs_evidence":
-      return GSERA.helper.pathAgrees;
-    case "needs_checking":
-      return GSERA.helper.pathAgrees;
-    case "open_for_votes":
-      return GSERA.helper.voteAgrees;
-    case "challenged":
-      return GSERA.helper.voteAgrees;
-    default:
-      return 0;
-  }
-}
-
-export async function listClaims(tab: ClaimTab): Promise<ClaimRow[]> {
+export async function listClaims(tab: ClaimTab): Promise<ClaimListItem[]> {
   await delay();
   const w = getWorld();
-  const rows: ClaimRow[] = [];
+  const items: ClaimListItem[] = [];
   for (const c of w.causes) {
     for (const code of CLAIMS) {
-      const s = c.claims[code];
-      // Badge claims only appear once someone has started on them.
-      if (!s.required && s.evidenceCount === 0 && s.pathCount === 0 && tab === "needs_evidence") continue;
-      const t = tabOf(c, code);
-      if (t !== tab) continue;
-      const missing =
-        t === "needs_evidence"
-          ? "No evidence yet"
-          : t === "needs_checking"
-            ? `${VOTING.minPaths - s.pathCount} more independent ${VOTING.minPaths - s.pathCount === 1 ? "path" : "paths"}`
-            : t === "open_for_votes"
-              ? "Votes"
-              : t === "challenged"
-                ? "Challenged. Votes"
-                : "Done";
-      const history = w.claimHistory.get(claimKey(c.id, code)) ?? [];
-      const openedAt = t === "recently_verified" ? (s.finalisedAt ?? c.listedAt) : (history.at(-1)?.at ?? c.listedAt);
-      rows.push({
-        causeId: c.id,
-        causeName: c.name,
-        causeSlug: c.slug,
-        category: c.profile.category,
-        state: c.profile.location.state,
-        claim: code,
-        missing,
-        gseraOnOffer: gseraOnOffer(t),
-        openedAt,
-        tab: t,
-        pathCount: s.pathCount,
-        evidenceCount: s.evidenceCount,
+      if (!tabOf(c, code).includes(tab)) continue;
+      const k = claimOf(c, code);
+      items.push({
+        cause: { id: c.id, slug: c.slug, name: c.name, photoUrl: c.photoUrl, stage: c.stage, category: c.category, location: c.profile ? { town: c.profile.location.town, state: c.profile.location.state } : null, listedAt: c.listedAt },
+        claim: { ...k },
+        label: CLAIM_INFO[code].label,
       });
     }
   }
-  if (tab === "recently_verified") rows.sort((a, b) => b.openedAt.localeCompare(a.openedAt));
-  else rows.sort((a, b) => b.openedAt.localeCompare(a.openedAt));
-  return rows;
+  items.sort((a, b) => (b.claim.required ? 1 : 0) - (a.claim.required ? 1 : 0));
+  return items;
 }
 
-export async function getClaim(causeId: number, code: ClaimCode): Promise<Claim | null> {
+export async function getClaim(causeId: number, code: ClaimCode): Promise<ClaimWorkspace | null> {
   await delay();
   const w = getWorld();
   const c = w.causes.find((x) => x.id === causeId);
   if (!c || !CLAIMS.includes(code)) return null;
-  const s = c.claims[code];
-  const key = claimKey(causeId, code);
-  const votes = (w.votes.get(key) ?? []).slice().sort((a, b) => b.signedAt.localeCompare(a.signedAt));
-  const tab = tabOf(c, code);
+  const claim = claimOf(c, code);
+  const votes = w.votes.filter((v) => v.causeId === causeId && v.claimType === code && v.epoch === claim.epoch).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const paths = w.paths.filter((p) => p.causeId === causeId && p.claimType === code && p.epoch === claim.epoch).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   return {
-    ...s,
-    causeId,
-    causeName: c.name,
-    causeSlug: c.slug,
-    causeStage: c.stage,
-    registration: c.profile.organisation.registration,
-    legalName: c.profile.legalName,
-    gseraOnOffer: tab ? gseraOnOffer(tab) : 0,
-    openedAt: w.claimHistory.get(key)?.[0]?.at ?? c.listedAt,
-    evidence: w.evidence.filter((e) => e.causeId === causeId && e.claim === code).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    paths: w.paths.filter((p) => p.causeId === causeId && p.claim === code).sort((a, b) => b.checkedAt.localeCompare(a.checkedAt)),
+    cause: { id: c.id, slug: c.slug, name: c.name, photoUrl: c.photoUrl, stage: c.stage, status: c.status, registration: c.profile?.organisation.registration ?? "", legalName: c.profile?.legalName ?? "" },
+    claim: { ...claim },
+    info: CLAIM_INFO[code],
+    evidence: w.evidence.filter((e) => e.causeId === causeId && e.claimType === code && !e.removedAt).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    paths,
     votes,
-    tally: tallyClaim(votes),
-    challenge: w.challenges.find((ch) => ch.causeId === causeId && ch.claim === code && ch.state === "open"),
-    history: (w.claimHistory.get(key) ?? []).slice().sort((a, b) => b.at.localeCompare(a.at)),
-    mode: VERIFICATION_MODE,
+    tally: tallyClaim(votes, w.reputation),
+    votingCanOpen: votingCanOpen(paths.map((p) => p.author)),
+    challenges: w.challenges.filter((ch) => ch.causeId === causeId && ch.claimType === code).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    decidedBy: "stewards",
+    eligibility: eligibilityOf(w, DEMO_WALLET),
   };
 }
 
 export async function getMe(): Promise<Me> {
   await delay(80);
   const w = getWorld();
-  return { ...w.me, gifts: w.me.gifts.slice() };
+  const wallet = DEMO_WALLET;
+  const ledger = w.ledger.filter((l) => l.wallet === wallet);
+  const sum = (state: string) => ledger.filter((e) => e.state === state && e.reason !== "challenge_stake").reduce((s, e) => s + e.amount, 0);
+  const staked = ledger.filter((e) => e.reason === "challenge_stake").reduce((s, e) => s + e.amount, 0);
+  const gifts = w.gifts.filter((g) => g.sender === wallet).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const paths = w.paths.filter((p) => p.author === wallet).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const votes = w.votes.filter((v) => v.voter === wallet).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const helped = w.causes.flatMap((c) => c.helpRequests.filter((h) => h.helper === wallet || h.confirmedHelper === wallet));
+  const ids = new Set<number>([...gifts.map((g) => g.causeId), ...paths.map((p) => p.causeId), ...votes.map((v) => v.causeId), ...helped.map((h) => h.causeId), ...ledger.map((l) => l.causeId).filter((x): x is number => x !== null)]);
+  const causes: CauseRef[] = w.causes.filter((c) => ids.has(c.id)).map((c) => ({ id: c.id, slug: c.slug, name: c.name }));
+  const credited = sum("credited");
+  return {
+    wallet,
+    email: null,
+    leaderboardOptOut: false,
+    kytState: "clear",
+    gsera: { spendable: credited + staked, earned: credited, spent: -staked, multipliers: { volumeTier: 1.2, streak: 1.1 } },
+    ledger: { credited, queued: sum("queued"), cancelled: sum("cancelled"), staked, entries: ledger.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)) },
+    reputation: w.reputation.get(wallet) ?? 0,
+    gifts,
+    paths,
+    votes,
+    helped,
+    notifications: [],
+    eligibility: eligibilityOf(w, wallet),
+    causes,
+    tokens: [...MOCK_STABLECOINS],
+  };
 }
 
 export async function getLeaderboards(board: LeaderboardBoard, period: LeaderboardPeriod): Promise<Leaderboards> {
   await delay();
   const w = getWorld();
-  const since = period === "month" ? ago(24 * 30) : "";
-  let rows: Leaderboards["rows"] = [];
+  const since = period === "7d" ? ago(24 * 7) : period === "30d" ? ago(24 * 30) : "";
   if (board === "givers") {
-    const map = new Map<string, Set<number>>();
+    const by = new Map<string, { usd: number; gifts: number }>();
     for (const g of w.gifts) {
-      if (!g.giver || g.at < since) continue;
-      const set = map.get(g.giver) ?? new Set();
-      set.add(g.causeId);
-      map.set(g.giver, set);
+      if (g.createdAt < since) continue;
+      const e = by.get(g.sender) ?? { usd: 0, gifts: 0 };
+      e.usd += Number(g.usd);
+      e.gifts += 1;
+      by.set(g.sender, e);
     }
-    rows = [...map.entries()]
-      .map(([wallet, set]) => ({ wallet, count: set.size }))
-      .sort((a, b) => b.count - a.count || a.wallet.localeCompare(b.wallet))
-      .slice(0, 20)
-      .map((r, i) => ({ rank: i + 1, label: short(r.wallet), wallet: r.wallet, value: r.count, unit: r.count === 1 ? "cause" : "causes" }));
-  } else if (board === "helpers") {
-    rows = HELPERS.map((h) => ({ wallet: h.wallet, value: period === "month" ? h.recentPaths + Math.min(1, h.helpFulfilled) : h.acceptedPaths + h.helpFulfilled, paths: period === "month" ? h.recentPaths : h.acceptedPaths, help: period === "month" ? Math.min(1, h.helpFulfilled) : h.helpFulfilled }))
-      .concat([{ wallet: DEMO_WALLET, value: 3, paths: 3, help: 0 }])
-      .sort((a, b) => b.value - a.value || a.wallet.localeCompare(b.wallet))
-      .slice(0, 20)
-      .map((r, i) => ({ rank: i + 1, label: short(r.wallet), wallet: r.wallet, value: r.value, unit: "accepted", secondary: `${r.paths} paths, ${r.help} help` }));
-  } else {
-    rows = w.causes
-      .filter((c) => c.giversCount > 0)
-      .map((c) => ({ c, givers: period === "month" ? Math.max(1, Math.round(c.giversCount * 0.4)) : c.giversCount }))
-      .sort((a, b) => b.givers - a.givers || a.c.name.localeCompare(b.c.name))
-      .slice(0, 20)
-      .map((r, i) => ({ rank: i + 1, label: r.c.name, causeId: r.c.id, causeSlug: r.c.slug, value: r.givers, unit: r.givers === 1 ? "giver" : "givers", secondary: `US$${r.c.givenUsd.toLocaleString("en-GB")} given` }));
+    const entries = [...by.entries()]
+      .map(([wallet, e]) => ({ wallet: wallet as `0x${string}`, usd: e.usd.toFixed(2), gifts: e.gifts }))
+      .sort((a, b) => Number(b.usd) - Number(a.usd))
+      .slice(0, 20);
+    return { board, period, entries };
   }
-  return { board, period, rows };
+  if (board === "helpers") {
+    const entries = HELPERS.map((h) => ({ wallet: h.wallet, gsera: (period === "all" ? h.acceptedPaths : h.recentPaths) * GSERA.helper.pathAgrees + (period === "all" ? h.helpFulfilled : Math.min(1, h.helpFulfilled)) * GSERA.helper.helpFulfilled, reputation: h.reputation }))
+      .concat([{ wallet: DEMO_WALLET, gsera: w.ledger.filter((l) => l.wallet === DEMO_WALLET && ["path", "vote", "help", "listing", "challenge_win"].includes(l.reason) && l.state === "credited" && l.createdAt >= since).reduce((s, l) => s + l.amount, 0), reputation: w.reputation.get(DEMO_WALLET) ?? 0 }])
+      .filter((e) => e.gsera > 0)
+      .sort((a, b) => b.gsera - a.gsera)
+      .slice(0, 20);
+    return { board, period, entries };
+  }
+  const by = new Map<number, { usd: number; gifts: number }>();
+  for (const g of w.gifts) {
+    if (g.createdAt < since) continue;
+    const e = by.get(g.causeId) ?? { usd: 0, gifts: 0 };
+    e.usd += Number(g.usd);
+    e.gifts += 1;
+    by.set(g.causeId, e);
+  }
+  const entries = [...by.entries()]
+    .map(([causeId, e]) => ({ cause: toView(w.causes.find((c) => c.id === causeId)!), usd: e.usd.toFixed(2), gifts: e.gifts }))
+    .sort((a, b) => Number(b.usd) - Number(a.usd))
+    .slice(0, 20);
+  return { board, period, entries };
 }
 
-function short(a: string) {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
+function dashboardCause(w: MockWorld, c: CauseDetail): DashboardCause {
+  const gifts = w.gifts.filter((g) => g.causeId === c.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const byToken = new Map<string, bigint>();
+  for (const g of gifts) byToken.set(g.token, (byToken.get(g.token) ?? 0n) + BigInt(g.amount));
+  for (const cv of c.conversions) {
+    if (cv.state !== "settled" || !cv.amountOut) continue;
+    byToken.set(cv.fromToken, (byToken.get(cv.fromToken) ?? 0n) - BigInt(cv.amountIn));
+    byToken.set(cv.toToken, (byToken.get(cv.toToken) ?? 0n) + BigInt(cv.amountOut));
+  }
+  for (const wd of c.withdrawals) byToken.set(wd.token, (byToken.get(wd.token) ?? 0n) - BigInt(wd.amount));
+  return {
+    ...toView(c),
+    wallet: c.wallet,
+    address: { address: c.wallet.address, chainId: CHAIN_ID, qr: `ethereum:${c.wallet.address}@${CHAIN_ID}` },
+    receivedByToken: [...byToken].filter(([, v]) => v > 0n).map(([token, amount]) => ({ token: token as `0x${string}`, symbol: tokenByAddress(token)?.symbol ?? null, amountRaw: amount.toString() })),
+    gifts,
+    media: c.media,
+    helpRequests: c.helpRequests,
+    conversions: c.conversions,
+    withdrawals: c.withdrawals,
+    shares: w.shares.get(c.id) ?? {},
+    share: { url: c.shareUrl, og: c.ogImageUrl, poster: c.posterUrl, embed: `<div data-sera-give="${c.id}"></div>\n<script async src="${API_ORIGIN}/embed.js"></script>` },
+  };
 }
 
 export async function getDashboard(): Promise<Dashboard> {
   await delay();
   const w = getWorld();
   const causes = w.causes
-    .filter((c) => c.owner === DEMO_WALLET)
-    .map((c) => {
-      const gifts = w.gifts.filter((g) => g.causeId === c.id).sort((a, b) => b.at.localeCompare(a.at));
-      const shares = Object.entries(w.shares.get(c.id) ?? {}).map(([channel, count]) => ({ channel, count }));
-      return {
-        cause: withPhoto(c),
-        gifts,
-        treasuryUsd: Math.round(c.treasury.balances.reduce((s, b) => s + b.usd, 0) * 100) / 100,
-        shares,
-        inviteLink: `https://causes.sera.cx/c/${c.id}-${c.slug}?claim=${fakeHash(c.id * 77).slice(2, 14)}`,
-      };
-    });
-  return { wallet: DEMO_WALLET, causes };
+    .filter((c) => c.owner === DEMO_WALLET || c.lister === DEMO_WALLET)
+    .sort((a, b) => b.listedAt.localeCompare(a.listedAt))
+    .map((c) => dashboardCause(w, c));
+  return {
+    wallet: DEMO_WALLET,
+    totals: { givenUsd: causes.reduce((s, c) => s + Number(c.givenUsd), 0).toFixed(2), givers: causes.reduce((s, c) => s + c.giversCount, 0), causes: causes.length },
+    causes,
+    tokens: [...MOCK_STABLECOINS],
+  };
+}
+
+export async function getGift(id: string): Promise<GiftLookup | null> {
+  await delay(80);
+  const w = getWorld();
+  const gift = w.gifts.find((g) => g.id === id);
+  if (!gift) return null;
+  return { kind: "gift", gift, ledger: w.ledger.find((l) => l.reason === "gift" && l.sourceRef === gift.id) ?? null };
 }
 
 // ---------------------------------------------------------------------------
@@ -358,316 +382,347 @@ export async function prepareCause(input: NewCauseInput): Promise<PreparedCause>
   const w = getWorld();
   const name = input.name.trim().toLowerCase();
   const reg = input.registration.trim().toLowerCase().replace(/\s+/g, "");
-  const tokens = name.split(/[^a-z0-9]+/).filter((t) => t.length > 3 && !["society", "malaysia", "foundation", "project", "the", "and"].includes(t));
+  const host = (() => {
+    try {
+      return new URL(input.link).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
   const duplicates = w.causes
     .map((c) => {
-      const cname = `${c.name} ${c.profile.legalName}`.toLowerCase();
-      const creg = c.profile.organisation.registration.toLowerCase().replace(/\s+/g, "");
-      if (reg && creg && (creg.includes(reg) || reg.includes(creg))) return { c, reason: "Same registration number" };
-      if (name && cname.includes(name)) return { c, reason: "Same name" };
-      const hits = tokens.filter((t) => cname.includes(t)).length;
-      if (tokens.length > 0 && hits >= Math.max(1, Math.ceil(tokens.length * 0.6))) return { c, reason: "Similar name" };
-      return null;
+      const reasons: string[] = [];
+      const creg = (c.profile?.organisation.registration ?? "").toLowerCase().replace(/\s+/g, "");
+      if (reg && creg && creg === reg) reasons.push("same registration number");
+      if (name && c.name.trim().toLowerCase() === name) reasons.push("same name");
+      const site = c.profile?.contact.website;
+      if (host && site) {
+        try {
+          if (new URL(site).hostname.replace(/^www\./, "").toLowerCase() === host) reasons.push("same website");
+        } catch {
+          /* ignore */
+        }
+      }
+      return reasons.length ? { id: c.id, slug: c.slug, name: c.name, reason: reasons.join(", ") } : null;
     })
-    .filter((x): x is { c: Cause; reason: string } => x !== null)
-    .slice(0, 4)
-    .map(({ c, reason }) => ({ id: c.id, slug: c.slug, name: c.name, registration: c.profile.organisation.registration, reason }));
-  return { uri: `https://causes.sera.cx/api/v1/profiles/${fakeHash(w.nextId).slice(2, 18)}.json`, duplicates };
-}
-
-export async function submitCause(input: NewCauseInput): Promise<Cause> {
-  await delay(400);
-  const w = getWorld();
-  const id = Math.max(...w.causes.map((c) => c.id)) + 1;
-  const slug = slugify(input.name) || `cause-${id}`;
-  const category = CATEGORIES.find((c) => c.slug === input.category)?.profileName ?? "Children";
-  const requiresCareLicence = false;
-  const claims = Object.fromEntries(
-    CLAIMS.map((code) => [
-      code,
-      { code, required: requiredClaimsFor(requiresCareLicence).includes(code), outcome: "open", state: "open", epoch: 0, evidenceCount: 0, pathCount: 0, independentChecks: 0, challenged: false },
-    ]),
-  ) as Cause["claims"];
-  const now = new Date(NOW).toISOString();
-  const cause: Cause = {
-    id,
+    .filter((x): x is { id: number; slug: string; name: string; reason: string } => x !== null)
+    .slice(0, 4);
+  const slug = slugify(input.name) || `cause-${w.nextId}`;
+  const today = new Date(NOW).toISOString().slice(0, 10);
+  const profile: PreparedCause["profile"] = {
+    schema: "csd.cause/1",
     slug,
     name: input.name.trim(),
-    stage: "new",
-    owner: DEMO_WALLET,
-    payout: input.payout.trim() || null,
-    depositAddress: `0x${fakeHash(id * 7).slice(2, 42)}`,
-    media: [],
-    treasury: { depositAddress: `0x${fakeHash(id * 7).slice(2, 42)}`, balances: [], policy: "hold", autoToken: "USDT", conversions: [], withdrawals: [] },
-    listedAt: now,
-    lastActivityAt: now,
-    givenUsd: 0,
-    giversCount: 0,
-    homepage: input.homepage,
-    requiresCareLicence,
-    acceptedTokens: ["USDT", "USDC"],
-    claims,
-    checksDone: 0,
-    checksTotal: 4,
-    badges: { taxExempt: false, accountsPublished: false },
-    concerns: [],
-    helpRequests: [],
-    updates: [],
-    profile: {
-      schema: "csd.cause/1",
-      slug,
-      name: input.name.trim(),
-      legalName: "",
-      category,
-      location: { town: input.town.trim(), state: input.state, country: "MY" },
-      summary: input.summary.trim(),
-      programmes: [],
-      impact: [],
-      beneficiaries: "",
-      organisation: { entityType: "", registration: input.registration.trim(), registrationSource: input.link.trim(), founded: "", founders: "", leadership: "", taxExemption: { statement: "Not stated", source: "" }, accounts: "Not public" },
-      contact: { website: input.link.trim() },
-      sources: input.link ? [input.link.trim()] : [],
-      profileCheckedOn: now.slice(0, 10),
-      image: { src: "photos/hero.jpg", alt: "Green turtle hatchling in a coconut shell", credit: "Kasih Turtle Conservation Project, Pantai Chendor", licence: "Supplied", illustrative: true },
-    },
+    legalName: input.name.trim(),
+    category: CATEGORIES.find((c) => c.slug === input.category)?.profileName ?? input.category,
+    location: { town: input.town.trim(), state: input.state, country: "MY" },
+    summary: input.summary.trim(),
+    programmes: [],
+    impact: [],
+    beneficiaries: "",
+    organisation: { entityType: "", registration: input.registration.trim(), registrationSource: "", founded: "", founders: "", leadership: "", taxExemption: { statement: "", source: "" }, accounts: "" },
+    contact: { website: input.link.trim() },
+    sources: input.link ? [input.link.trim()] : [],
+    profileCheckedOn: today,
   };
-  w.causes.push(cause);
-  w.me.causesOwned.push(id);
-  w.events.push({ id: w.nextId++, causeId: id, type: "listed", at: now, txHash: fakeTx(id), summary: "Listed by you", by: DEMO_WALLET });
-  if (input.homepage) w.events.push({ id: w.nextId++, causeId: id, type: "homepage", at: now, summary: "Creator switched Show on homepage on", by: DEMO_WALLET });
-  w.me.contributions.unshift({ id: w.nextId++, kind: "listing", causeId: id, causeName: cause.name, at: now, outcome: "open", gsera: GSERA.helper.listingVerified });
-  // Documents uploaded at listing time become evidence against the matching claim.
-  if (input.documents.length > 0 && !input.redactionConfirmed) throw new Error("Confirm that personal data has been redacted from the documents");
-  for (const doc of input.documents) {
-    const ev: Evidence = { id: w.nextId++, causeId: id, claim: doc.claim, kind: "document", title: doc.title || doc.fileName, note: `Uploaded with the listing: ${doc.fileName}`, uploader: DEMO_WALLET, hash: fakeHash(w.nextId * 3), createdAt: now };
-    w.evidence.push(ev);
-    cause.claims[doc.claim].evidenceCount += 1;
-    w.events.push({ id: w.nextId++, causeId: id, type: "evidence", at: now, txHash: fakeTx(ev.id), summary: `Evidence for ${doc.claim}: ${ev.title}`, by: DEMO_WALLET });
-    const key = claimKey(id, doc.claim);
-    w.claimHistory.set(key, [...(w.claimHistory.get(key) ?? []), { id: w.nextId++, type: "evidence", at: now, summary: `Evidence uploaded: ${ev.title}`, by: DEMO_WALLET }]);
-  }
-  if (input.orgKind === "licensed") cause.requiresCareLicence = true;
-  recomputeCause(cause);
-  return withPhoto(cause);
+  const hash = contentHash(profile).slice(2);
+  return { uri: `${API_ORIGIN}/api/v1/profiles/${hash}.json`, hash, duplicates, profile, payout: input.payout.trim() ? (input.payout.trim().toLowerCase() as `0x${string}`) : null, needsCareLicence: input.orgKind === "licensed", relationship: input.relationship };
 }
 
-export async function postEvidence(input: NewEvidenceInput): Promise<Evidence> {
+/** In production the browser calls `listCause` on the registry after prepare; the mock lists it directly. */
+export async function submitCause(input: NewCauseInput): Promise<CauseDetail> {
+  await delay(400);
+  const w = getWorld();
+  const prepared = await prepareCause(input);
+  const id = Math.max(...w.causes.map((c) => c.id)) + 1;
+  const now = nowIso(w);
+  const requiresCareLicence = input.orgKind === "licensed";
+  const depositAddress = `0x${fakeHash(id * 7).slice(2, 42)}` as `0x${string}`;
+  const wallet: WalletView = { address: depositAddress, delegated: false, treasuryMode: "manual", targetToken: null, privyWalletId: null };
+  const cause: CauseDetail = {
+    id,
+    chainId: CHAIN_ID,
+    slug: prepared.profile.slug,
+    name: prepared.profile.name,
+    owner: DEMO_WALLET,
+    payout: prepared.payout ?? DEMO_WALLET,
+    lister: DEMO_WALLET,
+    category: input.category,
+    uri: prepared.uri,
+    status: "listed",
+    stage: "new",
+    stageLabel: "New",
+    stageTone: "grey",
+    checksDone: 0,
+    checksTotal: 4,
+    listedAt: now,
+    waitingSince: now,
+    verifiedAt: null,
+    requiresCareLicence,
+    listedVia: "causes.sera.cx",
+    profile: { ...prepared.profile, image: { src: "photos/hero.jpg", alt: "Green turtle hatchling in a coconut shell", credit: "Kasih Turtle Conservation Project, Pantai Chendor", licence: "Supplied", illustrative: true } },
+    photoUrl: "/photos/hero.jpg",
+    givenUsd: "0.00",
+    giversCount: 0,
+    depositAddress,
+    treasuryMode: "manual",
+    mediaCount: 0,
+    requiredClaims: [],
+    claims: CLAIMS.map((code) => emptyClaim(id, code, false)),
+    badges: { taxExempt: false, accountsPublished: false },
+    evidenceCount: 0,
+    showOnHomepage: input.homepage,
+    homepageHiddenReason: null,
+    urgent: null,
+    lastActivityAt: now,
+    shareUrl: `${API_ORIGIN}/c/${id}-${prepared.profile.slug}`,
+    ogImageUrl: `${API_ORIGIN}/api/v1/og/cause/${id}.png`,
+    posterUrl: `${API_ORIGIN}/api/v1/causes/${id}/poster.pdf`,
+    embedUrl: `${API_ORIGIN}/api/v1/embed/give/${id}`,
+    createdAt: now,
+    updatedAt: now,
+    acceptedTokens: [...MOCK_STABLECOINS],
+    helpRequests: [],
+    updates: [],
+    attestations: [],
+    concerns: [],
+    pausedReason: null,
+    homepageHiddenBy: null,
+    wallet,
+    media: [],
+    recentGifts: [],
+    conversions: [],
+    withdrawals: [],
+  };
+  w.causes.push(cause);
+  recordLine(w, id, "CauseListed", { by: DEMO_WALLET, frontend: "causes.sera.cx", uri: prepared.uri, category: input.category }, "chain");
+  if (requiresCareLicence) recordLine(w, id, "RequiresCareLicenceSet", { on: true }, "chain");
+  if (input.documents.length > 0 && !input.redactionConfirmed) throw new Error("Confirm that personal data has been redacted from the documents");
+  for (const doc of input.documents) {
+    await postEvidence({ causeId: id, claim: doc.claim, kind: "document", title: doc.title || doc.fileName, note: `Uploaded with the listing: ${doc.fileName}`, file: doc.file, redactionConfirmed: true });
+  }
+  recompute(cause, w.evidence);
+  return cause;
+}
+
+export async function postEvidence(input: NewEvidenceInput): Promise<EvidenceView> {
   await delay(300);
   const w = getWorld();
   const c = w.causes.find((x) => x.id === input.causeId);
-  if (!c) throw new Error("Cause not found");
+  if (!c) throw new Error("cause not found");
   if (!input.redactionConfirmed) throw new Error("Confirm that personal data has been redacted");
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const ev: Evidence = { id: w.nextId++, causeId: c.id, claim: input.claim, kind: input.kind, title: input.title.trim(), note: input.note.trim(), uploader: DEMO_WALLET, hash: fakeHash(w.nextId * 3), url: input.url?.trim() || undefined, createdAt: now };
+  if (input.kind === "link" && !input.link) throw new Error("link is required for link evidence");
+  if (input.kind !== "link" && !input.file) throw new Error("file is required for this evidence kind");
+  const now = nowIso(w);
+  const hash = fakeHash(w.nextId * 3);
+  const ev: EvidenceView = {
+    id: nextId(w, "ev"),
+    causeId: c.id,
+    claimType: input.claim,
+    uploader: DEMO_WALLET,
+    kind: input.kind,
+    fileUrl: input.kind === "link" ? input.link!.trim() : `${API_ORIGIN}/uploads/${hash.slice(2)}`,
+    fileHash: hash,
+    mime: input.file?.type || null,
+    size: input.file?.size ?? null,
+    title: input.title.trim(),
+    note: input.note.trim() || null,
+    redactionConfirmed: true,
+    createdAt: now,
+    removedAt: null,
+    removedReason: null,
+  };
   w.evidence.push(ev);
-  c.claims[input.claim].evidenceCount += 1;
-  c.lastActivityAt = now;
-  w.events.push({ id: w.nextId++, causeId: c.id, type: "evidence", at: now, txHash: fakeTx(ev.id), summary: `Evidence for ${input.claim}: ${ev.title}`, by: DEMO_WALLET });
-  const key = claimKey(c.id, input.claim);
-  w.claimHistory.set(key, [...(w.claimHistory.get(key) ?? []), { id: w.nextId++, type: "evidence", at: now, summary: `Evidence uploaded: ${ev.title}`, by: DEMO_WALLET }]);
-  recomputeCause(c);
+  recordLine(w, c.id, "EvidenceAdded", { ...ev });
+  recompute(c, w.evidence);
   return ev;
 }
 
-export async function postPath(input: NewPathInput): Promise<VerificationPath> {
+export async function postPath(input: NewPathInput): Promise<{ path: PathView; claim: { state: string; epoch: number } }> {
   await delay(300);
   const w = getWorld();
   const c = w.causes.find((x) => x.id === input.causeId);
-  if (!c) throw new Error("Cause not found");
-  if (!input.source.trim() || input.steps.filter((s) => s.trim()).length === 0 || !input.screenshotName.trim() || !input.checkedAt) {
-    throw new Error("A path needs a source, steps and a dated screenshot");
-  }
-  const s = c.claims[input.claim];
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const path: VerificationPath = {
-    id: w.nextId++,
-    causeId: c.id,
-    claim: input.claim,
-    epoch: s.epoch,
-    author: DEMO_WALLET,
-    authorReputation: w.me.reputation,
-    source: input.source.trim(),
-    steps: input.steps.map((x) => x.trim()).filter(Boolean),
-    exactSearch: input.exactSearch.trim(),
-    found: input.found.trim(),
-    matches: input.matches.trim(),
-    screenshotHash: fakeHash(w.nextId * 5),
-    checkedAt: input.checkedAt,
-    result: input.result,
-    caveats: input.caveats.trim(),
-    conflict: input.conflict.trim() || "None",
-  };
+  if (!c) throw new Error("cause not found");
+  const k = claimOf(c, input.claim);
+  if (k.state !== "open" && k.state !== "voting") throw new Error(`claim is ${k.state}; paths are not accepted`);
+  if (w.paths.some((p) => p.causeId === c.id && p.claimType === input.claim && p.epoch === k.epoch && p.author === DEMO_WALLET)) throw new Error("this wallet already signed a path for this claim epoch");
+  const now = nowIso(w);
+  const body: PathBody = { ...input.body, screenshotHash: fakeHash(w.nextId * 5), checkedAt: input.body.checkedAt };
+  const path: PathView = { id: nextId(w, "path"), causeId: c.id, claimType: input.claim, epoch: k.epoch, author: DEMO_WALLET, body, contentHash: contentHash(body), result: body.result, checkedAt: body.checkedAt, signature: fakeSig(w.nextId), createdAt: now, outcomeAgreed: null };
   w.paths.push(path);
-  s.pathCount += 1;
-  s.independentChecks = new Set(w.paths.filter((p) => p.causeId === c.id && p.claim === input.claim && p.result === "verified").map((p) => p.author)).size;
-  const key = claimKey(c.id, input.claim);
-  const hist = w.claimHistory.get(key) ?? [];
-  hist.push({ id: w.nextId++, type: "path", at: now, summary: `Path added, result: ${input.result.replace("_", " ")}`, by: DEMO_WALLET });
-  const distinctAuthors = new Set(w.paths.filter((p) => p.causeId === c.id && p.claim === input.claim && p.epoch === s.epoch).map((p) => p.author)).size;
-  if (s.state === "open" && distinctAuthors >= VOTING.minPaths) {
-    s.state = "voting";
-    s.votingEnd = ahead(24 * VOTING.periodDays);
-    hist.push({ id: w.nextId++, type: "voting_opened", at: now, summary: "Voting opened: two independent paths" });
-    w.events.push({ id: w.nextId++, causeId: c.id, type: "voting_opened", at: now, summary: `Voting opened on ${input.claim}` });
+  const mine = w.paths.filter((p) => p.causeId === c.id && p.claimType === input.claim && p.epoch === k.epoch);
+  k.pathCount = mine.length;
+  k.independentChecks = Math.max(0, ...["verified", "not_verified", "could_not_check"].map((r) => new Set(mine.filter((p) => p.result === r).map((p) => p.author)).size));
+  if (k.state === "open" && votingCanOpen(mine.map((p) => p.author))) {
+    k.state = "voting";
+    k.votingStart = now;
+    k.votingEnd = ahead(24 * VOTING.periodDays);
   }
-  w.claimHistory.set(key, hist);
-  w.events.push({ id: w.nextId++, causeId: c.id, type: "path", at: now, summary: `Verification path for ${input.claim} (${input.result.replace("_", " ")})`, by: DEMO_WALLET });
-  c.lastActivityAt = now;
-  w.me.contributions.unshift({ id: w.nextId++, kind: "path", causeId: c.id, causeName: c.name, claim: input.claim, at: now, outcome: "pending", gsera: GSERA.helper.pathAgrees });
-  return path;
+  recordLine(w, c.id, "PathSigned", { ...path });
+  return { path, claim: { state: k.state, epoch: k.epoch } };
 }
 
 export async function markPathsOpened(causeId: number, claim: ClaimCode): Promise<void> {
   getWorld().pathsOpened.add(claimKey(causeId, claim));
 }
 
-export async function postVote(input: NewVoteInput): Promise<void> {
+export async function postVote(input: NewVoteInput): Promise<{ vote: VoteView }> {
   await delay(250);
   const w = getWorld();
   const c = w.causes.find((x) => x.id === input.causeId);
-  if (!c) throw new Error("Cause not found");
+  if (!c) throw new Error("cause not found");
   const key = claimKey(c.id, input.claim);
   if (!w.pathsOpened.has(key)) throw new Error("Read the paths before voting");
   if (!input.reason.trim()) throw new Error("Give a one-line reason");
-  const list = w.votes.get(key) ?? [];
-  if (list.some((v) => v.voter === DEMO_WALLET)) throw new Error("You have already voted on this claim");
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  list.push({ id: w.nextId++, voter: DEMO_WALLET, choice: input.choice, reason: input.reason.trim(), weight: voteWeight(w.me.reputation), signedAt: now });
-  w.votes.set(key, list);
-  w.claimHistory.set(key, [...(w.claimHistory.get(key) ?? []), { id: w.nextId++, type: "vote", at: now, summary: `Vote: ${input.choice.replace("_", " ")}`, by: DEMO_WALLET }]);
-  w.me.contributions.unshift({ id: w.nextId++, kind: "vote", causeId: c.id, causeName: c.name, claim: input.claim, at: now, outcome: "pending", gsera: GSERA.helper.voteAgrees });
-  w.me.ledger.unshift({ id: w.nextId++, amount: GSERA.helper.voteAgrees, reason: "vote", sourceTag: "charity", note: `Vote on ${c.name} ${input.claim}, credited when the claim is final`, state: "held", createdAt: now, causeId: c.id });
+  const k = claimOf(c, input.claim);
+  if (k.state !== "voting") throw new Error("voting is not open on this claim");
+  if (w.votes.some((v) => v.causeId === c.id && v.claimType === input.claim && v.epoch === k.epoch && v.voter === DEMO_WALLET)) throw new Error("this wallet already voted on this claim epoch");
+  const now = nowIso(w);
+  const vote: VoteView = { id: nextId(w, "vote"), causeId: c.id, claimType: input.claim, epoch: k.epoch, voter: DEMO_WALLET, choice: input.choice, reason: input.reason.trim(), weight: voteWeight(w.reputation.get(DEMO_WALLET) ?? 0), signedAt: secs(now), createdAt: now, outcomeAgreed: null };
+  w.votes.push(vote);
+  recordLine(w, c.id, "VoteSigned", { id: vote.id, claimType: vote.claimType, epoch: vote.epoch, voter: vote.voter, choice: vote.choice, weight: vote.weight, createdAt: now });
+  return { vote };
 }
 
-export async function postChallenge(input: NewChallengeInput): Promise<void> {
+export async function postChallenge(input: NewChallengeInput): Promise<Challenge> {
   await delay(350);
   const w = getWorld();
   const c = w.causes.find((x) => x.id === input.causeId);
-  if (!c) throw new Error("Cause not found");
-  if (w.me.gsera.spendable < CHALLENGE_STAKE) throw new Error(`You need ${CHALLENGE_STAKE.toLocaleString("en-GB")} spendable gSera to stake`);
-  if (!input.summary.trim() || !input.counterEvidence.trim()) throw new Error("A challenge needs a summary and counter-evidence");
-  const s = c.claims[input.claim];
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  w.challenges.push({ id: w.nextId++, causeId: c.id, claim: input.claim, challenger: DEMO_WALLET, stake: CHALLENGE_STAKE, summary: input.summary.trim(), counterEvidence: input.counterEvidence.trim(), state: "open", createdAt: now, votingEnd: ahead(24 * VOTING.periodDays) });
-  s.challenged = true;
-  s.state = "challenge_window";
-  s.epoch += 1;
-  s.challengeWindowEnd = ahead(24 * VOTING.periodDays);
-  if (s.required) recomputeCause(c);
-  w.me.gsera.spendable -= CHALLENGE_STAKE;
-  w.me.ledger.unshift({ id: w.nextId++, amount: -CHALLENGE_STAKE, reason: "challenge_stake", sourceTag: "charity", note: `Stake on the challenge of ${c.name} ${input.claim}. Returned if upheld, burned if not`, state: "spent", createdAt: now, causeId: c.id });
-  const key = claimKey(c.id, input.claim);
-  w.claimHistory.set(key, [...(w.claimHistory.get(key) ?? []), { id: w.nextId++, type: "challenge", at: now, summary: `Challenge opened with ${CHALLENGE_STAKE.toLocaleString("en-GB")} gSera staked. Voting reopened`, by: DEMO_WALLET }]);
-  w.events.push({ id: w.nextId++, causeId: c.id, type: "challenge", at: now, summary: `${input.claim} challenged: ${input.summary.trim()}`, by: DEMO_WALLET });
-  c.concerns.unshift({ kind: "challenge", text: `A challenge is open on ${input.claim} (${CLAIM_INFO[input.claim].label}). ${input.summary.trim()}`, link: `/verify/${c.id}/${input.claim}`, at: now });
-  c.lastActivityAt = now;
-  w.me.contributions.unshift({ id: w.nextId++, kind: "challenge", causeId: c.id, causeName: c.name, claim: input.claim, at: now, outcome: "open", gsera: GSERA.helper.challengeWin });
+  if (!c) throw new Error("cause not found");
+  const me = await getMe();
+  if ((me.gsera?.spendable ?? 0) < CHALLENGE_STAKE) throw new Error(`You need ${CHALLENGE_STAKE.toLocaleString("en-GB")} spendable gSera to stake`);
+  if (!input.statement.trim()) throw new Error("A challenge needs a statement");
+  const k = claimOf(c, input.claim);
+  if (!["challenge_window", "final"].includes(k.state) || k.outcome === "open") throw new Error("only a finalised or pending-final claim can be challenged");
+  if (w.challenges.some((ch) => ch.causeId === c.id && ch.claimType === input.claim && ch.epoch === k.epoch && ch.challenger === DEMO_WALLET)) throw new Error("this wallet already challenged this claim epoch");
+  const now = nowIso(w);
+  const path: PathBody = { ...input.path, screenshotHash: fakeHash(w.nextId * 9), checkedAt: input.path.checkedAt };
+  const body: Challenge["body"] = { statement: input.statement.trim(), evidenceIds: [], path };
+  const ch: Challenge = { id: nextId(w, "ch"), causeId: c.id, claimType: input.claim, epoch: k.epoch, challenger: DEMO_WALLET, stake: CHALLENGE_STAKE, contentHash: contentHash(body), body, signature: fakeSig(w.nextId), state: "open", createdAt: now, resolvedAt: null };
+  w.challenges.push(ch);
+  w.paths.push({ id: nextId(w, "path"), causeId: c.id, claimType: input.claim, epoch: k.epoch, author: DEMO_WALLET, body: path, contentHash: contentHash(path), result: path.result, checkedAt: path.checkedAt, signature: ch.signature, createdAt: now, outcomeAgreed: null });
+  k.challenged = true;
+  k.state = "voting";
+  k.votingStart = now;
+  k.votingEnd = ahead(24 * VOTING.periodDays);
+  k.pathCount += 1;
+  w.ledger.unshift({ id: nextId(w, "led"), wallet: DEMO_WALLET, amount: -CHALLENGE_STAKE, reason: "challenge_stake", sourceTag: "charity", sourceRef: ch.id, causeId: c.id, multipliers: null, state: "spent", gseraRef: null, createdAt: now });
+  recordLine(w, c.id, "ChallengeOpened", { ...ch });
+  c.concerns.unshift({ kind: "challenge", text: `A challenge is open on ${input.claim} (${CLAIM_INFO[input.claim].label}). ${body.statement}`, at: now, by: DEMO_WALLET });
+  return ch;
 }
 
-export async function setHomepageFlag(causeId: number, shown: boolean): Promise<void> {
+export async function setHomepageFlag(causeId: number, shown: boolean): Promise<{ causeId: number; shown: boolean; showOnHomepage: boolean }> {
   await delay(150);
   const w = getWorld();
-  const c = w.causes.find((x) => x.id === causeId);
-  if (!c) throw new Error("Cause not found");
-  if (c.owner !== DEMO_WALLET) throw new Error("Only the creator can change this");
-  c.homepage = shown;
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  w.events.push({ id: w.nextId++, causeId, type: "homepage", at: now, summary: `Creator switched Show on homepage ${shown ? "on" : "off"}`, by: DEMO_WALLET });
+  const c = ownedCause(causeId);
+  c.showOnHomepage = shown && !c.homepageHiddenReason;
+  recordLine(w, causeId, "HomepageToggle", { shown, by: DEMO_WALLET });
+  return { causeId, shown, showOnHomepage: c.showOnHomepage };
 }
 
-export async function quoteGift(causeId: number, fromToken: string, amount: number): Promise<GiftQuote> {
+export async function confirmHelp(needId: number, helper: string): Promise<void> {
+  await delay(200);
+  const w = getWorld();
+  for (const c of w.causes) {
+    const h = c.helpRequests.find((x) => x.id === needId);
+    if (!h) continue;
+    if (c.owner !== DEMO_WALLET) throw new Error("only the cause owner can confirm help");
+    if (h.confirmedAt) throw new Error("this help request was already confirmed");
+    const now = nowIso(w);
+    h.state = "fulfilled";
+    h.open = false;
+    h.confirmedHelper = helper.toLowerCase() as `0x${string}`;
+    h.confirmedAt = now;
+    h.closedAt = now;
+    recordLine(w, c.id, "NeedClosed", { needId, helper: h.confirmedHelper }, "chain");
+    return;
+  }
+  throw new Error("help request not found");
+}
+
+// ---------------------------------------------------------------------------
+// Gifts
+// ---------------------------------------------------------------------------
+
+const quotes = new Map<string, { causeId: number; from: Stablecoin; to: Stablecoin; amountRaw: string; usd: number }>();
+
+export async function quoteGift(causeId: number, fromToken: Stablecoin, amountRaw: string): Promise<GiftQuote> {
   await delay(200);
   const w = getWorld();
   const c = w.causes.find((x) => x.id === causeId);
-  if (!c) throw new Error("Cause not found");
-  const token = STABLECOINS.find((t) => t.symbol === fromToken);
-  if (!token) throw new Error("Unknown stablecoin");
-  if (!(amount > 0)) throw new Error("Enter an amount");
-  const usd = Math.round(amount * token.usd * 100) / 100;
-  const direct = c.acceptedTokens.includes(fromToken);
-  let swap: GiftQuote["swap"];
-  if (!direct) {
-    const toSymbol = c.acceptedTokens[0]!;
-    const to = STABLECOINS.find((t) => t.symbol === toSymbol)!;
-    const rate = Math.round((token.usd / to.usd) * 0.9985 * 10_000) / 10_000;
-    swap = { toToken: toSymbol, rate, receives: Math.round(amount * rate * 100) / 100, swapFeeUsd: Math.round(usd * 0.0015 * 100) / 100 };
+  if (!c) throw new Error("cause not found");
+  if (c.status !== "listed" && c.status !== "verified") throw new Error(`cause is ${c.status} and cannot take gifts`);
+  const from = tokenBySymbol(fromToken.symbol);
+  if (!/^[1-9]\d*$/.test(amountRaw)) throw new Error("Enter an amount");
+  const units = Number(amountRaw) / 10 ** from.decimals;
+  const usd = Math.round(units * usdPerUnit(from.symbol) * 100) / 100;
+  const target = c.wallet.targetToken ? tokenByAddress(c.wallet.targetToken) : undefined;
+  if (!target || target.currency === from.currency) {
+    const planId = `plan_${w.nextId++}`;
+    quotes.set(planId, { causeId, from, to: from, amountRaw, usd });
+    return { kind: "transfer", planId, causeId, chainId: CHAIN_ID, to: c.wallet.address, token: from, amountRaw, eip681: `ethereum:${from.address}@${CHAIN_ID}/transfer?address=${c.wallet.address}&uint256=${amountRaw}` };
   }
-  const ownerLinked = c.owner === DEMO_WALLET || c.payout === DEMO_WALLET;
-  const heat = c.urgent ? GSERA.heat.urgent : GSERA.heat.normal;
-  const m = w.me.multipliers;
-  const gsera = ownerLinked ? 0 : giftGsera(usd, { heat, volumeTier: m.volumeTier, streak: m.streak });
+  const quoteId = `q_${w.nextId++}`;
+  const rate = usdPerUnit(from.symbol) / usdPerUnit(target.symbol);
+  const minOutputRaw = toRaw(units * rate * 0.999, target.decimals);
+  quotes.set(quoteId, { causeId, from, to: target, amountRaw, usd });
   return {
-    quoteId: `q_${w.nextId}_${fromToken}_${amount}`,
+    kind: "swap",
+    quoteId,
     causeId,
-    causeName: c.name,
-    depositAddress: c.depositAddress,
-    fromToken,
-    amount,
-    usd,
-    networkFeeUsd: 0.42,
-    swap,
-    gsera: { amount: gsera, base: GSERA.perUsd, heat, volume: m.volumeTier, streak: m.streak, capped: heat * m.volumeTier * m.streak > GSERA.compoundCap, earns: !ownerLinked, whyNot: ownerLinked ? "Wallets linked to a cause's owner or payout wallet earn no gSera on that cause" : undefined },
+    chainId: CHAIN_ID,
+    recipient: c.wallet.address,
+    from: { address: from.address, symbol: from.symbol, decimals: from.decimals },
+    to: { address: target.address, symbol: target.symbol, decimals: target.decimals },
+    fromAmountRaw: amountRaw,
+    minOutputRaw,
+    authorization: "approve",
     expiresAt: ahead(0.25),
+    feeBreakdown: { gasCostUsd: "0.42" },
+    signing: { intent: { domain: { name: "Sera.cx swap (mock)", version: "1", chainId: CHAIN_ID }, types: { Intent: [{ name: "uuid", type: "uint256" }] }, primaryType: "Intent", message: { uuid: "1" } } },
   };
 }
 
-export async function submitGift(quote: GiftQuote): Promise<GiftReceipt> {
+/** The mock settles at once: the gift lands, totals update, gSera is credited. */
+export async function submitGift(quote: GiftQuote): Promise<GiftSubmitResult> {
   await delay(900);
   const w = getWorld();
-  const c = w.causes.find((x) => x.id === quote.causeId);
-  if (!c) throw new Error("Cause not found");
-  if (c.stage === "paused" || c.stage === "closed") throw new Error("This cause is not taking gifts");
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const route: Gift["route"] = quote.swap ? "swap" : "direct";
-  const received = quote.swap ? { token: quote.swap.toToken, amount: quote.swap.receives } : { token: quote.fromToken, amount: quote.amount };
-  const gift: Gift = {
-    id: w.nextId++,
+  const key = quote.kind === "transfer" ? quote.planId : quote.quoteId;
+  const q = quotes.get(key);
+  if (!q) throw new Error("quote not found");
+  const c = w.causes.find((x) => x.id === q.causeId)!;
+  quotes.delete(key);
+  const now = nowIso(w);
+  const ownerLinked = c.owner === DEMO_WALLET || c.payout === DEMO_WALLET || c.wallet.address === DEMO_WALLET;
+  const heat = c.urgent ? GSERA.heat.urgent : GSERA.heat.normal;
+  const gsera = ownerLinked ? 0 : giftGsera(q.usd, { heat, volumeTier: 1.2, streak: 1.1 });
+  const landed = quote.kind === "swap" ? { token: q.to, amountRaw: quote.minOutputRaw } : { token: q.from, amountRaw: q.amountRaw };
+  const gift = {
+    id: nextId(w, "gift"),
     causeId: c.id,
-    causeName: c.name,
-    causeSlug: c.slug,
-    token: quote.fromToken,
-    amount: quote.amount,
-    usd: quote.usd,
-    at: now,
-    route,
-    gsera: quote.gsera.amount,
+    sender: DEMO_WALLET,
+    token: landed.token.address,
+    amount: landed.amountRaw,
+    usd: q.usd.toFixed(2),
+    source: quote.kind === "swap" ? ("sera_swap" as const) : ("site" as const),
     txHash: fakeTx(w.nextId * 9),
-    giver: DEMO_WALLET,
+    logIndex: 0,
+    block: String(20000 + w.nextId),
+    tradeId: quote.kind === "swap" ? `mock-${key}` : null,
+    kytState: "clear" as const,
+    ledgerNote: ownerLinked ? "owner_linked" : null,
+    createdAt: now,
   };
   w.gifts.push(gift);
-  w.me.gifts.unshift(gift);
-  c.givenUsd = Math.round((c.givenUsd + quote.usd) * 100) / 100;
-  if (!w.gifts.some((g) => g.giver === DEMO_WALLET && g.causeId === c.id && g.id !== gift.id)) c.giversCount += 1;
-  c.lastActivityAt = now;
-  // The treasury receives the delivered token (auto-convert applies on arrival).
-  const landToken = c.treasury.policy === "auto" ? c.treasury.autoToken : received.token;
-  const landInfo = STABLECOINS.find((t) => t.symbol === landToken)!;
-  const landAmount = c.treasury.policy === "auto" && landToken !== received.token ? Math.round((quote.usd / landInfo.usd) * 0.9985 * 100) / 100 : received.amount;
-  let bal = c.treasury.balances.find((b) => b.token === landToken);
-  if (!bal) {
-    bal = { token: landToken, amount: 0, usd: 0 };
-    c.treasury.balances.push(bal);
+  c.recentGifts.unshift({ ...gift, sender: short(DEMO_WALLET) });
+  c.givenUsd = (Number(c.givenUsd) + q.usd).toFixed(2);
+  if (!w.gifts.some((g) => g.sender === DEMO_WALLET && g.causeId === c.id && g.id !== gift.id)) c.giversCount += 1;
+  if (gsera > 0) {
+    w.ledger.unshift({ id: nextId(w, "led"), wallet: DEMO_WALLET, amount: gsera, reason: "gift", sourceTag: "charity", sourceRef: gift.id, causeId: c.id, multipliers: { heat, volumeTier: 1.2, streak: 1.1, compound: Math.min(GSERA.compoundCap, heat * 1.2 * 1.1) }, state: "credited", gseraRef: `grt_${w.nextId}`, createdAt: now });
   }
-  bal.amount = Math.round((bal.amount + landAmount) * 100) / 100;
-  bal.usd = Math.round(bal.amount * landInfo.usd * 100) / 100;
-  w.events.push({ id: w.nextId++, causeId: c.id, type: "gift", at: now, txHash: gift.txHash, summary: `Gift of ${quote.amount.toLocaleString("en-GB")} ${quote.fromToken} (US$${quote.usd.toLocaleString("en-GB")}) arrived${route === "swap" ? ` through a Sera.cx swap as ${received.amount.toLocaleString("en-GB")} ${received.token}` : ""}`, by: DEMO_WALLET });
-  if (c.treasury.policy === "auto" && landToken !== received.token) {
-    const tx = fakeTx(w.nextId * 17);
-    c.treasury.conversions.unshift({ id: w.nextId++, fromToken: received.token, toToken: landToken, amountIn: received.amount, amountOut: landAmount, rate: Math.round((landAmount / received.amount) * 10_000) / 10_000, at: now, txHash: tx, reason: "auto" });
-    w.events.push({ id: w.nextId++, causeId: c.id, type: "conversion", at: now, txHash: tx, summary: `Auto-converted ${received.amount.toLocaleString("en-GB")} ${received.token} to ${landAmount.toLocaleString("en-GB")} ${landToken} on arrival through Sera.cx`, by: c.owner });
-  }
-  if (quote.gsera.amount > 0) {
-    w.me.ledger.unshift({ id: w.nextId++, amount: quote.gsera.amount, reason: "gift", sourceTag: "charity", note: `Gift of US$${quote.usd.toLocaleString("en-GB")} to ${c.name}${c.urgent ? " (urgent appeal 2.5x)" : ""}${route === "swap" ? ", settled through a Sera.cx swap (earns once)" : ""}`, state: "credited", multipliers: { heat: quote.gsera.heat, volume: quote.gsera.volume, streak: quote.gsera.streak }, createdAt: now, causeId: c.id });
-    w.me.gsera.spendable += quote.gsera.amount;
-    w.me.gsera.charityTagged += quote.gsera.amount;
-    w.me.gsera.lifetime += quote.gsera.amount;
-  }
-  return { id: gift.id, causeId: c.id, causeName: c.name, causeSlug: c.slug, token: gift.token, amount: gift.amount, usd: gift.usd, txHash: gift.txHash, gsera: gift.gsera, route, received, at: now };
-}
-
-export async function getGift(id: number): Promise<Gift | null> {
-  await delay(80);
-  return getWorld().gifts.find((g) => g.id === id) ?? null;
+  recordLine(w, c.id, "GiftReceived", { giftId: gift.id, sender: DEMO_WALLET, token: landed.token.address, symbol: landed.token.symbol, amount: landed.amountRaw, usd: q.usd, source: gift.source, gsera, ledgerNote: gift.ledgerNote }, "chain");
+  return { tradeId: gift.tradeId ?? gift.id, status: "settled" };
 }
 
 export async function recordShare(causeId: number, channel: string): Promise<void> {
@@ -677,25 +732,146 @@ export async function recordShare(causeId: number, channel: string): Promise<voi
   w.shares.set(causeId, s);
 }
 
-export async function postUpdate(causeId: number, input: { kind: CauseUpdate["kind"]; title: string; body: string; link?: string }): Promise<CauseUpdate> {
+// ---------------------------------------------------------------------------
+// Owner: treasury, conversions, withdrawals, media
+// ---------------------------------------------------------------------------
+
+export async function setTreasury(causeId: number, treasuryMode: "auto" | "manual", targetToken?: string): Promise<WalletView> {
+  await delay(200);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  const token = targetToken ? (tokenByAddress(targetToken) ?? tokenBySymbol(targetToken)) : undefined;
+  if (treasuryMode === "auto" && !token) throw new Error("targetToken is required in auto mode");
+  c.wallet = { ...c.wallet, treasuryMode, targetToken: token?.address ?? c.wallet.targetToken };
+  c.treasuryMode = treasuryMode;
+  recordLine(w, causeId, "TreasurySet", { treasuryMode, targetToken: c.wallet.targetToken, by: DEMO_WALLET });
+  return c.wallet;
+}
+
+export async function quoteConvert(causeId: number, fromToken: string, toToken: string, amountRaw: string): Promise<ConvertQuote> {
   await delay(250);
   const w = getWorld();
-  const c = w.causes.find((x) => x.id === causeId);
-  if (!c || c.owner !== DEMO_WALLET) throw new Error("Only the creator can post updates");
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const u: CauseUpdate = { id: w.nextId++, causeId, kind: input.kind, title: input.title.trim(), body: input.body.trim(), at: now, link: input.link?.trim() || undefined };
+  const c = ownedCause(causeId);
+  const from = tokenByAddress(fromToken) ?? tokenBySymbol(fromToken);
+  const to = tokenByAddress(toToken) ?? tokenBySymbol(toToken);
+  if (from.address === to.address) throw new Error("fromToken and toToken must differ");
+  if (!/^[1-9]\d*$/.test(amountRaw)) throw new Error("expected a positive integer string");
+  const units = Number(amountRaw) / 10 ** from.decimals;
+  const minOutputRaw = toRaw((units * usdPerUnit(from.symbol)) / usdPerUnit(to.symbol) * 0.999, to.decimals);
+  const conversion = { id: nextId(w, "conv"), causeId: c.id, fromToken: from.address, toToken: to.address, amountIn: amountRaw, amountOut: null, tradeId: "", state: "pending" as const, txHash: null, triggeredBy: "owner" as const, createdAt: nowIso(w), settledAt: null };
+  c.conversions.unshift({ ...conversion, state: "pending" });
+  return {
+    conversion,
+    quote: { quoteId: `cq_${w.nextId}`, from: { symbol: from.symbol, decimals: from.decimals }, to: { symbol: to.symbol, decimals: to.decimals }, fromAmountRaw: amountRaw, minOutputRaw, expiresAt: ahead(0.25) },
+    signing: { intent: { domain: { name: "Sera.cx swap (mock)", version: "1", chainId: CHAIN_ID }, types: { Intent: [{ name: "uuid", type: "uint256" }] }, primaryType: "Intent", message: { uuid: "1" } } },
+  };
+}
+
+export async function submitConvert(causeId: number, conversionId: string, minOutputRaw: string): Promise<ConvertQuote["conversion"]> {
+  await delay(700);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  const cv = c.conversions.find((x) => x.id === conversionId);
+  if (!cv) throw new Error("conversion not found");
+  const now = nowIso(w);
+  cv.state = "settled";
+  cv.amountOut = minOutputRaw;
+  cv.tradeId = `mock-${conversionId}`;
+  cv.txHash = fakeTx(w.nextId * 13);
+  cv.settledAt = now;
+  recordLine(w, causeId, "ConversionSettled", { conversionId, token: cv.toToken, symbol: tokenByAddress(cv.toToken)?.symbol, amount: minOutputRaw }, "chain");
+  return cv;
+}
+
+export async function withdraw(causeId: number, token: string, amountRaw: string, to: string): Promise<WithdrawResult> {
+  await delay(600);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  const t = tokenByAddress(token) ?? tokenBySymbol(token);
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to.trim())) throw new Error("Enter a valid Ethereum address");
+  if (!/^[1-9]\d*$/.test(amountRaw)) throw new Error("expected a positive integer string");
+  const now = nowIso(w);
+  const wd = { id: nextId(w, "wd"), causeId: c.id, token: t.address, amount: amountRaw, to: to.trim().toLowerCase() as `0x${string}`, txHash: fakeTx(w.nextId * 19), note: "", createdAt: now };
+  c.withdrawals.unshift(wd);
+  recordLine(w, causeId, "WithdrawalRecorded", { withdrawalId: wd.id, token: t.address, symbol: t.symbol, amount: amountRaw, to: wd.to });
+  return { withdrawal: wd, plan: { kind: "transfer", chainId: CHAIN_ID, from: c.wallet.address, token: t.address, to: wd.to, amountRaw, symbol: t.symbol, decimals: t.decimals, eip681: `ethereum:${t.address}@${CHAIN_ID}/transfer?address=${wd.to}&uint256=${amountRaw}` } };
+}
+
+export async function addMedia(causeId: number, input: NewMediaInput): Promise<MediaView> {
+  await delay(250);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  const now = nowIso(w);
+  let item: MediaView;
+  if (input.file) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(input.file.type)) throw new Error("photos must be png, jpeg or webp");
+    item = makeMedia(causeId, w.nextId++, "photo", URL.createObjectURL(input.file), input.caption, input.credit ?? "", c.media.length, now);
+  } else {
+    const url = (input.url ?? "").trim();
+    const isImage = /^https:\/\/.+\.(jpe?g|png|webp)$/i.test(url);
+    const kind = input.kind === "photo" || (isImage && !embedFor(url)) ? "photo" : "video";
+    if (kind === "video" && !embedFor(url)) throw new Error("video links must be from YouTube, TikTok, Instagram, X, Vimeo or Twitch");
+    if (kind === "photo" && !isImage) throw new Error("photo links must be direct https jpeg, png or webp URLs");
+    item = makeMedia(causeId, w.nextId++, kind, url, input.caption, input.credit ?? "", c.media.length, now);
+  }
+  c.media.push(item);
+  c.mediaCount = c.media.length;
+  recordLine(w, causeId, "MediaAdded", { id: item.id, kind: item.kind, caption: item.caption, by: DEMO_WALLET });
+  return item;
+}
+
+export async function removeMedia(mediaId: string): Promise<void> {
+  await delay(150);
+  const w = getWorld();
+  for (const c of w.causes) {
+    if (!c.media.some((m) => m.id === mediaId)) continue;
+    if (c.owner !== DEMO_WALLET) throw new Error("only the cause owner or a steward can remove media");
+    c.media = c.media.filter((m) => m.id !== mediaId);
+    c.mediaCount = c.media.length;
+    return;
+  }
+  throw new Error("media not found");
+}
+
+// ---------------------------------------------------------------------------
+// Mock-only owner actions (on-chain in production: postProgress, setPayout, pledgeHelp)
+// ---------------------------------------------------------------------------
+
+export async function postUpdate(causeId: number, input: { kind: string; title: string; body: string; link?: string }): Promise<CauseDetail["updates"][number]> {
+  await delay(250);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  const now = nowIso(w);
+  const body = { title: input.title.trim(), text: input.body.trim(), ...(input.link?.trim() ? { link: input.link.trim() } : {}) };
+  const u = { id: nextId(w, "upd"), kind: input.kind, uri: `data:application/json,${encodeURIComponent(JSON.stringify(body))}`, body, at: now, txHash: fakeTx(w.nextId) };
   c.updates.unshift(u);
-  if (input.kind === "stream" && u.link) c.liveUrl = u.link;
-  c.lastActivityAt = now;
-  w.events.push({ id: w.nextId++, causeId, type: "update", at: now, txHash: fakeTx(u.id), summary: `Update: ${u.title}`, by: DEMO_WALLET });
+  recordLine(w, causeId, "ProgressPosted", { kind: u.kind, uri: u.uri, body }, "chain");
   return u;
 }
 
-export async function setLiveLink(causeId: number, url: string): Promise<void> {
-  await delay(150);
-  const c = getWorld().causes.find((x) => x.id === causeId);
-  if (!c || c.owner !== DEMO_WALLET) throw new Error("Only the creator can set the live link");
-  c.liveUrl = url.trim() || undefined;
+export async function updateSocials(causeId: number, socials: { website?: string; instagram?: string; facebook?: string; youtube?: string; tiktok?: string }): Promise<void> {
+  await delay(250);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  if (!c.profile) return;
+  const { website, ...rest } = socials;
+  c.profile = { ...c.profile, contact: { ...c.profile.contact, website: website?.trim() || c.profile.contact.website, socials: Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v?.trim() || undefined])) } };
+  recordLine(w, causeId, "CauseUpdated", { uri: c.uri }, "chain");
+}
+
+export async function setPayout(causeId: number, payout: string): Promise<void> {
+  await delay(300);
+  const w = getWorld();
+  const c = ownedCause(causeId);
+  if (!/^0x[0-9a-fA-F]{40}$/.test(payout.trim())) throw new Error("Enter a valid Ethereum address");
+  c.payout = payout.trim().toLowerCase() as `0x${string}`;
+  const k = claimOf(c, "C3");
+  if (k.outcome === "verified") {
+    Object.assign(k, { outcome: "open", state: "open", epoch: k.epoch + 1, pathCount: 0, independentChecks: 0, finalisedAt: null, resultRoot: null, votingStart: null, votingEnd: null, challengeWindowEnd: null });
+    if (c.status === "verified") c.status = "listed";
+    recompute(c, w.evidence);
+  }
+  recordLine(w, causeId, "PayoutChanged", { payout: c.payout, reopened: "C3" }, "chain");
 }
 
 export async function pledgeHelp(needId: number): Promise<void> {
@@ -703,165 +879,17 @@ export async function pledgeHelp(needId: number): Promise<void> {
   const w = getWorld();
   for (const c of w.causes) {
     const h = c.helpRequests.find((x) => x.id === needId);
-    if (h) {
-      if (h.state !== "open") throw new Error("Someone has already taken this");
-      h.state = "pledged";
-      h.pledgedBy = DEMO_WALLET;
-      w.me.contributions.unshift({ id: w.nextId++, kind: "help", causeId: c.id, causeName: c.name, at: new Date(NOW).toISOString(), outcome: "open", gsera: h.rewardGsera });
-      return;
-    }
+    if (!h) continue;
+    if (!h.open) throw new Error("Someone has already taken this");
+    const now = nowIso(w);
+    h.state = "pledged";
+    h.helper = DEMO_WALLET;
+    h.pledges = [...h.pledges, { helper: DEMO_WALLET, note: "", at: now }];
+    recordLine(w, c.id, "Pledged", { needId, helper: DEMO_WALLET, uri: "" }, "chain");
+    return;
   }
-  throw new Error("Help request not found");
+  throw new Error("help request not found");
 }
 
-export async function confirmHelp(needId: number): Promise<void> {
-  await delay(200);
-  const w = getWorld();
-  for (const c of w.causes) {
-    const h = c.helpRequests.find((x) => x.id === needId);
-    if (h) {
-      if (c.owner !== DEMO_WALLET) throw new Error("Only the cause owner can confirm");
-      h.state = "fulfilled";
-      return;
-    }
-  }
-  throw new Error("Help request not found");
-}
-
-export async function setPayout(causeId: number, payout: string): Promise<void> {
-  await delay(300);
-  const w = getWorld();
-  const c = w.causes.find((x) => x.id === causeId);
-  if (!c || c.owner !== DEMO_WALLET) throw new Error("Only the creator can change the payout wallet");
-  c.payout = payout.trim() || null;
-  // Changing the payout wallet removes Verified; C3 must be checked again.
-  const s = c.claims.C3;
-  if (s.outcome === "verified") {
-    s.outcome = "open";
-    s.state = "open";
-    s.epoch += 1;
-    s.pathCount = 0;
-    s.independentChecks = 0;
-    s.finalisedAt = undefined;
-    const now = new Date(NOW).toISOString();
-    w.claimHistory.set(claimKey(causeId, "C3"), [...(w.claimHistory.get(claimKey(causeId, "C3")) ?? []), { id: w.nextId++, type: "reopened", at: now, summary: "Payout wallet changed. Claim reopened", by: DEMO_WALLET }]);
-    w.events.push({ id: w.nextId++, causeId, type: "steward", at: now, txHash: fakeTx(w.nextId), summary: "Payout wallet changed. Verified removed until C3 is checked again", by: DEMO_WALLET });
-    recomputeCause(c);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Media, socials, treasury
-// ---------------------------------------------------------------------------
-
-function ownedCause(causeId: number): Cause {
-  const c = getWorld().causes.find((x) => x.id === causeId);
-  if (!c) throw new Error("Cause not found");
-  if (c.owner !== DEMO_WALLET) throw new Error("Only the creator can do this");
-  return c;
-}
-
-export function providerOf(url: string): MediaItem["provider"] {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, "");
-    if (/youtube\.com$|youtu\.be$/.test(host)) return "youtube";
-    if (/tiktok\.com$/.test(host)) return "tiktok";
-    if (/instagram\.com$/.test(host)) return "instagram";
-    if (/^(x|twitter)\.com$/.test(host)) return "x";
-    return "other";
-  } catch {
-    return "other";
-  }
-}
-
-export async function addMedia(causeId: number, input: { kind: MediaItem["kind"]; url: string; title: string; alt?: string; credit?: string }): Promise<MediaItem> {
-  await delay(250);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const item: MediaItem = { id: w.nextId++, kind: input.kind, url: input.url.trim(), title: input.title.trim() || (input.kind === "photo" ? "Photo" : "Video"), provider: input.kind === "video" ? providerOf(input.url) : undefined, alt: input.alt?.trim(), credit: input.credit?.trim(), addedAt: now };
-  c.media.unshift(item);
-  c.lastActivityAt = now;
-  w.events.push({ id: w.nextId++, causeId, type: "media", at: now, summary: `${item.kind === "photo" ? "Photo" : "Video"} added: ${item.title}`, by: DEMO_WALLET });
-  return item;
-}
-
-export async function removeMedia(causeId: number, mediaId: number): Promise<void> {
-  await delay(150);
-  const c = ownedCause(causeId);
-  c.media = c.media.filter((m) => m.id !== mediaId);
-}
-
-export async function updateSocials(causeId: number, socials: CauseSocials & { x?: string; website?: string }): Promise<void> {
-  await delay(250);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  const { website, ...rest } = socials;
-  c.profile.contact = { ...c.profile.contact, website: website?.trim() || c.profile.contact.website, socials: Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, v?.trim() || undefined])) };
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  w.events.push({ id: w.nextId++, causeId, type: "profile", at: now, summary: "Creator updated the organisation's links", by: DEMO_WALLET });
-}
-
-export async function setTreasuryPolicy(causeId: number, policy: "auto" | "hold", autoToken: string): Promise<void> {
-  await delay(200);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  c.treasury.policy = policy;
-  c.treasury.autoToken = autoToken;
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  w.events.push({ id: w.nextId++, causeId, type: "profile", at: now, summary: policy === "auto" ? `Treasury set to keep everything in ${autoToken}, converted on arrival through Sera.cx` : "Treasury set to hold what arrives", by: DEMO_WALLET });
-}
-
-export async function quoteConvert(causeId: number, fromToken: string, toToken: string, amountIn: number): Promise<ConvertQuote> {
-  await delay(250);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  const from = STABLECOINS.find((t) => t.symbol === fromToken);
-  const to = STABLECOINS.find((t) => t.symbol === toToken);
-  if (!from || !to) throw new Error("Unknown stablecoin");
-  if (fromToken === toToken) throw new Error("Pick two different stablecoins");
-  const bal = c.treasury.balances.find((b) => b.token === fromToken);
-  if (!bal || bal.amount < amountIn) throw new Error(`Not enough ${fromToken} in the treasury`);
-  const rate = Math.round((from.usd / to.usd) * 0.9985 * 10_000) / 10_000;
-  return { quoteId: `cq_${w.nextId}`, fromToken, toToken, amountIn, amountOut: Math.round(amountIn * rate * 100) / 100, rate, feeUsd: Math.round(amountIn * from.usd * 0.0015 * 100) / 100, expiresAt: ahead(0.25) };
-}
-
-export async function convert(causeId: number, quote: ConvertQuote): Promise<void> {
-  await delay(700);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  const from = c.treasury.balances.find((b) => b.token === quote.fromToken);
-  if (!from || from.amount < quote.amountIn) throw new Error(`Not enough ${quote.fromToken} in the treasury`);
-  const toInfo = STABLECOINS.find((t) => t.symbol === quote.toToken)!;
-  const fromInfo = STABLECOINS.find((t) => t.symbol === quote.fromToken)!;
-  from.amount = Math.round((from.amount - quote.amountIn) * 100) / 100;
-  from.usd = Math.round(from.amount * fromInfo.usd * 100) / 100;
-  let to = c.treasury.balances.find((b) => b.token === quote.toToken);
-  if (!to) {
-    to = { token: quote.toToken, amount: 0, usd: 0 };
-    c.treasury.balances.push(to);
-  }
-  to.amount = Math.round((to.amount + quote.amountOut) * 100) / 100;
-  to.usd = Math.round(to.amount * toInfo.usd * 100) / 100;
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const tx = fakeTx(w.nextId * 13);
-  c.treasury.conversions.unshift({ id: w.nextId++, fromToken: quote.fromToken, toToken: quote.toToken, amountIn: quote.amountIn, amountOut: quote.amountOut, rate: quote.rate, at: now, txHash: tx, reason: "manual" });
-  c.lastActivityAt = now;
-  w.events.push({ id: w.nextId++, causeId, type: "conversion", at: now, txHash: tx, summary: `Converted ${quote.amountIn.toLocaleString("en-GB")} ${quote.fromToken} to ${quote.amountOut.toLocaleString("en-GB")} ${quote.toToken} on Sera.cx`, by: DEMO_WALLET });
-}
-
-export async function withdraw(causeId: number, token: string, amount: number, to: string): Promise<void> {
-  await delay(600);
-  const w = getWorld();
-  const c = ownedCause(causeId);
-  const bal = c.treasury.balances.find((b) => b.token === token);
-  if (!bal || bal.amount < amount) throw new Error(`Not enough ${token} in the treasury`);
-  if (!/^0x[0-9a-fA-F]{40}$/.test(to.trim())) throw new Error("Enter a valid Ethereum address");
-  const info = STABLECOINS.find((t) => t.symbol === token);
-  bal.amount = Math.round((bal.amount - amount) * 100) / 100;
-  bal.usd = Math.round(bal.amount * (info?.usd ?? 1) * 100) / 100;
-  const now = new Date(NOW + (w.nextId % 1000)).toISOString();
-  const tx = fakeTx(w.nextId * 19);
-  c.treasury.withdrawals.unshift({ id: w.nextId++, token, amount, to: to.trim(), at: now, txHash: tx });
-  w.events.push({ id: w.nextId++, causeId, type: "withdrawal", at: now, txHash: tx, summary: `Withdrew ${amount.toLocaleString("en-GB")} ${token} to ${to.trim().slice(0, 6)}\u2026${to.trim().slice(-4)}`, by: DEMO_WALLET });
-}
+/** Demo-only: who the steward is, for pages that label actions. */
+export const MOCK_STEWARD = STEWARD_WALLET;

@@ -1,4 +1,4 @@
-import type { CauseImage } from "@/lib/types";
+import type { CauseImage } from "@sera-causes/shared";
 import { cn } from "@/lib/utils";
 
 export function PhotoCredit({ image, className, light }: { image?: CauseImage; className?: string; light?: boolean }) {

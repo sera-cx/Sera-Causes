@@ -10,8 +10,6 @@
  * The result printed is what the finaliser should have committed. If it does
  * not match the chain, that is a public, provable fault.
  */
-import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 
 import { claimTypeIndex, type ClaimCode } from './constants.js';
 import { merkleLeafFor, merkleRoot, tallyClaim } from './rules.js';
@@ -108,12 +106,18 @@ export function formatResult(result: RecomputeResult): string {
   ].join('\n');
 }
 
-export function main(argv: string[] = process.argv.slice(2)): number {
+/**
+ * CLI entry. Node's fs and url modules are loaded lazily so this module stays
+ * importable in the browser through the package index (the web app bundles
+ * @sera-causes/shared; only the CLI path touches the filesystem).
+ */
+export async function main(argv: string[] = process.argv.slice(2)): Promise<number> {
   const file = argv.find((a) => !a.startsWith('--'));
   if (!file) {
     process.stderr.write('usage: node dist/recompute.js <inputs.json> [--json]\n');
     return 2;
   }
+  const { readFileSync } = await import('node:fs');
   const result = recompute(parseInputs(readFileSync(file, 'utf8')));
   if (argv.includes('--json')) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -123,11 +127,11 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   return 0;
 }
 
-const invokedDirectly =
-  typeof process !== 'undefined' &&
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (invokedDirectly) {
-  process.exitCode = main();
+async function runIfInvokedDirectly(): Promise<void> {
+  if (typeof process === 'undefined' || typeof process.argv?.[1] !== 'string' || typeof process.versions?.node !== 'string') return;
+  const { pathToFileURL } = await import('node:url');
+  if (import.meta.url !== pathToFileURL(process.argv[1]).href) return;
+  process.exitCode = await main();
 }
+
+void runIfInvokedDirectly();

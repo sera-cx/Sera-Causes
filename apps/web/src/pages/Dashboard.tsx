@@ -4,7 +4,8 @@ import { Link } from "wouter";
 import { Empty, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
-import { MediaGallery } from "@/components/MediaGallery";
+import { MediaGallery, providerLabel } from "@/components/MediaGallery";
+import { QrCode } from "@/components/QrCode";
 import { RecordList } from "@/components/RecordList";
 import { ShareButtons } from "@/components/ShareButtons";
 import { StatusPill } from "@/components/StatusPill";
@@ -16,11 +17,13 @@ import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { STABLECOINS } from "@/lib/constants";
+import { stablecoinUsd } from "@/lib/constants";
 import { fmtDate, fmtInt, fmtUsd, timeAgo } from "@/lib/format";
+import { causeImage } from "@/lib/images";
 import { useDashboard, useInvalidateAll, useRecord } from "@/lib/queries";
-import { causeHref } from "@/lib/rules";
-import type { Cause, CauseUpdate, ConvertQuote, DashboardCause } from "@/lib/types";
+import { recordLines } from "@/lib/record";
+import { causeHref, fromRaw, pledgedBy, profileOf, toRaw } from "@/lib/rules";
+import type { ConvertQuote, DashboardCause, Stablecoin, WithdrawResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function DashboardPage() {
@@ -41,12 +44,11 @@ export function DashboardPage() {
       </div>
     );
   }
+  if (dash.isError) return <div className="container py-10"><Notice tone="bad">Could not load your causes: {dash.error instanceof Error ? dash.error.message : "unknown error"}</Notice></div>;
   if (dash.isLoading || !dash.data) return <div className="container"><Spinner label="Loading your causes" /></div>;
 
   const d = dash.data;
-  const totalGiven = d.causes.reduce((s, c) => s + c.cause.givenUsd, 0);
-  const totalTreasury = d.causes.reduce((s, c) => s + c.treasuryUsd, 0);
-  const totalGivers = d.causes.reduce((s, c) => s + c.cause.giversCount, 0);
+  const totalTreasury = d.causes.reduce((s, c) => s + treasuryUsd(c, d.tokens), 0);
 
   return (
     <div>
@@ -59,9 +61,9 @@ export function DashboardPage() {
       </div>
       <GreenField className="mt-8" kicker="Totals" footer={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <GfCard label="Given to your causes" ticker="All time" figure={fmtUsd(totalGiven)} meta={[{ label: "givers", value: fmtInt(totalGivers) }, { label: "causes", value: fmtInt(d.causes.length) }]} />
-          <GfCard label="In treasuries now" ticker="Stablecoins" figure={fmtUsd(totalTreasury)} meta={[{ label: "withdrawable", value: "100%" }]} tab="#00E676" />
-          <GfCard label="On the homepage" ticker="Creator switch" figure={fmtInt(d.causes.filter((c) => c.cause.homepage).length)} meta={[{ label: "of", value: fmtInt(d.causes.length) }]} tab="#59E39A" />
+          <GfCard label="Given to your causes" ticker="All time" figure={fmtUsd(Number(d.totals.givenUsd))} meta={[{ label: "givers", value: fmtInt(d.totals.givers) }, { label: "causes", value: fmtInt(d.totals.causes) }]} />
+          <GfCard label="Received, net of withdrawals" ticker="Stablecoins" figure={fmtUsd(totalTreasury)} meta={[{ label: "withdrawable", value: "100%" }]} tab="#00E676" />
+          <GfCard label="On the homepage" ticker="Creator switch" figure={fmtInt(d.causes.filter((c) => c.showOnHomepage).length)} meta={[{ label: "of", value: fmtInt(d.causes.length) }]} tab="#59E39A" />
         </div>
       </GreenField>
       <div className="container space-y-14 py-10 md:py-14">
@@ -73,22 +75,50 @@ export function DashboardPage() {
           </Empty>
         )}
         {d.causes.map((dc) => (
-          <CausePanel key={dc.cause.id} dc={dc} />
+          <CausePanel key={dc.id} dc={dc} tokens={d.tokens} />
         ))}
       </div>
     </div>
   );
 }
 
-function CausePanel({ dc }: { dc: DashboardCause }) {
-  const c = dc.cause;
+/** Balances by token: gifts in, minus withdrawals, plus settled conversions. */
+function balances(c: DashboardCause, tokens: Stablecoin[]): { token: Stablecoin; units: number; usd: number }[] {
+  const byAddress = new Map<string, bigint>();
+  for (const r of c.receivedByToken) byAddress.set(r.token, (byAddress.get(r.token) ?? 0n) + BigInt(r.amountRaw));
+  return [...byAddress]
+    .map(([address, raw]) => {
+      const token = tokens.find((t) => t.address === address) ?? { address: address as Stablecoin["address"], symbol: `${address.slice(0, 6)}…`, decimals: 6, currency: "USD" };
+      const units = fromRaw(raw.toString(), token.decimals);
+      return { token, units, usd: Math.round(units * stablecoinUsd(token.symbol) * 100) / 100 };
+    })
+    .filter((b) => b.units > 0);
+}
+
+function treasuryUsd(c: DashboardCause, tokens: Stablecoin[]): number {
+  return Math.round(balances(c, tokens).reduce((s, b) => s + b.usd, 0) * 100) / 100;
+}
+
+function symbolOf(address: string, tokens: Stablecoin[]): string {
+  return tokens.find((t) => t.address === address.toLowerCase())?.symbol ?? `${address.slice(0, 6)}…`;
+}
+function decimalsOf(address: string, tokens: Stablecoin[]): number {
+  return tokens.find((t) => t.address === address.toLowerCase())?.decimals ?? 6;
+}
+
+function CausePanel({ dc, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
+  const c = dc;
   const invalidate = useInvalidateAll();
   const [homepageBusy, setHomepageBusy] = useState(false);
+  const [homepageErr, setHomepageErr] = useState<string | null>(null);
   const toggleHomepage = async (v: boolean) => {
     setHomepageBusy(true);
+    setHomepageErr(null);
     try {
       await api.setHomepageFlag(c.id, v);
       await invalidate();
+    } catch (e) {
+      setHomepageErr(e instanceof Error ? e.message : "Could not save");
     } finally {
       setHomepageBusy(false);
     }
@@ -96,7 +126,7 @@ function CausePanel({ dc }: { dc: DashboardCause }) {
   return (
     <section className="rounded-2xl border border-rule bg-card" aria-labelledby={`cause-${c.id}`}>
       <header className="flex flex-col gap-4 border-b border-rule p-5 sm:flex-row sm:items-center sm:p-6">
-        <img src={c.profile.image?.src} alt="" className="h-20 w-28 shrink-0 rounded-xl object-cover" />
+        <img src={causeImage(c).src} alt="" className="h-20 w-28 shrink-0 rounded-xl object-cover" />
         <div className="min-w-0 flex-1">
           <h2 id={`cause-${c.id}`} className="font-display text-[24px] font-semibold leading-tight tracking-tight">
             <Link href={causeHref(c.id, c.slug)} className="hover:text-sera-text">
@@ -105,33 +135,34 @@ function CausePanel({ dc }: { dc: DashboardCause }) {
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <StatusPill stage={c.stage} checksDone={c.checksDone} checksTotal={c.checksTotal} />
-            <span className="font-mono text-[12px] text-ink-muted tnum">{fmtUsd(c.givenUsd)} from {fmtInt(c.giversCount)} givers</span>
-            <span className="font-mono text-[12px] text-ink-muted tnum">{fmtUsd(dc.treasuryUsd)} in treasury</span>
+            <span className="font-mono text-[12px] text-ink-muted tnum">{fmtUsd(Number(c.givenUsd))} from {fmtInt(c.giversCount)} givers</span>
+            <span className="font-mono text-[12px] text-ink-muted tnum">{fmtUsd(treasuryUsd(c, tokens))} received, net</span>
           </div>
+          {homepageErr && <Notice tone="bad" className="mt-2">{homepageErr}</Notice>}
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-rule bg-paper-warm px-4 py-3">
           <div>
             <p className="text-[14px] font-medium">Show on homepage</p>
-            <p className="text-[12px] text-ink-muted">Signed by your wallet, off-chain</p>
+            <p className="text-[12px] text-ink-muted">{c.homepageHiddenReason ? `Hidden by a steward: ${c.homepageHiddenReason}` : "Signed by your wallet, off-chain"}</p>
           </div>
-          <Switch label={`Show ${c.name} on homepage`} checked={c.homepage} onCheckedChange={(v) => void toggleHomepage(v)} disabled={homepageBusy} />
+          <Switch label={`Show ${c.name} on homepage`} checked={c.showOnHomepage} onCheckedChange={(v) => void toggleHomepage(v)} disabled={homepageBusy || !!c.homepageHiddenReason} />
         </div>
       </header>
 
       <div className="grid gap-8 p-5 sm:p-6 lg:grid-cols-2">
-        <Treasury cause={c} />
+        <Treasury dc={c} tokens={tokens} />
         <div className="space-y-8">
-          <GiftsReceived dc={dc} />
-          <ShareTools dc={dc} />
+          <GiftsReceived dc={c} tokens={tokens} />
+          <ShareTools dc={c} />
         </div>
-        <PostUpdate cause={c} />
-        <Media cause={c} />
-        <Socials cause={c} />
-        <HelpRequests cause={c} />
-        <InviteCharity dc={dc} />
-        <Payout cause={c} />
+        <PostUpdate dc={c} />
+        <Media dc={c} />
+        <Socials dc={c} />
+        <HelpRequests dc={c} />
+        <InviteCharity dc={c} />
+        <Payout dc={c} />
       </div>
-      <PanelRecord cause={c} />
+      <PanelRecord dc={c} />
     </section>
   );
 }
@@ -149,23 +180,33 @@ function Panel({ title, lede, children, icon: Icon }: { title: string; lede?: st
   );
 }
 
-function Treasury({ cause }: { cause: Cause }) {
-  const t = cause.treasury;
+function OnChainNotice({ action }: { action: string }) {
+  return (
+    <Notice tone="info">
+      {action} is a registry transaction from the charity's wallet, not an API call. It appears here once the signed-in wallet can send it.
+    </Notice>
+  );
+}
+
+function Treasury({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
+  const w = cause.wallet;
   const invalidate = useInvalidateAll();
-  const [policy, setPolicy] = useState(t.policy);
-  const [autoToken, setAutoToken] = useState(t.autoToken);
+  const [mode, setMode] = useState<"auto" | "manual">(w.treasuryMode);
+  const [target, setTarget] = useState<string>(w.targetToken ?? tokens[0]?.address ?? "");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const { copied, copy } = useCopy();
+  const list = balances(cause, tokens);
+  const unchanged = mode === w.treasuryMode && (mode === "manual" || target === w.targetToken);
 
-  const savePolicy = async () => {
+  const save = async () => {
     setSaving(true);
     setErr(null);
     try {
-      await api.setTreasuryPolicy(cause.id, policy, autoToken);
+      await api.setTreasury(cause.id, mode, mode === "auto" ? target : undefined);
       await invalidate();
-      setMsg(policy === "auto" ? `Everything that arrives is converted to ${autoToken} through Sera.cx.` : "Holding what arrives. Convert when you choose.");
+      setMsg(mode === "auto" ? `Everything that arrives is converted to ${symbolOf(target, tokens)} through Sera.cx.` : "Holding what arrives. Convert when you choose.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not save");
     } finally {
@@ -178,8 +219,8 @@ function Treasury({ cause }: { cause: Cause }) {
       <div className="rounded-xl border border-rule bg-paper-warm p-3">
         <Eyebrow>Cause address</Eyebrow>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <code className="break-all font-mono text-[12.5px] tnum">{t.depositAddress}</code>
-          <Button size="sm" variant="outline" onClick={() => void copy(t.depositAddress)}>
+          <code className="break-all font-mono text-[12.5px] tnum">{w.address}</code>
+          <Button size="sm" variant="outline" onClick={() => void copy(w.address)}>
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
@@ -188,20 +229,20 @@ function Treasury({ cause }: { cause: Cause }) {
         <thead>
           <tr className="text-left">
             <th className="eyebrow pb-1.5 font-medium">Token</th>
-            <th className="eyebrow pb-1.5 font-medium text-right">Balance</th>
+            <th className="eyebrow pb-1.5 font-medium text-right">Received, net</th>
             <th className="eyebrow pb-1.5 font-medium text-right">US$</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-rule border-y border-rule">
-          {t.balances.length === 0 && (
+          {list.length === 0 && (
             <tr>
               <td colSpan={3} className="py-2 text-ink-muted">Nothing received yet.</td>
             </tr>
           )}
-          {t.balances.map((b) => (
-            <tr key={b.token}>
-              <td className="py-2 font-mono">{b.token}</td>
-              <td className="py-2 text-right font-mono tnum">{b.amount.toLocaleString("en-GB")}</td>
+          {list.map((b) => (
+            <tr key={b.token.address}>
+              <td className="py-2 font-mono">{b.token.symbol}</td>
+              <td className="py-2 text-right font-mono tnum">{b.units.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right font-mono tnum text-ink-muted">{fmtUsd(b.usd, { cents: true })}</td>
             </tr>
           ))}
@@ -211,24 +252,24 @@ function Treasury({ cause }: { cause: Cause }) {
       <fieldset className="mt-5">
         <legend className="text-[14px] font-medium">Currency</legend>
         <div className="mt-2 space-y-2">
-          <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", policy === "auto" ? "border-ink bg-paper-warm" : "border-rule")}>
-            <input type="radio" name={`policy-${cause.id}`} checked={policy === "auto"} onChange={() => setPolicy("auto")} className="mt-1 accent-[#1B7A3F]" />
+          <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", mode === "auto" ? "border-ink bg-paper-warm" : "border-rule")}>
+            <input type="radio" name={`policy-${cause.id}`} checked={mode === "auto"} onChange={() => setMode("auto")} className="mt-1 accent-[#1B7A3F]" />
             <span className="flex-1">
               <span className="block text-[14.5px] font-medium">Keep everything in one currency</span>
               <span className="block text-[13px] text-ink-muted">Each arrival is converted through Sera.cx straight away.</span>
-              {policy === "auto" && (
-                <Select aria-label="Stablecoin to keep" value={autoToken} onChange={(e) => setAutoToken(e.target.value)} className="mt-2 h-9 max-w-[200px] text-[13.5px]">
-                  {STABLECOINS.map((s) => (
-                    <option key={s.symbol} value={s.symbol}>
-                      {s.symbol}, {s.name}
+              {mode === "auto" && (
+                <Select aria-label="Stablecoin to keep" value={target} onChange={(e) => setTarget(e.target.value)} className="mt-2 h-9 max-w-[240px] text-[13.5px]">
+                  {tokens.map((t) => (
+                    <option key={t.address} value={t.address}>
+                      {t.symbol} ({t.currency})
                     </option>
                   ))}
                 </Select>
               )}
             </span>
           </label>
-          <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", policy === "hold" ? "border-ink bg-paper-warm" : "border-rule")}>
-            <input type="radio" name={`policy-${cause.id}`} checked={policy === "hold"} onChange={() => setPolicy("hold")} className="mt-1 accent-[#1B7A3F]" />
+          <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", mode === "manual" ? "border-ink bg-paper-warm" : "border-rule")}>
+            <input type="radio" name={`policy-${cause.id}`} checked={mode === "manual"} onChange={() => setMode("manual")} className="mt-1 accent-[#1B7A3F]" />
             <span>
               <span className="block text-[14.5px] font-medium">Hold what arrives and convert when I choose</span>
               <span className="block text-[13px] text-ink-muted">Balances stay in the token they came in.</span>
@@ -236,7 +277,7 @@ function Treasury({ cause }: { cause: Cause }) {
           </label>
         </div>
         <div className="mt-2 flex items-center gap-3">
-          <Button size="sm" onClick={() => void savePolicy()} disabled={saving || (policy === t.policy && autoToken === t.autoToken)}>
+          <Button size="sm" onClick={() => void save()} disabled={saving || unchanged}>
             {saving ? "Saving" : "Save setting"}
           </Button>
           {msg && <span className="text-[13px] text-ink-muted" role="status">{msg}</span>}
@@ -244,21 +285,21 @@ function Treasury({ cause }: { cause: Cause }) {
         {err && <Notice tone="bad" className="mt-2">{err}</Notice>}
       </fieldset>
 
-      <Convert cause={cause} />
-      <Withdraw cause={cause} />
+      <Convert dc={cause} tokens={tokens} />
+      <Withdraw dc={cause} tokens={tokens} />
 
-      {(t.conversions.length > 0 || t.withdrawals.length > 0) && (
+      {(cause.conversions.length > 0 || cause.withdrawals.length > 0) && (
         <details className="mt-4">
           <summary className="cursor-pointer text-[13.5px] font-medium">Conversions and withdrawals</summary>
           <ul className="mt-2 space-y-1.5 text-[13px] text-ink-muted">
-            {t.conversions.map((cv) => (
+            {cause.conversions.map((cv) => (
               <li key={`c${cv.id}`} className="font-mono tnum">
-                {fmtDate(cv.at)}: {cv.amountIn.toLocaleString("en-GB")} {cv.fromToken} to {cv.amountOut.toLocaleString("en-GB")} {cv.toToken} ({cv.reason})
+                {fmtDate(cv.createdAt)}: {fromRaw(cv.amountIn, decimalsOf(cv.fromToken, tokens)).toLocaleString("en-GB")} {symbolOf(cv.fromToken, tokens)} to {cv.amountOut ? fromRaw(cv.amountOut, decimalsOf(cv.toToken, tokens)).toLocaleString("en-GB") : "…"} {symbolOf(cv.toToken, tokens)} ({cv.triggeredBy}, {cv.state})
               </li>
             ))}
-            {t.withdrawals.map((wd) => (
+            {cause.withdrawals.map((wd) => (
               <li key={`w${wd.id}`} className="font-mono tnum">
-                {fmtDate(wd.at)}: withdrew {wd.amount.toLocaleString("en-GB")} {wd.token} to {wd.to.slice(0, 6)}…{wd.to.slice(-4)}
+                {fmtDate(wd.createdAt)}: withdrew {fromRaw(wd.amount, decimalsOf(wd.token, tokens)).toLocaleString("en-GB")} {symbolOf(wd.token, tokens)} to {wd.to.slice(0, 6)}…{wd.to.slice(-4)}{wd.txHash ? "" : " (transfer not sent yet)"}
               </li>
             ))}
           </ul>
@@ -268,23 +309,25 @@ function Treasury({ cause }: { cause: Cause }) {
   );
 }
 
-function Convert({ cause }: { cause: Cause }) {
+function Convert({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
   const invalidate = useInvalidateAll();
-  const balances = cause.treasury.balances.filter((b) => b.amount > 0);
-  const [from, setFrom] = useState(balances[0]?.token ?? "USDT");
-  const [to, setTo] = useState(STABLECOINS.find((s) => s.symbol !== (balances[0]?.token ?? "USDT"))?.symbol ?? "MYRT");
+  const held = balances(cause, tokens);
+  const [from, setFrom] = useState<string>(held[0]?.token.address ?? tokens[0]?.address ?? "");
+  const [to, setTo] = useState<string>(tokens.find((t) => t.address !== (held[0]?.token.address ?? tokens[0]?.address))?.address ?? "");
   const [amount, setAmount] = useState("");
   const [quote, setQuote] = useState<ConvertQuote | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const fromToken = tokens.find((t) => t.address === from);
+  const toToken = tokens.find((t) => t.address === to);
 
   const getQuote = async () => {
     setErr(null);
     setDone(null);
     setBusy(true);
     try {
-      setQuote(await api.quoteConvert(cause.id, from, to, Number.parseFloat(amount) || 0));
+      setQuote(await api.quoteConvert(cause.id, from, to, toRaw(Number.parseFloat(amount) || 0, fromToken?.decimals ?? 6)));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not quote");
       setQuote(null);
@@ -297,9 +340,9 @@ function Convert({ cause }: { cause: Cause }) {
     setBusy(true);
     setErr(null);
     try {
-      await api.convert(cause.id, quote);
+      const cv = await api.submitConvert(cause.id, quote);
       await invalidate();
-      setDone(`Converted ${quote.amountIn} ${quote.fromToken} to ${quote.amountOut} ${quote.toToken}. It is on the record.`);
+      setDone(`Conversion ${cv.state}: ${fromRaw(quote.quote.fromAmountRaw, quote.quote.from.decimals)} ${quote.quote.from.symbol} to at least ${fromRaw(quote.quote.minOutputRaw, quote.quote.to.decimals)} ${quote.quote.to.symbol}. It is on the record.`);
       setQuote(null);
       setAmount("");
     } catch (e) {
@@ -309,7 +352,7 @@ function Convert({ cause }: { cause: Cause }) {
     }
   };
 
-  if (balances.length === 0) return null;
+  if (held.length === 0 || tokens.length < 2) return null;
   return (
     <div className="mt-5 rounded-xl border border-rule p-4">
       <p className="text-[14.5px] font-medium">Convert now</p>
@@ -317,18 +360,18 @@ function Convert({ cause }: { cause: Cause }) {
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <Field label="From" htmlFor={`from-${cause.id}`}>
           <Select id={`from-${cause.id}`} value={from} onChange={(e) => { setFrom(e.target.value); setQuote(null); }} className="h-10">
-            {balances.map((b) => (
-              <option key={b.token} value={b.token}>
-                {b.token} ({b.amount.toLocaleString("en-GB")})
+            {held.map((b) => (
+              <option key={b.token.address} value={b.token.address}>
+                {b.token.symbol} ({b.units.toLocaleString("en-GB", { maximumFractionDigits: 2 })})
               </option>
             ))}
           </Select>
         </Field>
         <Field label="To" htmlFor={`to-${cause.id}`}>
           <Select id={`to-${cause.id}`} value={to} onChange={(e) => { setTo(e.target.value); setQuote(null); }} className="h-10">
-            {STABLECOINS.filter((s) => s.symbol !== from).map((s) => (
-              <option key={s.symbol} value={s.symbol}>
-                {s.symbol}
+            {tokens.filter((t) => t.address !== from).map((t) => (
+              <option key={t.address} value={t.address}>
+                {t.symbol}
               </option>
             ))}
           </Select>
@@ -339,42 +382,43 @@ function Convert({ cause }: { cause: Cause }) {
       </div>
       {quote && (
         <dl className="mt-3 rounded-lg bg-paper-warm p-3 text-[13.5px] font-mono tnum">
-          <div className="flex justify-between"><dt>Rate</dt><dd>1 {quote.fromToken} = {quote.rate} {quote.toToken}</dd></div>
-          <div className="flex justify-between"><dt>You receive</dt><dd>{quote.amountOut.toLocaleString("en-GB")} {quote.toToken}</dd></div>
-          <div className="flex justify-between"><dt>Sera.cx fee</dt><dd>{fmtUsd(quote.feeUsd, { cents: true })}</dd></div>
+          <div className="flex justify-between"><dt>You convert</dt><dd>{fromRaw(quote.quote.fromAmountRaw, quote.quote.from.decimals).toLocaleString("en-GB")} {quote.quote.from.symbol}</dd></div>
+          <div className="flex justify-between"><dt>You receive at least</dt><dd>{fromRaw(quote.quote.minOutputRaw, quote.quote.to.decimals).toLocaleString("en-GB")} {quote.quote.to.symbol}</dd></div>
+          <div className="flex justify-between"><dt>Quote expires</dt><dd>{fmtDate(quote.quote.expiresAt, true)}</dd></div>
         </dl>
       )}
       {err && <Notice tone="bad" className="mt-3">{err}</Notice>}
       {done && <Notice tone="good" className="mt-3">{done}</Notice>}
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => void getQuote()} disabled={busy || !(Number.parseFloat(amount) > 0)}>
+        <Button size="sm" variant="outline" onClick={() => void getQuote()} disabled={busy || !(Number.parseFloat(amount) > 0) || !fromToken || !toToken}>
           Get quote
         </Button>
         <Button size="sm" onClick={() => void run()} disabled={busy || !quote}>
-          {busy ? "Working" : "Convert"}
+          {busy ? "Working" : "Sign and convert"}
         </Button>
       </div>
     </div>
   );
 }
 
-function Withdraw({ cause }: { cause: Cause }) {
+function Withdraw({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
   const invalidate = useInvalidateAll();
-  const balances = cause.treasury.balances.filter((b) => b.amount > 0);
-  const [token, setToken] = useState(balances[0]?.token ?? "USDT");
+  const held = balances(cause, tokens);
+  const [token, setToken] = useState<string>(held[0]?.token.address ?? "");
   const [amount, setAmount] = useState("");
-  const [to, setTo] = useState(cause.payout ?? "");
+  const [to, setTo] = useState<string>(cause.payout ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [plan, setPlan] = useState<WithdrawResult | null>(null);
   const run = async () => {
     setBusy(true);
     setErr(null);
-    setDone(null);
+    setPlan(null);
     try {
-      await api.withdraw(cause.id, token, Number.parseFloat(amount) || 0, to);
+      const t = tokens.find((x) => x.address === token);
+      const r = await api.withdraw(cause.id, token, toRaw(Number.parseFloat(amount) || 0, t?.decimals ?? 6), to);
       await invalidate();
-      setDone(`Sent ${amount} ${token}. It is on the record.`);
+      setPlan(r);
       setAmount("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Withdrawal failed");
@@ -382,17 +426,17 @@ function Withdraw({ cause }: { cause: Cause }) {
       setBusy(false);
     }
   };
-  if (balances.length === 0) return null;
+  if (held.length === 0) return null;
   return (
     <div className="mt-4 rounded-xl border border-rule p-4">
       <p className="text-[14.5px] font-medium">Withdraw</p>
-      <p className="text-[13px] text-ink-muted">To any Ethereum address. Withdrawals are public on the cause's record.</p>
+      <p className="text-[13px] text-ink-muted">To any Ethereum address. The API records it and hands back the transfer for the cause wallet to send.</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_2fr]">
         <Field label="Token" htmlFor={`wtoken-${cause.id}`}>
           <Select id={`wtoken-${cause.id}`} value={token} onChange={(e) => setToken(e.target.value)} className="h-10">
-            {balances.map((b) => (
-              <option key={b.token} value={b.token}>
-                {b.token}
+            {held.map((b) => (
+              <option key={b.token.address} value={b.token.address}>
+                {b.token.symbol}
               </option>
             ))}
           </Select>
@@ -405,15 +449,20 @@ function Withdraw({ cause }: { cause: Cause }) {
         </Field>
       </div>
       {err && <Notice tone="bad" className="mt-3">{err}</Notice>}
-      {done && <Notice tone="good" className="mt-3">{done}</Notice>}
-      <Button size="sm" className="mt-3" onClick={() => void run()} disabled={busy || !(Number.parseFloat(amount) > 0) || !to}>
-        {busy ? "Sending" : "Withdraw"}
+      {plan && (
+        <Notice tone="good" className="mt-3">
+          Recorded. Send {fromRaw(plan.plan.amountRaw, plan.plan.decimals ?? 6).toLocaleString("en-GB")} {plan.plan.symbol ?? ""} from {plan.plan.from.slice(0, 6)}…{plan.plan.from.slice(-4)} to {plan.plan.to.slice(0, 6)}…{plan.plan.to.slice(-4)}.
+          <code className="mt-1 block break-all font-mono text-[11px] opacity-80">{plan.plan.eip681}</code>
+        </Notice>
+      )}
+      <Button size="sm" className="mt-3" onClick={() => void run()} disabled={busy || !(Number.parseFloat(amount) > 0) || !/^0x[0-9a-fA-F]{40}$/.test(to.trim())}>
+        {busy ? "Recording" : "Withdraw"}
       </Button>
     </div>
   );
 }
 
-function GiftsReceived({ dc }: { dc: DashboardCause }) {
+function GiftsReceived({ dc, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
   return (
     <Panel title="Gifts received" lede="Newest first. Each one is on the public record with its transaction.">
       {dc.gifts.length === 0 ? (
@@ -423,10 +472,10 @@ function GiftsReceived({ dc }: { dc: DashboardCause }) {
           {dc.gifts.slice(0, 6).map((g) => (
             <li key={g.id} className="flex items-center justify-between gap-3 py-2">
               <span className="font-mono tnum">
-                {g.amount.toLocaleString("en-GB")} {g.token} <span className="text-ink-muted">({fmtUsd(g.usd)})</span>
-                {g.route === "swap" && <span className="ml-2 text-[11px] text-ink-subtle">via Sera.cx swap</span>}
+                {fromRaw(g.amount, decimalsOf(g.token, tokens)).toLocaleString("en-GB")} {symbolOf(g.token, tokens)} <span className="text-ink-muted">({fmtUsd(Number(g.usd))})</span>
+                {g.source === "sera_swap" && <span className="ml-2 text-[11px] text-ink-subtle">via Sera.cx swap</span>}
               </span>
-              <span className="font-mono text-[11.5px] text-ink-subtle">{timeAgo(g.at)}</span>
+              <span className="font-mono text-[11.5px] text-ink-subtle">{timeAgo(g.createdAt)}</span>
             </li>
           ))}
         </ul>
@@ -436,21 +485,21 @@ function GiftsReceived({ dc }: { dc: DashboardCause }) {
 }
 
 function ShareTools({ dc }: { dc: DashboardCause }) {
-  const c = dc.cause;
-  const total = dc.shares.reduce((s, x) => s + x.count, 0);
+  const entries = Object.entries(dc.shares);
+  const total = entries.reduce((s, [, n]) => s + n, 0);
   return (
-    <Panel title="Share tools" icon={Share2} lede={`${fmtInt(total)} shares so far: ${dc.shares.map((s) => `${s.channel} ${s.count}`).join(", ")}.`}>
-      <ShareButtons causeId={c.id} slug={c.slug} name={c.name} />
+    <Panel title="Share tools" icon={Share2} lede={total > 0 ? `${fmtInt(total)} shares so far: ${entries.map(([ch, n]) => `${ch} ${n}`).join(", ")}.` : "No shares counted yet."}>
+      <ShareButtons causeId={dc.id} slug={dc.slug} name={dc.name} />
       <Button asChild variant="link" className="mt-2">
-        <Link href={`/c/${c.id}/share`}>Embed button, preview card and QR poster</Link>
+        <Link href={`/c/${dc.id}/share`}>Embed button, preview card and QR poster</Link>
       </Button>
     </Panel>
   );
 }
 
-function PostUpdate({ cause }: { cause: Cause }) {
+function PostUpdate({ dc: cause }: { dc: DashboardCause }) {
   const invalidate = useInvalidateAll();
-  const [kind, setKind] = useState<CauseUpdate["kind"]>("report");
+  const [kind, setKind] = useState("report");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
@@ -476,42 +525,47 @@ function PostUpdate({ cause }: { cause: Cause }) {
   };
   return (
     <Panel title="Post an update or a live link" lede="Reports, receipts, photos and streams. A stream link turns the Live block on.">
-      <form onSubmit={(e) => void submit(e)} className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-[150px_1fr]">
-          <Field label="Kind" htmlFor={`ukind-${cause.id}`}>
-            <Select id={`ukind-${cause.id}`} value={kind} onChange={(e) => setKind(e.target.value as CauseUpdate["kind"])} className="h-10">
-              <option value="report">Report</option>
-              <option value="receipt">Receipts</option>
-              <option value="photo">Photos</option>
-              <option value="stream">Live stream</option>
-              <option value="note">Note</option>
-            </Select>
+      {api.ONCHAIN_ONLY ? (
+        <OnChainNotice action="Posting an update (postProgress)" />
+      ) : (
+        <form onSubmit={(e) => void submit(e)} className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[150px_1fr]">
+            <Field label="Kind" htmlFor={`ukind-${cause.id}`}>
+              <Select id={`ukind-${cause.id}`} value={kind} onChange={(e) => setKind(e.target.value)} className="h-10">
+                <option value="report">Report</option>
+                <option value="receipt">Receipts</option>
+                <option value="photo">Photos</option>
+                <option value="stream">Live stream</option>
+                <option value="note">Note</option>
+              </Select>
+            </Field>
+            <Field label="Title" htmlFor={`utitle-${cause.id}`}>
+              <Input id={`utitle-${cause.id}`} required value={title} onChange={(e) => setTitle(e.target.value)} className="h-10" />
+            </Field>
+          </div>
+          <Field label="Text" htmlFor={`ubody-${cause.id}`}>
+            <Textarea id={`ubody-${cause.id}`} required value={body} onChange={(e) => setBody(e.target.value)} className="min-h-[72px]" />
           </Field>
-          <Field label="Title" htmlFor={`utitle-${cause.id}`}>
-            <Input id={`utitle-${cause.id}`} required value={title} onChange={(e) => setTitle(e.target.value)} className="h-10" />
+          <Field label={kind === "stream" ? "Stream embed link" : "Link (optional)"} htmlFor={`ulink-${cause.id}`} hint={kind === "stream" ? "A YouTube or Instagram embed URL. Gifts made during the stream show on screen." : undefined}>
+            <Input id={`ulink-${cause.id}`} type="url" value={link} onChange={(e) => setLink(e.target.value)} required={kind === "stream"} className="h-10" />
           </Field>
-        </div>
-        <Field label="Text" htmlFor={`ubody-${cause.id}`}>
-          <Textarea id={`ubody-${cause.id}`} required value={body} onChange={(e) => setBody(e.target.value)} className="min-h-[72px]" />
-        </Field>
-        <Field label={kind === "stream" ? "Stream embed link" : "Link (optional)"} htmlFor={`ulink-${cause.id}`} hint={kind === "stream" ? "A YouTube or Instagram embed URL. Gifts made during the stream show on screen." : undefined}>
-          <Input id={`ulink-${cause.id}`} type="url" value={link} onChange={(e) => setLink(e.target.value)} required={kind === "stream"} className="h-10" />
-        </Field>
-        {err && <Notice tone="bad">{err}</Notice>}
-        {msg && <Notice tone="good">{msg}</Notice>}
-        <Button size="sm" type="submit" disabled={busy}>
-          {busy ? "Posting" : "Post"}
-        </Button>
-      </form>
+          {err && <Notice tone="bad">{err}</Notice>}
+          {msg && <Notice tone="good">{msg}</Notice>}
+          <Button size="sm" type="submit" disabled={busy}>
+            {busy ? "Posting" : "Post"}
+          </Button>
+        </form>
+      )}
     </Panel>
   );
 }
 
-function Media({ cause }: { cause: Cause }) {
+function Media({ dc: cause }: { dc: DashboardCause }) {
   const invalidate = useInvalidateAll();
-  const [kind, setKind] = useState<"photo" | "video">("video");
+  const [kind, setKind] = useState<"video" | "photo" | "upload">("video");
   const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
+  const [caption, setCaption] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const add = async (e: React.FormEvent) => {
@@ -519,36 +573,49 @@ function Media({ cause }: { cause: Cause }) {
     setBusy(true);
     setErr(null);
     try {
-      await api.addMedia(cause.id, { kind, url, title });
+      await api.addMedia(cause.id, kind === "upload" ? { kind: "photo", file, caption } : { kind, url, caption });
       await invalidate();
       setUrl("");
-      setTitle("");
+      setCaption("");
+      setFile(null);
     } catch (e2) {
       setErr(e2 instanceof Error ? e2.message : "Could not add");
     } finally {
       setBusy(false);
     }
   };
-  const remove = async (id: number) => {
-    await api.removeMedia(cause.id, id);
-    await invalidate();
+  const remove = async (id: string) => {
+    setErr(null);
+    try {
+      await api.removeMedia(id);
+      await invalidate();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Could not remove");
+    }
   };
   return (
-    <Panel title="Photos and video" icon={ImageIcon} lede="Photos, plus links from YouTube, TikTok, Instagram, X or any oEmbed-style URL. Shown as click-to-load embeds.">
-      <form onSubmit={(e) => void add(e)} className="grid gap-3 sm:grid-cols-[120px_1fr_1fr_auto] sm:items-end">
+    <Panel title="Photos and video" icon={ImageIcon} lede="Upload a photo, paste a direct image link, or link a video from YouTube, TikTok, Instagram, X, Vimeo or Twitch. Videos are click-to-load embeds.">
+      <form onSubmit={(e) => void add(e)} className="grid gap-3 sm:grid-cols-[130px_1fr_1fr_auto] sm:items-end">
         <Field label="Kind" htmlFor={`mkind-${cause.id}`}>
-          <Select id={`mkind-${cause.id}`} value={kind} onChange={(e) => setKind(e.target.value as "photo" | "video")} className="h-10">
+          <Select id={`mkind-${cause.id}`} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="h-10">
             <option value="video">Video link</option>
             <option value="photo">Photo URL</option>
+            <option value="upload">Photo upload</option>
           </Select>
         </Field>
-        <Field label="URL" htmlFor={`murl-${cause.id}`}>
-          <Input id={`murl-${cause.id}`} type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder={kind === "video" ? "https://www.youtube.com/watch?v=…" : "https://…/photo.jpg"} className="h-10" />
+        {kind === "upload" ? (
+          <Field label="File (png, jpg, webp)" htmlFor={`mfile-${cause.id}`}>
+            <input id={`mfile-${cause.id}`} type="file" accept="image/png,image/jpeg,image/webp" required className="block w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-ink" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </Field>
+        ) : (
+          <Field label="URL" htmlFor={`murl-${cause.id}`}>
+            <Input id={`murl-${cause.id}`} type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder={kind === "video" ? "https://www.youtube.com/watch?v=…" : "https://…/photo.jpg"} className="h-10" />
+          </Field>
+        )}
+        <Field label="Caption" htmlFor={`mtitle-${cause.id}`}>
+          <Input id={`mtitle-${cause.id}`} value={caption} onChange={(e) => setCaption(e.target.value)} className="h-10" />
         </Field>
-        <Field label="Title" htmlFor={`mtitle-${cause.id}`}>
-          <Input id={`mtitle-${cause.id}`} value={title} onChange={(e) => setTitle(e.target.value)} className="h-10" />
-        </Field>
-        <Button size="sm" type="submit" disabled={busy} className="h-10">
+        <Button size="sm" type="submit" disabled={busy || (kind === "upload" ? !file : !url)} className="h-10">
           {kind === "video" ? <Video className="h-4 w-4" aria-hidden /> : <ImageIcon className="h-4 w-4" aria-hidden />} Add
         </Button>
       </form>
@@ -558,10 +625,10 @@ function Media({ cause }: { cause: Cause }) {
           {cause.media.map((m) => (
             <li key={m.id} className="flex items-center justify-between gap-3 py-2">
               <span className="min-w-0 truncate">
-                <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{m.kind === "video" ? (m.provider ?? "video") : "photo"}</span>
-                {m.title}
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{m.kind === "video" ? providerLabel(m.provider) : "photo"}</span>
+                {m.caption || m.url}
               </span>
-              <button type="button" onClick={() => void remove(m.id)} className="shrink-0 rounded-full p-1.5 text-ink-muted hover:bg-ink/5 hover:text-danger" aria-label={`Remove ${m.title}`}>
+              <button type="button" onClick={() => void remove(m.id)} className="shrink-0 rounded-full p-1.5 text-ink-muted hover:bg-ink/5 hover:text-danger" aria-label={`Remove ${m.caption || m.kind}`}>
                 <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             </li>
@@ -578,19 +645,24 @@ function Media({ cause }: { cause: Cause }) {
   );
 }
 
-function Socials({ cause }: { cause: Cause }) {
+function Socials({ dc: cause }: { dc: DashboardCause }) {
   const invalidate = useInvalidateAll();
-  const s = cause.profile.contact.socials ?? {};
-  const [form, setForm] = useState({ website: cause.profile.contact.website ?? "", instagram: s.instagram ?? "", facebook: s.facebook ?? "", youtube: s.youtube ?? "", tiktok: s.tiktok ?? "", x: (s as { x?: string }).x ?? "" });
+  const p = profileOf(cause);
+  const s = p.contact.socials ?? {};
+  const [form, setForm] = useState({ website: p.contact.website ?? "", instagram: s.instagram ?? "", facebook: s.facebook ?? "", youtube: s.youtube ?? "", tiktok: s.tiktok ?? "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setErr(null);
     try {
       await api.updateSocials(cause.id, form);
       await invalidate();
       setMsg("Saved. The links on the cause page are updated.");
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Could not save");
     } finally {
       setBusy(false);
     }
@@ -601,84 +673,107 @@ function Socials({ cause }: { cause: Cause }) {
     ["facebook", "Facebook"],
     ["youtube", "YouTube"],
     ["tiktok", "TikTok"],
-    ["x", "X"],
   ];
   return (
     <Panel title="Links" icon={Link2} lede="The organisation's own channels. Shown in the Live block and the organisation section.">
-      <form onSubmit={(e) => void save(e)} className="grid gap-3 sm:grid-cols-2">
-        {fields.map(([k, label]) => (
-          <Field key={k} label={label} htmlFor={`soc-${k}-${cause.id}`}>
-            <Input id={`soc-${k}-${cause.id}`} type="url" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} className="h-10" placeholder="https://" />
-          </Field>
-        ))}
-        <div className="sm:col-span-2 flex items-center gap-3">
-          <Button size="sm" type="submit" disabled={busy}>
-            {busy ? "Saving" : "Save links"}
-          </Button>
-          {msg && <span className="text-[13px] text-ink-muted" role="status">{msg}</span>}
-        </div>
-      </form>
+      {api.ONCHAIN_ONLY ? (
+        <OnChainNotice action="Changing the profile (setURI with new metadata)" />
+      ) : (
+        <form onSubmit={(e) => void save(e)} className="grid gap-3 sm:grid-cols-2">
+          {fields.map(([k, label]) => (
+            <Field key={k} label={label} htmlFor={`soc-${k}-${cause.id}`}>
+              <Input id={`soc-${k}-${cause.id}`} type="url" value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} className="h-10" placeholder="https://" />
+            </Field>
+          ))}
+          <div className="sm:col-span-2 flex items-center gap-3">
+            <Button size="sm" type="submit" disabled={busy}>
+              {busy ? "Saving" : "Save links"}
+            </Button>
+            {msg && <span className="text-[13px] text-ink-muted" role="status">{msg}</span>}
+            {err && <span className="text-[13px] text-danger" role="alert">{err}</span>}
+          </div>
+        </form>
+      )}
     </Panel>
   );
 }
 
-function HelpRequests({ cause }: { cause: Cause }) {
+function HelpRequests({ dc: cause }: { dc: DashboardCause }) {
   const invalidate = useInvalidateAll();
-  const confirm = async (id: number) => {
-    await api.confirmHelp(id);
-    await invalidate();
+  const [err, setErr] = useState<string | null>(null);
+  const confirm = async (id: number, helper: string) => {
+    setErr(null);
+    try {
+      await api.confirmHelp(id, helper);
+      await invalidate();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not confirm");
+    }
   };
   return (
-    <Panel title="Help requests" lede="Confirm a request once it is done. The helper earns gSera on your confirmation.">
+    <Panel title="Help requests" lede="Confirm a request once it is done. The helper earns gSera on your confirmation, signed by your wallet.">
       {cause.helpRequests.length === 0 ? (
         <p className="text-[14px] text-ink-muted">None open.</p>
       ) : (
         <ul className="divide-y divide-rule border-y border-rule text-[14px]">
-          {cause.helpRequests.map((h) => (
-            <li key={h.id} className="flex items-center justify-between gap-3 py-2.5">
-              <div className="min-w-0">
-                <p className="font-medium leading-snug">{h.title}</p>
-                <p className="font-mono text-[11.5px] text-ink-muted">
-                  {h.kind} · {h.state}
-                  {h.pledgedBy ? <> · taken by <Wallet address={h.pledgedBy} /></> : null}
-                </p>
-              </div>
-              {h.state === "pledged" ? (
-                <Button size="sm" variant="outline" onClick={() => void confirm(h.id)}>
-                  <Check className="h-4 w-4" aria-hidden /> Confirm done
-                </Button>
-              ) : h.state === "fulfilled" ? (
-                <span className="inline-flex items-center gap-1 text-[13px] text-sera-text">
-                  <Check className="h-4 w-4" aria-hidden /> Done
-                </span>
-              ) : (
-                <span className="text-[12.5px] text-ink-subtle">Waiting for a helper</span>
-              )}
-            </li>
-          ))}
+          {cause.helpRequests.map((h) => {
+            const taker = pledgedBy(h);
+            return (
+              <li key={h.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-medium leading-snug">{h.title}</p>
+                  <p className="font-mono text-[11.5px] text-ink-muted">
+                    {h.kind} · {h.state}
+                    {taker ? <> · taken by <Wallet address={taker} /></> : null}
+                  </p>
+                </div>
+                {h.state === "pledged" && taker ? (
+                  <Button size="sm" variant="outline" onClick={() => void confirm(h.id, taker)}>
+                    <Check className="h-4 w-4" aria-hidden /> Confirm done
+                  </Button>
+                ) : h.state === "fulfilled" ? (
+                  <span className="inline-flex items-center gap-1 text-[13px] text-sera-text">
+                    <Check className="h-4 w-4" aria-hidden /> Done
+                  </span>
+                ) : h.state === "closed" ? (
+                  <span className="text-[12.5px] text-ink-subtle">Closed</span>
+                ) : (
+                  <span className="text-[12.5px] text-ink-subtle">Waiting for a helper</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
+      {err && <Notice tone="bad" className="mt-2">{err}</Notice>}
     </Panel>
   );
 }
 
 function InviteCharity({ dc }: { dc: DashboardCause }) {
   const { copied, copy } = useCopy();
+  const invite = `${dc.share.url}?claim=invite`;
   return (
     <Panel title="Invite the charity to claim the listing" lede="Send this link to the organisation. When they claim it, they control the profile, the payout wallet and updates.">
       <div className="flex flex-col gap-2 sm:flex-row">
-        <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-paper-warm px-3 py-2 font-mono text-[12.5px]">{dc.inviteLink}</code>
-        <Button variant="outline" size="sm" className="h-10" onClick={() => void copy(dc.inviteLink)}>
+        <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-paper-warm px-3 py-2 font-mono text-[12.5px]">{invite}</code>
+        <Button variant="outline" size="sm" className="h-10" onClick={() => void copy(invite)}>
           {copied ? "Copied" : "Copy invite"}
         </Button>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="rounded-lg border border-rule bg-white p-1.5">
+          <QrCode text={dc.address.qr} size={72} alt={`QR code for ${dc.name}'s address`} />
+        </div>
+        <p className="font-mono text-[11.5px] text-ink-muted break-all">Cause address {dc.address.address} on chain {dc.address.chainId}.</p>
       </div>
     </Panel>
   );
 }
 
-function Payout({ cause }: { cause: Cause }) {
+function Payout({ dc: cause }: { dc: DashboardCause }) {
   const invalidate = useInvalidateAll();
-  const [payout, setPayout] = useState(cause.payout ?? "");
+  const [payout, setPayout] = useState<string>(cause.payout ?? "");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -704,12 +799,18 @@ function Payout({ cause }: { cause: Cause }) {
           <span>Changing the payout wallet removes Verified. The claim "the payout wallet belongs to the organisation" (C3) must be checked again, with a new signed message.</span>
         </div>
       </Notice>
-      <form onSubmit={(e) => void save(e)} className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <Input aria-label="Payout wallet address" value={payout} onChange={(e) => setPayout(e.target.value)} placeholder="0x…" className="h-10 font-mono flex-1" />
-        <Button size="sm" type="submit" className="h-10" disabled={busy || payout === (cause.payout ?? "")}>
-          {busy ? "Saving" : "Save wallet"}
-        </Button>
-      </form>
+      {api.ONCHAIN_ONLY ? (
+        <div className="mt-3">
+          <OnChainNotice action="Changing the payout wallet (setPayout)" />
+        </div>
+      ) : (
+        <form onSubmit={(e) => void save(e)} className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Input aria-label="Payout wallet address" value={payout} onChange={(e) => setPayout(e.target.value)} placeholder="0x…" className="h-10 font-mono flex-1" />
+          <Button size="sm" type="submit" className="h-10" disabled={busy || payout === (cause.payout ?? "")}>
+            {busy ? "Saving" : "Save wallet"}
+          </Button>
+        </form>
+      )}
       {err && <Notice tone="bad" className="mt-2">{err}</Notice>}
       {msg && <Notice tone="good" className="mt-2">{msg}</Notice>}
       <p className="mt-2 font-mono text-[11.5px] text-ink-muted">
@@ -722,12 +823,12 @@ function Payout({ cause }: { cause: Cause }) {
   );
 }
 
-function PanelRecord({ cause }: { cause: Cause }) {
+function PanelRecord({ dc: cause }: { dc: DashboardCause }) {
   const rec = useRecord(cause.id);
   return (
     <div className="border-t border-rule p-5 sm:p-6">
       <Panel title="Recent record" lede="The same public record visitors see on the cause page: gifts, conversions, withdrawals, updates and checks.">
-        {rec.data ? <RecordList events={rec.data} limit={6} /> : <Spinner />}
+        {rec.data ? <RecordList events={recordLines(rec.data)} limit={6} /> : <Spinner />}
         <Button asChild variant="link" className="mt-2">
           <Link href={`${causeHref(cause.id, cause.slug)}#record`}>Full record on the cause page</Link>
         </Button>

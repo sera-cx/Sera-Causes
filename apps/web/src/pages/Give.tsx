@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRightLeft, Check, Copy, ExternalLink, Wallet as WalletIcon } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Check, Copy, Wallet as WalletIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
 import { Notice, Spinner } from "@/components/Empty";
@@ -12,17 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
-import { quoteGift, submitGift } from "@/lib/api";
+import { USING_MOCK, quoteGift, submitGift } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { GIFT_PRESETS_USD, GSERA, STABLECOINS } from "@/lib/constants";
-import { fmtGsera, fmtInt, fmtMultiplier, fmtUsd } from "@/lib/format";
+import { GIFT_PRESETS_USD, GSERA, stablecoinUsd } from "@/lib/constants";
+import { fmtGsera, fmtMultiplier, fmtUsd } from "@/lib/format";
+import { causeImage } from "@/lib/images";
 import { useCause, useInvalidateAll } from "@/lib/queries";
-import { causeHref, giftGsera, shortAddress } from "@/lib/rules";
-import type { Cause, GiftQuote, GiftReceipt } from "@/lib/types";
+import { causeHref, fromRaw, giftGsera, profileOf, toRaw } from "@/lib/rules";
+import type { CauseDetail, GiftQuote, Stablecoin } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotFoundPage } from "./NotFound";
 
-const EXPLORER = "https://sepolia.etherscan.io/tx/";
+interface Receipt {
+  kind: "transfer" | "swap";
+  /** Settled in the mock, pending on the API. */
+  status: string;
+  tradeId?: string;
+  token: string;
+  units: number;
+  usd: number;
+  gsera: number;
+}
 
 export function GivePage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -46,8 +56,14 @@ export function GivePage() {
   return <GiveSheet cause={cause} />;
 }
 
-function GiveSheet({ cause }: { cause: Cause }) {
-  const [receipt, setReceipt] = useState<GiftReceipt | null>(null);
+/** The stablecoin the cause keeps, when it auto-converts. */
+function keptToken(cause: CauseDetail): Stablecoin | undefined {
+  if (cause.wallet.treasuryMode !== "auto" || !cause.wallet.targetToken) return undefined;
+  return cause.acceptedTokens.find((t) => t.address === cause.wallet.targetToken);
+}
+
+function GiveSheet({ cause }: { cause: CauseDetail }) {
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
   if (receipt) return <ThankYou cause={cause} receipt={receipt} />;
   return (
     <div className="container max-w-3xl py-8 md:py-12">
@@ -55,7 +71,7 @@ function GiveSheet({ cause }: { cause: Cause }) {
         <ArrowLeft className="h-4 w-4" aria-hidden /> {cause.name}
       </Link>
       <div className="mt-4 flex items-start gap-4">
-        <img src={cause.profile.image?.src} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" aria-hidden />
+        <img src={causeImage(cause).src} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" aria-hidden />
         <div>
           <Eyebrow>Give</Eyebrow>
           <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">{cause.name}</h1>
@@ -84,20 +100,22 @@ function GiveSheet({ cause }: { cause: Cause }) {
 
 type Step = 1 | 2 | 3;
 
-function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) => void }) {
+function FromSite({ cause, onDone }: { cause: CauseDetail; onDone: (r: Receipt) => void }) {
   const { user, signIn, busy: signingIn } = useAuth();
   const invalidate = useInvalidateAll();
+  const tokens = cause.acceptedTokens;
+  const kept = keptToken(cause);
   const [step, setStep] = useState<Step>(1);
-  const [token, setToken] = useState(cause.acceptedTokens[0] ?? "USDT");
+  const [token, setToken] = useState<Stablecoin>(kept ?? tokens[0]!);
   const [amount, setAmount] = useState<string>("25");
   const [quote, setQuote] = useState<GiftQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { copied, copy } = useCopy();
 
-  const tokenInfo = STABLECOINS.find((t) => t.symbol === token)!;
   const amountNum = Number.parseFloat(amount) || 0;
-  const usd = amountNum * tokenInfo.usd;
-  const direct = cause.acceptedTokens.includes(token);
+  const usd = amountNum * stablecoinUsd(token.symbol);
+  const direct = !kept || kept.currency === token.currency;
   const previewGsera = giftGsera(usd, { heat: cause.urgent ? GSERA.heat.urgent : 1 });
 
   const review = async () => {
@@ -108,7 +126,7 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
     }
     setBusy(true);
     try {
-      setQuote(await quoteGift(cause.id, token, amountNum));
+      setQuote(await quoteGift(cause.id, token, toRaw(amountNum, token.decimals)));
       setStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get a quote");
@@ -125,13 +143,17 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
     try {
       const r = await submitGift(quote);
       await invalidate();
-      onDone(r);
+      onDone({ kind: quote.kind, status: r.status, tradeId: r.tradeId, token: token.symbol, units: amountNum, usd, gsera: r.status === "settled" ? previewGsera : 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : "The gift did not go through");
       setStep(2);
     } finally {
       setBusy(false);
     }
+  };
+
+  const sentDirectly = () => {
+    onDone({ kind: "transfer", status: "awaiting transfer", token: token.symbol, units: amountNum, usd, gsera: 0 });
   };
 
   return (
@@ -155,33 +177,34 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
           <fieldset>
             <legend className="font-sans text-[14px] font-medium mb-2">Stablecoin</legend>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Stablecoin">
-              {STABLECOINS.map((t) => {
-                const accepted = cause.acceptedTokens.includes(t.symbol);
+              {tokens.map((t) => {
+                const viaSwap = !!kept && kept.currency !== t.currency;
                 return (
                   <button
-                    key={t.symbol}
+                    key={t.address}
                     type="button"
                     role="radio"
-                    aria-checked={token === t.symbol}
-                    onClick={() => setToken(t.symbol)}
-                    className={cn("inline-flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-[13.5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", token === t.symbol ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink hover:border-ink/40")}
+                    aria-checked={token.address === t.address}
+                    onClick={() => setToken(t)}
+                    className={cn("inline-flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-[13.5px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", token.address === t.address ? "border-ink bg-ink text-paper" : "border-rule bg-card text-ink hover:border-ink/40")}
                   >
                     {t.symbol}
-                    {!accepted && <span className="font-sans text-[11px] opacity-70">via swap</span>}
+                    {viaSwap && <span className="font-sans text-[11px] opacity-70">via swap</span>}
                   </button>
                 );
               })}
             </div>
             <p className="mt-2 text-[13px] text-ink-muted">
-              {cause.name} keeps {cause.acceptedTokens.join(", ")}. {direct ? "Your gift goes straight to its address." : `A ${token} gift is swapped on Sera.cx and delivered to its address as ${cause.acceptedTokens[0]}. The rate is shown before you confirm.`}
+              {kept ? `${cause.name} keeps ${kept.symbol}. ` : `${cause.name} holds whatever arrives. `}
+              {direct ? "Your gift goes straight to its address." : `A ${token.symbol} gift is swapped on Sera.cx and delivered to its address as ${kept?.symbol}. The rate is shown before you confirm.`}
             </p>
           </fieldset>
 
           <div className="mt-6">
-            <Label htmlFor="amount">Amount in {token}</Label>
+            <Label htmlFor="amount">Amount in {token.symbol}</Label>
             <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label="Preset amounts">
               {GIFT_PRESETS_USD.map((p) => {
-                const v = Math.round((p / tokenInfo.usd) * 100) / 100;
+                const v = Math.round((p / stablecoinUsd(token.symbol)) * 100) / 100;
                 return (
                   <button key={p} type="button" onClick={() => setAmount(String(v))} className={cn("h-9 rounded-full border px-3.5 font-mono text-[13px] tnum focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", amountNum === v ? "border-ink bg-ink text-paper" : "border-rule hover:border-ink/40")}>
                     US${p}
@@ -208,31 +231,31 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
       {step === 2 && quote && (
         <div className="mt-6">
           <dl className="divide-y divide-rule border-y border-rule text-[15px]">
-            <Row k="You give" v={<span className="font-mono tnum">{fmtInt(quote.amount)} {quote.fromToken} <span className="text-ink-muted">({fmtUsd(quote.usd, { cents: true })})</span></span>} />
-            <Row k="Network fee" v={<span className="font-mono tnum">about {fmtUsd(quote.networkFeeUsd, { cents: true })}</span>} />
-            {quote.swap ? (
+            <Row k="You give" v={<span className="font-mono tnum">{amountNum.toLocaleString("en-GB")} {token.symbol} <span className="text-ink-muted">({fmtUsd(usd, { cents: true })})</span></span>} />
+            {quote.kind === "swap" ? (
               <>
-                <Row k="Sera.cx swap" v={<span className="font-mono tnum">1 {quote.fromToken} = {quote.swap.rate} {quote.swap.toToken}, fee {fmtUsd(quote.swap.swapFeeUsd, { cents: true })}</span>} />
-                <Row k={`${cause.name} receives`} v={<span className="font-mono tnum">{quote.swap.receives.toLocaleString("en-GB")} {quote.swap.toToken}</span>} />
+                <Row k="Sera.cx swap" v={<span className="font-mono tnum">{fromRaw(quote.fromAmountRaw, quote.from.decimals).toLocaleString("en-GB")} {quote.from.symbol} to at least {fromRaw(quote.minOutputRaw, quote.to.decimals).toLocaleString("en-GB")} {quote.to.symbol}</span>} />
+                <Row k={`${cause.name} receives`} v={<span className="font-mono tnum">at least {fromRaw(quote.minOutputRaw, quote.to.decimals).toLocaleString("en-GB")} {quote.to.symbol}, delivered by Sera.cx</span>} />
+                <Row k="Delivered to" v={<span className="font-mono tnum break-all">{quote.recipient}</span>} />
+                <Row k="Quote valid until" v={<span className="font-mono tnum">{new Date(quote.expiresAt).toLocaleTimeString("en-GB")}</span>} />
               </>
             ) : (
-              <Row k={`${cause.name} receives`} v={<span className="font-mono tnum">{fmtInt(quote.amount)} {quote.fromToken}, a direct transfer</span>} />
+              <>
+                <Row k={`${cause.name} receives`} v={<span className="font-mono tnum">{fromRaw(quote.amountRaw, quote.token.decimals).toLocaleString("en-GB")} {quote.token.symbol}, a direct transfer</span>} />
+                <Row k="Delivered to" v={<span className="font-mono tnum break-all">{quote.to}</span>} />
+                <Row k="Chain" v={<span className="font-mono tnum">{quote.chainId === 1 ? "Ethereum mainnet" : `chain ${quote.chainId}`}</span>} />
+              </>
             )}
-            <Row k="Delivered to" v={<span className="font-mono tnum break-all">{quote.depositAddress}</span>} />
             <Row
               k="gSera you will earn"
               v={
-                quote.gsera.earns ? (
-                  <span>
-                    <span className="font-mono tnum font-semibold">{fmtGsera(quote.gsera.amount)}</span>
-                    <span className="block text-[13px] text-ink-muted">
-                      {fmtInt(quote.gsera.base)} per US$1 x heat {fmtMultiplier(quote.gsera.heat)} x volume tier {fmtMultiplier(quote.gsera.volume)} x streak {fmtMultiplier(quote.gsera.streak)}
-                      {quote.gsera.capped ? `, capped at ${GSERA.compoundCap}x` : ""}. Credited when the gift arrives.{quote.swap ? " A swap-settled gift earns once, at the donor rate." : ""}
-                    </span>
+                <span>
+                  <span className="font-mono tnum font-semibold">about {fmtGsera(previewGsera)}</span>
+                  <span className="block text-[13px] text-ink-muted">
+                    {GSERA.perUsd} per US$1 x heat {fmtMultiplier(cause.urgent ? GSERA.heat.urgent : GSERA.heat.normal)} x your volume tier x your streak, capped at {GSERA.compoundCap}x. Credited when the gift arrives and passes screening.
+                    {quote.kind === "swap" ? " A swap-settled gift earns once, at the donor rate." : ""} Wallets linked to the cause's owner earn nothing on it.
                   </span>
-                ) : (
-                  <span className="text-ink-muted">None. {quote.gsera.whyNot}</span>
-                )
+                </span>
               }
             />
           </dl>
@@ -244,7 +267,11 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
             <Button variant="ghost" onClick={() => setStep(1)}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Change amount
             </Button>
-            {user ? (
+            {quote.kind === "transfer" && !USING_MOCK ? (
+              <Button variant="give" size="lg" onClick={() => setStep(3)}>
+                <WalletIcon className="h-4 w-4" aria-hidden /> Show the transfer
+              </Button>
+            ) : user ? (
               <Button variant="give" size="lg" onClick={() => void confirm()} disabled={busy}>
                 <WalletIcon className="h-4 w-4" aria-hidden /> Confirm in wallet
               </Button>
@@ -257,12 +284,47 @@ function FromSite({ cause, onDone }: { cause: Cause; onDone: (r: GiftReceipt) =>
         </div>
       )}
 
-      {step === 3 && (
+      {step === 3 && quote?.kind === "transfer" && !USING_MOCK && (
+        <div className="mt-6">
+          <p className="font-display text-[20px] font-semibold">Send it from your wallet</p>
+          <p className="mt-1 text-[14.5px] text-ink-muted">Scan or paste. The gift shows on {cause.name}'s record when it arrives, and gSera is credited to the sending wallet.</p>
+          <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
+            <div className="rounded-xl border border-rule bg-white p-3 w-fit">
+              <QrCode text={quote.eip681} size={168} alt={`QR code for a ${quote.token.symbol} transfer to ${cause.name}`} />
+            </div>
+            <div className="min-w-0 space-y-2 font-mono text-[13px] tnum">
+              <p>
+                <span className="text-ink-muted">Amount:</span> {fromRaw(quote.amountRaw, quote.token.decimals).toLocaleString("en-GB")} {quote.token.symbol}
+              </p>
+              <p className="break-all">
+                <span className="text-ink-muted">To:</span> {quote.to}
+              </p>
+              <p className="break-all">
+                <span className="text-ink-muted">Token:</span> {quote.token.address}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => void copy(quote.to)}>
+                {copied ? <Check className="h-4 w-4 text-sera-text" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+                {copied ? "Copied" : "Copy address"}
+              </Button>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <Button variant="ghost" onClick={() => setStep(2)}>
+              <ArrowLeft className="h-4 w-4" aria-hidden /> Back
+            </Button>
+            <Button variant="give" size="lg" onClick={sentDirectly}>
+              I have sent it
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (quote?.kind === "swap" || USING_MOCK) && (
         <div className="mt-8 flex flex-col items-center py-8 text-center">
           <span className="h-3 w-3 rounded-full bg-sera live-dot" aria-hidden />
           <p className="mt-4 font-display text-[20px] font-semibold">Confirm in your wallet</p>
-          <p className="mt-1 text-[14.5px] text-ink-muted">{quote?.swap ? "Signing the Sera.cx swap intent, then the transfer." : "Signing the stablecoin transfer."}</p>
-          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-subtle">Mock wallet, no real transaction</p>
+          <p className="mt-1 text-[14.5px] text-ink-muted">{quote?.kind === "swap" ? "Signing the Sera.cx swap intent, then the transfer." : "Signing the stablecoin transfer."}</p>
+          <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-subtle">Demo wallet, no real transaction</p>
         </div>
       )}
     </div>
@@ -278,28 +340,30 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
   );
 }
 
-function SendDirectly({ cause }: { cause: Cause }) {
+function SendDirectly({ cause }: { cause: CauseDetail }) {
   const { copied, copy } = useCopy();
+  const kept = keptToken(cause);
+  const address = cause.wallet.address;
   return (
     <div className="rounded-2xl border border-rule bg-card p-5 sm:p-7">
       <h2 className="font-display text-[22px] font-semibold tracking-tight">Send to {cause.name}'s own address</h2>
       <p className="mt-2 text-[15px] leading-[1.55] text-ink-muted max-w-[58ch]">
-        Send any supported stablecoin on Ethereum ({STABLECOINS.map((t) => t.symbol).join(", ")}) from any wallet or exchange. No sign-in needed. The gift shows on the cause's public record once it arrives
-        {cause.treasury.policy === "auto" ? `, and is kept as ${cause.treasury.autoToken} through Sera.cx.` : "."}
+        Send any supported stablecoin on Ethereum ({cause.acceptedTokens.map((t) => t.symbol).join(", ")}) from any wallet or exchange. No sign-in needed. The gift shows on the cause's public record once it arrives
+        {kept ? `, and is kept as ${kept.symbol} through Sera.cx.` : "."}
       </p>
       <div className="mt-6 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
         <div className="rounded-xl border border-rule bg-white p-3 w-fit">
-          <QrCode text={`ethereum:${cause.depositAddress}`} size={168} alt={`QR code for ${cause.name}'s address`} />
+          <QrCode text={`ethereum:${address}@${cause.chainId}`} size={168} alt={`QR code for ${cause.name}'s address`} />
         </div>
         <div className="min-w-0">
           <Eyebrow>Ethereum address</Eyebrow>
-          <p className="mt-1.5 break-all font-mono text-[14px] tnum">{cause.depositAddress}</p>
-          <Button variant="outline" className="mt-3" onClick={() => void copy(cause.depositAddress)}>
+          <p className="mt-1.5 break-all font-mono text-[14px] tnum">{address}</p>
+          <Button variant="outline" className="mt-3" onClick={() => void copy(address)}>
             {copied ? <Check className="h-4 w-4 text-sera-text" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
             {copied ? "Copied" : "Copy address"}
           </Button>
           <ul className="mt-4 space-y-1.5 text-[13.5px] text-ink-muted">
-            <li>Ethereum mainnet only. Other networks will not arrive.</li>
+            <li>{cause.chainId === 1 ? "Ethereum mainnet only." : `Chain ${cause.chainId} only.`} Other networks will not arrive.</li>
             <li>Gifts are final once sent.</li>
             <li>gSera is credited to the sending wallet when it passes screening. Sign in with the same wallet to see it on your balance.</li>
           </ul>
@@ -309,29 +373,36 @@ function SendDirectly({ cause }: { cause: Cause }) {
   );
 }
 
-function ThankYou({ cause, receipt }: { cause: Cause; receipt: GiftReceipt }) {
+function ThankYou({ cause, receipt }: { cause: CauseDetail; receipt: Receipt }) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  const p = profileOf(cause);
+  const img = causeImage(cause);
+  const settled = receipt.status === "settled";
   const next = [
-    `Your gift is at ${cause.name}'s own address${receipt.route === "swap" ? ` as ${receipt.received.amount.toLocaleString("en-GB")} ${receipt.received.token}` : ""}.`,
-    receipt.gsera > 0 ? `${fmtGsera(receipt.gsera)} has been credited to your wallet.` : "No gSera on this gift.",
+    settled
+      ? `Your gift is at ${cause.name}'s own address${receipt.kind === "swap" ? ", delivered through a Sera.cx swap" : ""}.`
+      : receipt.kind === "swap"
+        ? `Sera.cx is settling the swap (trade ${receipt.tradeId ?? "pending"}). The gift lands at ${cause.name}'s address when it completes.`
+        : `Once your transfer confirms, the gift appears on ${cause.name}'s record.`,
+    settled && receipt.gsera > 0 ? `About ${fmtGsera(receipt.gsera)} has been credited to your wallet.` : "gSera is credited to the sending wallet when the gift arrives and passes screening.",
     "It is on the public record. Updates and receipts from the charity appear on the cause page.",
   ];
   return (
     <div className="container max-w-3xl py-8 md:py-12">
       <figure className="overflow-hidden rounded-2xl">
-        <img src={cause.profile.image?.src} alt={cause.profile.image?.alt ?? cause.name} className="aspect-[16/9] w-full object-cover" />
+        <img src={img.src} alt={img.alt} className="aspect-[16/9] w-full object-cover" />
         <figcaption className="mt-2">
-          <PhotoCredit image={cause.profile.image} />
+          <PhotoCredit image={p.image} />
         </figcaption>
       </figure>
       <Eyebrow className="mt-6">Thank you</Eyebrow>
       <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">
-        Thank you. Your gift is with <em>{cause.name}</em>.
+        Thank you. Your gift is {settled ? "with" : "on its way to"} <em>{cause.name}</em>.
       </h1>
       <p className="mt-3 font-mono text-[14px] tnum text-ink-muted">
-        {fmtInt(receipt.amount)} {receipt.token} ({fmtUsd(receipt.usd, { cents: true })})
+        {receipt.units.toLocaleString("en-GB")} {receipt.token} ({fmtUsd(receipt.usd, { cents: true })})
       </p>
       <h2 className="mt-8 font-display text-[18px] font-semibold">What happens next</h2>
       <ol className="mt-2 space-y-2 text-[15px] text-ink-muted">
@@ -358,9 +429,6 @@ function ThankYou({ cause, receipt }: { cause: Cause; receipt: GiftReceipt }) {
             <ArrowRightLeft className="h-4 w-4" aria-hidden /> My gSera
           </Link>
         </Button>
-        <a href={`${EXPLORER}${receipt.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-ink-subtle hover:text-ink">
-          tx {shortAddress(receipt.txHash)} <ExternalLink className="h-3 w-3" aria-hidden />
-        </a>
       </div>
     </div>
   );

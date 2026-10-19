@@ -2,16 +2,22 @@
  * Sign-in. Mock mode until a Privy app exists for causes.sera.cx.
  *
  * Structure: an `AuthAdapter` does the wallet work; `AuthProvider` exposes a
- * stable hook. To drop Privy in, add a `PrivyAdapter` that wraps
- * `@privy-io/react-auth` (usePrivy, useWallets, signTypedData) and pick it
- * when VITE_PRIVY_APP_ID is set. Pages only ever use `useAuth()`.
+ * stable hook and hands the API client a signer. To drop Privy in, add a
+ * `PrivyAdapter` that wraps `@privy-io/react-auth` (usePrivy, useWallets,
+ * signTypedData) and pick it when VITE_PRIVY_APP_ID is set. Pages only ever
+ * use `useAuth()`.
+ *
+ * The mock adapter signs for real with the dev key in ./devWallet, so the
+ * EIP-712 signatures verify on the API when it runs with `X-Dev-Wallet`.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { setApiWallet } from "./api";
-import { DEMO_WALLET } from "./mock/state";
+import type { Address, Hex } from "@sera-causes/shared";
+import { setApiSigner, setApiWallet } from "./api";
+import { DEMO_WALLET, devAccount } from "./devWallet";
+import type { TypedDataLike } from "./types";
 
 export interface AuthUser {
-  wallet: string;
+  wallet: Address;
   displayName: string;
 }
 
@@ -21,8 +27,8 @@ export interface AuthAdapter {
   restore(): Promise<AuthUser | null>;
   signIn(): Promise<AuthUser>;
   signOut(): Promise<void>;
-  /** EIP-712 signing for paths, votes, challenges and the homepage toggle. */
-  signTypedData(payload: unknown): Promise<string>;
+  /** EIP-712 signing for paths, votes, challenges, the homepage toggle and Sera.cx intents. */
+  signTypedData(data: TypedDataLike): Promise<Hex>;
 }
 
 const STORAGE_KEY = "csd.auth.mock";
@@ -44,26 +50,25 @@ function writeStorage(signedIn: boolean) {
   }
 }
 
-/** Signs you in as the demo wallet that owns cause 1 (Kasih) and cause 14. */
+const DEMO_USER: AuthUser = { wallet: DEMO_WALLET, displayName: "Demo wallet" };
+
+/** Signs you in as the demo wallet that owns cause 1 (Kasih) and cause 14 (Free Tree Society). */
 export const mockAdapter: AuthAdapter = {
   mode: "mock",
   async restore() {
-    return readStorage() ? { wallet: DEMO_WALLET, displayName: "Demo wallet" } : null;
+    return readStorage() ? DEMO_USER : null;
   },
   async signIn() {
     await new Promise((r) => setTimeout(r, 350));
     writeStorage(true);
-    return { wallet: DEMO_WALLET, displayName: "Demo wallet" };
+    return DEMO_USER;
   },
   async signOut() {
     writeStorage(false);
   },
-  async signTypedData(payload) {
-    // Deterministic fake signature so the mock API can store it alongside the body.
-    const text = JSON.stringify(payload);
-    let h = 0;
-    for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-    return `0xmock${h.toString(16).padStart(8, "0")}`;
+  async signTypedData(data) {
+    // A real secp256k1 signature from the dev key, so verifyTypedData on the API passes.
+    return devAccount.signTypedData(data as unknown as Parameters<typeof devAccount.signTypedData>[0]);
   },
 };
 
@@ -74,7 +79,7 @@ interface AuthContextValue {
   mode: AuthAdapter["mode"];
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  signTypedData: (payload: unknown) => Promise<string>;
+  signTypedData: (data: TypedDataLike) => Promise<Hex>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -84,38 +89,43 @@ export function AuthProvider({ adapter = mockAdapter, children }: { adapter?: Au
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const apply = useCallback(
+    (u: AuthUser | null) => {
+      setUser(u);
+      setApiWallet(u?.wallet ?? null);
+      setApiSigner(u ? { wallet: u.wallet, signTypedData: (d) => adapter.signTypedData(d) } : null);
+    },
+    [adapter],
+  );
+
   useEffect(() => {
     let cancelled = false;
     adapter.restore().then((u) => {
       if (cancelled) return;
-      setUser(u);
-      setApiWallet(u?.wallet ?? null);
+      apply(u);
       setReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [adapter]);
+  }, [adapter, apply]);
 
   const signIn = useCallback(async () => {
     setBusy(true);
     try {
-      const u = await adapter.signIn();
-      setUser(u);
-      setApiWallet(u.wallet);
+      apply(await adapter.signIn());
     } finally {
       setBusy(false);
     }
-  }, [adapter]);
+  }, [adapter, apply]);
 
   const signOut = useCallback(async () => {
     await adapter.signOut();
-    setUser(null);
-    setApiWallet(null);
-  }, [adapter]);
+    apply(null);
+  }, [adapter, apply]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, ready, busy, mode: adapter.mode, signIn, signOut, signTypedData: adapter.signTypedData }),
+    () => ({ user, ready, busy, mode: adapter.mode, signIn, signOut, signTypedData: (d) => adapter.signTypedData(d) }),
     [user, ready, busy, adapter, signIn, signOut],
   );
 
@@ -126,4 +136,10 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
+}
+
+/** True when `address` is the signed-in wallet. Safe outside the provider (returns false). */
+export function useIsMe(address: string | null | undefined): boolean {
+  const ctx = useContext(AuthContext);
+  return !!address && !!ctx?.user && ctx.user.wallet.toLowerCase() === address.toLowerCase();
 }

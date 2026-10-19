@@ -2,7 +2,7 @@
  * Loads the 44 seeded causes at build time. Ids are 1 to 44 in
  * seed/index.json order. Photos are served from public/photos/.
  */
-import type { CauseProfile } from "../types";
+import type { CauseProfile } from "@sera-causes/shared";
 import index from "../../../../../seed/index.json";
 
 interface SeedIndex {
@@ -25,8 +25,3 @@ export const SEED_PROFILES: readonly CauseProfile[] = SEED_ORDER.map((slug) => {
   if (!key) throw new Error(`seed cause missing: ${slug}`);
   return files[key];
 });
-
-export function photoUrl(src: string | undefined): string {
-  if (!src) return "/photos/hero.jpg";
-  return src.startsWith("/") ? src : `/${src}`;
-}

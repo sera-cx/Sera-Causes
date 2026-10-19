@@ -5,7 +5,10 @@ import { useParams } from "wouter";
 import { QrCode } from "@/components/QrCode";
 import { shareUrlFor } from "@/components/ShareButtons";
 import { useSeo } from "@/hooks/useSeo";
+import { categoryLabel } from "@/lib/constants";
+import { causeImage } from "@/lib/images";
 import { useCause } from "@/lib/queries";
+import { profileOf } from "@/lib/rules";
 import { NotFoundPage } from "./NotFound";
 
 export function PosterPage() {
@@ -23,6 +26,8 @@ export function PosterPage() {
   if (q.isLoading) return null;
   if (!cause) return <NotFoundPage />;
   const url = shareUrlFor(cause.id, cause.slug);
+  const p = profileOf(cause);
+  const img = causeImage(cause);
   return (
     <div className="min-h-screen bg-[#E5E7E0] print:bg-white" style={{ color: "#0B1426" }}>
       <div className="no-print mx-auto flex max-w-[210mm] items-center justify-between px-4 py-3 text-[13px]">
@@ -36,13 +41,13 @@ export function PosterPage() {
           <img src="/brand/wordmark/sera-wordmark-black.svg" alt="Sera.cx" style={{ height: "7mm" }} />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "9pt", letterSpacing: "0.14em", textTransform: "uppercase" }}>Care Share Donate</span>
         </div>
-        <img src={cause.profile.image?.src} alt={cause.profile.image?.alt ?? cause.name} style={{ width: "100%", height: "95mm", objectFit: "cover", borderRadius: "4mm" }} />
+        <img src={img.src} alt={img.alt} style={{ width: "100%", height: "95mm", objectFit: "cover", borderRadius: "4mm" }} />
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "9pt", letterSpacing: "0.14em", textTransform: "uppercase", color: "#455067" }}>
-            {cause.profile.category} · {[cause.profile.location.town, cause.profile.location.state].filter(Boolean).join(", ")}
+            {categoryLabel(p.category)} · {[p.location.town, p.location.state].filter(Boolean).join(", ")}
           </div>
           <h1 style={{ fontSize: "30pt", lineHeight: 1.05, fontWeight: 600, letterSpacing: "-0.02em", marginTop: "2mm" }}>{cause.name}</h1>
-          <p style={{ fontSize: "12.5pt", lineHeight: 1.45, color: "#455067", marginTop: "3mm" }}>{cause.profile.summary}</p>
+          <p style={{ fontSize: "12.5pt", lineHeight: 1.45, color: "#455067", marginTop: "3mm" }}>{p.summary}</p>
         </div>
         <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "auto 1fr", gap: "8mm", alignItems: "center", background: "#00D26A", borderRadius: "4mm", padding: "8mm" }}>
           <div style={{ background: "#fff", padding: "3mm", borderRadius: "2mm" }}>
@@ -54,7 +59,7 @@ export function PosterPage() {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "8.5pt", marginTop: "3mm", wordBreak: "break-all", opacity: 0.8 }}>Address {cause.depositAddress}</div>
           </div>
         </div>
-        {cause.profile.image?.credit && <div style={{ fontFamily: "var(--font-mono)", fontSize: "7.5pt", color: "#6B7384" }}>Photo: {cause.profile.image.credit}{cause.profile.image.licence ? `, ${cause.profile.image.licence}` : ""}</div>}
+        {p.image?.credit && <div style={{ fontFamily: "var(--font-mono)", fontSize: "7.5pt", color: "#6B7384" }}>Photo: {p.image.credit}{p.image.licence ? `, ${p.image.licence}` : ""}</div>}
       </div>
     </div>
   );

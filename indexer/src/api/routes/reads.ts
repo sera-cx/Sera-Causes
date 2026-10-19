@@ -22,7 +22,7 @@ import { reputationMap } from '../../ledger/reputation.js';
 import { tallyFor } from '../tally.js';
 import { getGsera } from '../../services/gsera.js';
 import { voterEligibility } from '../eligibility.js';
-import { serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, iso } from '../serializers.js';
+import { causeName, serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, iso } from '../serializers.js';
 import { listStablecoins } from '../../chain/stablecoins.js';
 
 export const reads: Router = Router();
@@ -143,6 +143,39 @@ reads.get(
   }),
 );
 
+const latestQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(12) });
+
+/** The latest chain and signed-message events across every cause, newest first (the Technology page). */
+reads.get(
+  '/record',
+  wrap(async (req, res) => {
+    const q = parseQuery(latestQuery, req.query);
+    const [events, evidence, paths, votes, challenges] = await Promise.all([
+      db().recordEvent.findMany({ where: { causeId: { not: null } }, orderBy: [{ at: 'desc' }, { block: 'desc' }, { logIndex: 'desc' }], take: q.limit }),
+      db().evidence.findMany({ where: { removedAt: null }, orderBy: { createdAt: 'desc' }, take: q.limit }),
+      db().path.findMany({ orderBy: { createdAt: 'desc' }, take: q.limit }),
+      db().vote.findMany({ orderBy: { createdAt: 'desc' }, take: q.limit, select: { id: true, causeId: true, claimType: true, epoch: true, voter: true, choice: true, weight: true, createdAt: true } }),
+      db().challenge.findMany({ orderBy: { createdAt: 'desc' }, take: q.limit }),
+    ]);
+    const record: { causeId: number; at: string; source: 'chain' | 'api'; type: string; data: unknown }[] = [];
+    for (const e of events) record.push({ causeId: e.causeId!, at: e.at.toISOString(), source: 'chain', type: e.type, data: { ...(e.data as object), block: e.block.toString(), txHash: e.txHash, logIndex: e.logIndex } });
+    for (const e of evidence) record.push({ causeId: e.causeId, at: e.createdAt.toISOString(), source: 'api', type: 'EvidenceAdded', data: serializeEvidence(e) });
+    for (const p of paths) record.push({ causeId: p.causeId, at: p.createdAt.toISOString(), source: 'api', type: 'PathSigned', data: serializePath(p) });
+    for (const v of votes) record.push({ causeId: v.causeId, at: v.createdAt.toISOString(), source: 'api', type: 'VoteSigned', data: { ...v, createdAt: v.createdAt.toISOString() } });
+    for (const c of challenges) record.push({ causeId: c.causeId, at: c.createdAt.toISOString(), source: 'api', type: 'ChallengeOpened', data: serializeChallenge(c) });
+    record.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    const latest = record.slice(0, q.limit);
+    const causes = await db().cause.findMany({ where: { id: { in: [...new Set(latest.map((r) => r.causeId))] } }, select: { id: true, slug: true, profile: true } });
+    const byId = new Map(causes.map((c) => [c.id, c]));
+    res.json({
+      record: latest.map((r) => {
+        const c = byId.get(r.causeId);
+        return { ...r, causeSlug: c?.slug ?? '', causeName: c ? causeName(c) : `Cause ${r.causeId}` };
+      }),
+    });
+  }),
+);
+
 const claimsQuery = z.object({
   tab: z.enum(['needs_evidence', 'needs_checking', 'open_for_votes', 'challenged', 'recently_verified']).default('needs_evidence'),
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -154,7 +187,11 @@ reads.get(
     const q = parseQuery(claimsQuery, req.query);
     const rows = await db().cause.findMany({ where: { status: { in: ['listed', 'verified'] } } });
     const views = await causeViews(rows);
-    const items: { cause: { id: number; slug: string; name: string; photoUrl: string | null; stage: string }; claim: (typeof views)[number]['claims'][number]; label: string }[] = [];
+    const items: {
+      cause: { id: number; slug: string; name: string; photoUrl: string | null; stage: string; category: string; location: { town: string; state: string } | null; listedAt: string };
+      claim: (typeof views)[number]['claims'][number];
+      label: string;
+    }[] = [];
     const since = Date.now() - 30 * 86400 * 1000;
     for (const v of views) {
       for (const k of v.claims) {
@@ -168,7 +205,14 @@ reads.get(
                 : q.tab === 'challenged'
                   ? k.challenged
                   : k.outcome === 'verified' && !!k.finalisedAt && Date.parse(k.finalisedAt) >= since;
-        if (pick) items.push({ cause: { id: v.id, slug: v.slug, name: v.name, photoUrl: v.photoUrl, stage: v.stage }, claim: k, label: CLAIM_INFO[k.claimType].label });
+        if (pick) {
+          const loc = v.profile?.location;
+          items.push({
+            cause: { id: v.id, slug: v.slug, name: v.name, photoUrl: v.photoUrl, stage: v.stage, category: v.category, location: loc ? { town: loc.town, state: loc.state } : null, listedAt: v.listedAt },
+            claim: k,
+            label: CLAIM_INFO[k.claimType].label,
+          });
+        }
       }
     }
     items.sort((a, b) => (b.claim.required ? 1 : 0) - (a.claim.required ? 1 : 0));
@@ -195,7 +239,16 @@ reads.get(
     const { tally } = await tallyFor(row.id, claimType, claim.epoch);
     const eligibility = req.wallet ? await voterEligibility(req.wallet) : null;
     res.json({
-      cause: { id: view.id, slug: view.slug, name: view.name, photoUrl: view.photoUrl, stage: view.stage, status: view.status },
+      cause: {
+        id: view.id,
+        slug: view.slug,
+        name: view.name,
+        photoUrl: view.photoUrl,
+        stage: view.stage,
+        status: view.status,
+        registration: view.profile?.organisation?.registration ?? '',
+        legalName: view.profile?.legalName ?? '',
+      },
       claim,
       info: CLAIM_INFO[claimType],
       evidence: evidence.map(serializeEvidence),
@@ -258,8 +311,18 @@ reads.get(
     }
     const sum = (state: string) => ledger.filter((e) => e.state === state && e.reason !== 'challenge_stake').reduce((s, e) => s + e.amount, 0);
     const staked = ledger.filter((e) => e.reason === 'challenge_stake').reduce((s, e) => s + e.amount, 0);
+    // Names and slugs of every cause this wallet touched, so /me can link to them without a second round trip.
+    const causeIds = new Set<number>();
+    for (const g of gifts) causeIds.add(g.causeId);
+    for (const p of paths) causeIds.add(p.causeId);
+    for (const v of votes) causeIds.add(v.causeId);
+    for (const n of needsHelped) causeIds.add(n.causeId);
+    for (const e of ledger) if (e.causeId !== null) causeIds.add(e.causeId);
+    const causeRows = causeIds.size ? await db().cause.findMany({ where: { id: { in: [...causeIds] } }, select: { id: true, slug: true, profile: true } }) : [];
     res.json({
       wallet,
+      causes: causeRows.map((r) => ({ id: r.id, slug: r.slug, name: causeName(r) })),
+      tokens: await listStablecoins(),
       email: walletRow?.email ?? null,
       leaderboardOptOut: walletRow?.leaderboardOptOut ?? false,
       kytState: walletRow?.kytState ?? 'unknown',

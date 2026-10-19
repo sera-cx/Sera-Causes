@@ -1,17 +1,17 @@
 import { Award, Check, CircleDashed, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
-import { Empty, Spinner } from "@/components/Empty";
+import { Empty, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { Pill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
-import { LINKS, VOTE_WEIGHT } from "@/lib/constants";
+import { GSERA, LINKS, VOTE_WEIGHT } from "@/lib/constants";
 import { fmtDate, fmtGsera, fmtInt, fmtMultiplier, fmtUsd, timeAgo } from "@/lib/format";
-import { useMe } from "@/lib/queries";
-import { causeHref } from "@/lib/rules";
-import type { LedgerEntry, Me } from "@/lib/types";
+import { useDashboard, useMe } from "@/lib/queries";
+import { causeHref, claimHref, fromRaw, voteWeight } from "@/lib/rules";
+import type { ClaimCode, LedgerView, Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
@@ -32,17 +32,56 @@ export function MePage() {
         </Button>
       </div>
     );
+  if (me.isError) return <div className="container py-10"><Notice tone="bad">Could not load your balance: {me.error instanceof Error ? me.error.message : "unknown error"}</Notice></div>;
   if (me.isLoading || !me.data) return <div className="container"><Spinner label="Loading your balance" /></div>;
-  return <MeView me={me.data} />;
+  return <MeView me={me.data} displayName={user.displayName} />;
 }
 
-function MeView({ me }: { me: Me }) {
+interface Contribution {
+  id: string;
+  kind: "path" | "vote" | "help";
+  causeId: number;
+  claim?: ClaimCode;
+  at: string;
+  outcome: "agreed" | "accepted" | "pending" | "overturned";
+  gsera: number;
+}
+
+function contributions(me: Me): Contribution[] {
+  const out: Contribution[] = [
+    ...me.paths.map((p): Contribution => ({ id: `p-${p.id}`, kind: "path", causeId: p.causeId, claim: p.claimType, at: p.createdAt, outcome: p.outcomeAgreed === true ? "agreed" : p.outcomeAgreed === false ? "overturned" : "pending", gsera: GSERA.helper.pathAgrees })),
+    ...me.votes.map((v): Contribution => ({ id: `v-${v.id}`, kind: "vote", causeId: v.causeId, claim: v.claimType, at: v.createdAt, outcome: v.outcomeAgreed === true ? "agreed" : v.outcomeAgreed === false ? "overturned" : "pending", gsera: GSERA.helper.voteAgrees })),
+    ...me.helped.map((h): Contribution => ({ id: `h-${h.id}`, kind: "help", causeId: h.causeId, at: h.confirmedAt ?? h.postedAt, outcome: h.confirmedAt ? "accepted" : "pending", gsera: GSERA.helper.helpFulfilled })),
+  ];
+  return out.sort((a, b) => b.at.localeCompare(a.at));
+}
+
+function MeView({ me, displayName }: { me: Me; displayName: string }) {
+  const dash = useDashboard();
+  const causeName = (id: number) => me.causes.find((c) => c.id === id)?.name ?? `Cause ${id}`;
+  const causeSlug = (id: number) => me.causes.find((c) => c.id === id)?.slug ?? "";
+  const tokenOf = (address: string) => me.tokens.find((t) => t.address === address.toLowerCase());
+  const entries = me.ledger.entries;
+  const credited = entries.filter((l) => l.state === "credited" && l.reason !== "challenge_stake");
+  const spendable = me.gsera?.spendable ?? credited.reduce((s, l) => s + l.amount, 0) + me.ledger.staked;
+  const charityTagged = credited.filter((l) => l.sourceTag === "charity").reduce((s, l) => s + l.amount, 0);
+  const lifetime = me.gsera?.earned ?? me.ledger.credited;
+  const m = me.gsera?.multipliers;
+  const contribs = contributions(me);
+  const gseraForGift = (giftId: string) => entries.find((l) => l.reason === "gift" && l.sourceRef === giftId)?.amount ?? 0;
+  const badges = [
+    { id: "first-gift", label: "First gift", earned: me.gifts.length > 0, hint: "Give once" },
+    { id: "helper", label: "Helper", earned: contribs.some((c) => c.outcome === "agreed" || c.outcome === "accepted"), hint: "One accepted path or fulfilled help request" },
+    { id: "witness", label: "Witness", earned: me.helped.some((h) => h.kind === "visit" && !!h.confirmedAt), hint: "A site visit that a claim relied on" },
+    { id: "path-finder", label: "Path finder", earned: me.paths.filter((p) => p.outcomeAgreed).length >= 10, hint: "10 accepted paths" },
+    { id: "steady-hand", label: "Steady hand", earned: me.votes.filter((v) => v.outcomeAgreed).length >= 25, hint: "25 votes with the outcome" },
+  ];
   return (
     <div>
       <div className="container pt-8 md:pt-12">
         <Eyebrow>My gSera</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">
-          {me.displayName} <span className="font-mono text-[16px] font-normal text-ink-muted tnum align-middle">{me.wallet.slice(0, 6)}…{me.wallet.slice(-4)}</span>
+          {displayName} <span className="font-mono text-[16px] font-normal text-ink-muted tnum align-middle">{me.wallet.slice(0, 6)}…{me.wallet.slice(-4)}</span>
         </h1>
         <p className="mt-2 text-[15.5px] text-ink-muted">
           One balance with{" "}
@@ -55,9 +94,9 @@ function MeView({ me }: { me: Me }) {
 
       <GreenField className="mt-8" kicker="Balance" title="Spend it, stake it, keep your rank.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <GfCard label="Spendable" ticker="gSera" figure={fmtInt(me.gsera.spendable)} meta={[{ label: "volume tier", value: fmtMultiplier(me.multipliers.volumeTier) }, { label: "streak", value: `${fmtMultiplier(me.multipliers.streak)}, ${me.multipliers.streakWeeks} wks` }]} />
-          <GfCard label="Charity-tagged" ticker="From gifts and helping" figure={fmtInt(me.gsera.charityTagged)} meta={[{ label: "of spendable", value: me.gsera.spendable ? `${Math.round((me.gsera.charityTagged / me.gsera.spendable) * 100)}%` : "0%" }]} tab="#59E39A" />
-          <GfCard label="Lifetime earned" ticker="Season 1" figure={fmtInt(me.gsera.lifetime)} meta={[{ label: "rank is never lowered", value: "by spending" }]} tab="#00E676" />
+          <GfCard label="Spendable" ticker="gSera" figure={fmtInt(spendable)} meta={m ? [{ label: "volume tier", value: fmtMultiplier(m.volumeTier) }, { label: "streak", value: fmtMultiplier(m.streak) }] : [{ label: "staked", value: fmtInt(Math.abs(me.ledger.staked)) }]} />
+          <GfCard label="Charity-tagged" ticker="From gifts and helping" figure={fmtInt(charityTagged)} meta={[{ label: "of credited", value: me.ledger.credited ? `${Math.round((charityTagged / me.ledger.credited) * 100)}%` : "0%" }]} tab="#59E39A" />
+          <GfCard label="Lifetime earned" ticker="Season 1" figure={fmtInt(lifetime)} meta={[{ label: "rank is never lowered", value: "by spending" }]} tab="#00E676" />
         </div>
       </GreenField>
 
@@ -66,11 +105,15 @@ function MeView({ me }: { me: Me }) {
           <section aria-labelledby="hist-h">
             <h2 id="hist-h" className="font-display text-[22px] font-semibold tracking-tight">History</h2>
             <p className="mt-1 text-[14px] text-ink-muted">Earned, spent and held, with the reason for every entry.</p>
-            <ul className="mt-4 divide-y divide-rule border-y border-rule">
-              {me.ledger.map((l) => (
-                <LedgerRow key={l.id} entry={l} />
-              ))}
-            </ul>
+            {entries.length === 0 ? (
+              <Empty className="mt-4" title="Nothing credited yet" body="Give to a cause or write a verification path." />
+            ) : (
+              <ul className="mt-4 divide-y divide-rule border-y border-rule">
+                {entries.map((l) => (
+                  <LedgerRow key={l.id} entry={l} causeName={causeName} />
+                ))}
+              </ul>
+            )}
           </section>
 
           <section aria-labelledby="gifts-h">
@@ -80,70 +123,79 @@ function MeView({ me }: { me: Me }) {
               <Empty className="mt-4" title="No gifts yet" />
             ) : (
               <ul className="mt-4 divide-y divide-rule border-y border-rule">
-                {me.gifts.map((g) => (
-                  <li key={g.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                    <div>
-                      <Link href={causeHref(g.causeId, g.causeSlug)} className="font-medium text-[15px] hover:text-sera-text">
-                        {g.causeName}
-                      </Link>
-                      <p className="font-mono text-[12.5px] text-ink-muted tnum">
-                        {g.amount.toLocaleString("en-GB")} {g.token} ({fmtUsd(g.usd)}) · {fmtDate(g.at)} · {g.route === "swap" ? "via Sera.cx swap" : "direct transfer"} · +{fmtGsera(g.gsera)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Pill tone="green" icon={Check}>
-                        Arrived
-                      </Pill>
-                      <a href={`${EXPLORER}${g.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
-                        tx <ExternalLink className="h-3 w-3" aria-hidden />
-                      </a>
-                    </div>
-                  </li>
-                ))}
+                {me.gifts.map((g) => {
+                  const t = tokenOf(g.token);
+                  const gsera = gseraForGift(g.id);
+                  return (
+                    <li key={g.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                      <div>
+                        <Link href={causeHref(g.causeId, causeSlug(g.causeId))} className="font-medium text-[15px] hover:text-sera-text">
+                          {causeName(g.causeId)}
+                        </Link>
+                        <p className="font-mono text-[12.5px] text-ink-muted tnum">
+                          {fromRaw(g.amount, t?.decimals ?? 6).toLocaleString("en-GB")} {t?.symbol ?? "tokens"} ({fmtUsd(Number(g.usd))}) · {fmtDate(g.createdAt)} · {g.source === "sera_swap" ? "via Sera.cx swap" : "direct transfer"}
+                          {gsera > 0 ? ` · +${fmtGsera(gsera)}` : g.ledgerNote ? ` · no gSera (${g.ledgerNote.replace(/_/g, " ")})` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Pill tone={g.kytState === "clear" ? "green" : "amber"} icon={g.kytState === "clear" ? Check : CircleDashed}>
+                          {g.kytState === "clear" ? "Arrived" : "Screening"}
+                        </Pill>
+                        <a href={`${EXPLORER}${g.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
+                          tx <ExternalLink className="h-3 w-3" aria-hidden />
+                        </a>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
 
           <section aria-labelledby="contrib-h">
             <h2 id="contrib-h" className="font-display text-[22px] font-semibold tracking-tight">Contributions</h2>
-            <p className="mt-1 text-[14px] text-ink-muted">Paths, votes, help and listings, with their outcomes.</p>
-            <ul className="mt-4 divide-y divide-rule border-y border-rule">
-              {me.contributions.map((c) => (
-                <li key={c.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <div>
-                    <p className="text-[15px]">
-                      <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{c.kind}</span>
-                      {c.claim ? (
-                        <Link href={`/verify/${c.causeId}/${c.claim}`} className="font-medium hover:text-sera-text">
-                          {c.claim} on {c.causeName}
-                        </Link>
+            <p className="mt-1 text-[14px] text-ink-muted">Paths, votes and help, with their outcomes.</p>
+            {contribs.length === 0 ? (
+              <Empty className="mt-4" title="No contributions yet" body="Write a verification path or vote on an open claim." />
+            ) : (
+              <ul className="mt-4 divide-y divide-rule border-y border-rule">
+                {contribs.map((c) => (
+                  <li key={c.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <div>
+                      <p className="text-[15px]">
+                        <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{c.kind}</span>
+                        {c.claim ? (
+                          <Link href={claimHref(c.causeId, c.claim)} className="font-medium hover:text-sera-text">
+                            {c.claim} on {causeName(c.causeId)}
+                          </Link>
+                        ) : (
+                          <Link href={causeHref(c.causeId, causeSlug(c.causeId))} className="font-medium hover:text-sera-text">
+                            {causeName(c.causeId)}
+                          </Link>
+                        )}
+                      </p>
+                      <p className="font-mono text-[12px] text-ink-muted">{timeAgo(c.at)}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {c.outcome === "agreed" || c.outcome === "accepted" ? (
+                        <Pill tone="green" icon={Check}>
+                          {c.outcome === "agreed" ? "Agreed with outcome" : "Accepted"}
+                        </Pill>
+                      ) : c.outcome === "overturned" ? (
+                        <Pill tone="red" icon={CircleDashed}>
+                          Overturned
+                        </Pill>
                       ) : (
-                        <Link href={`/causes`} className="font-medium hover:text-sera-text">
-                          {c.causeName}
-                        </Link>
+                        <Pill tone="amber" icon={CircleDashed}>
+                          Awaiting outcome
+                        </Pill>
                       )}
-                    </p>
-                    <p className="font-mono text-[12px] text-ink-muted">{timeAgo(c.at)}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {c.outcome === "agreed" || c.outcome === "accepted" ? (
-                      <Pill tone="green" icon={Check}>
-                        {c.outcome === "agreed" ? "Agreed with outcome" : "Accepted"}
-                      </Pill>
-                    ) : c.outcome === "overturned" ? (
-                      <Pill tone="red" icon={CircleDashed}>
-                        Overturned
-                      </Pill>
-                    ) : (
-                      <Pill tone="amber" icon={CircleDashed}>
-                        {c.outcome === "pending" ? "Awaiting outcome" : "Open"}
-                      </Pill>
-                    )}
-                    <span className="font-mono text-[12px] tnum text-ink-muted">{c.outcome === "agreed" || c.outcome === "accepted" ? "+" : ""}{fmtGsera(c.gsera)}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                      <span className="font-mono text-[12px] tnum text-ink-muted">{c.outcome === "agreed" || c.outcome === "accepted" ? "+" : ""}{fmtGsera(c.gsera)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
 
@@ -152,14 +204,16 @@ function MeView({ me }: { me: Me }) {
             <Eyebrow>Reputation</Eyebrow>
             <p className="mt-2 font-mono text-[32px] font-semibold leading-none tnum">{me.reputation}</p>
             <p className="mt-2 text-[13.5px] text-ink-muted">
-              Vote weight <span className="font-mono tnum text-ink">{me.voteWeight}</span> of {VOTE_WEIGHT.max}. Earned only from checks that match final outcomes. gSera does not add weight.
+              Vote weight <span className="font-mono tnum text-ink">{voteWeight(me.reputation)}</span> of {VOTE_WEIGHT.max}. Earned only from checks that match final outcomes. gSera does not add weight.
             </p>
-            <p className="mt-2 text-[13px] text-ink-muted">{me.canVote ? "You can vote." : "Give once or get one contribution accepted to vote."} Screening: {me.kytState}.</p>
+            <p className="mt-2 text-[13px] text-ink-muted">
+              {me.eligibility.canVote ? "You can vote." : `Not eligible to vote yet: ${me.eligibility.reasons.join("; ")}.`} Screening: {me.kytState}.
+            </p>
           </div>
           <div className="rounded-2xl border border-rule bg-card p-5">
             <Eyebrow>Badges</Eyebrow>
             <ul className="mt-3 space-y-2">
-              {me.badges.map((b) => (
+              {badges.map((b) => (
                 <li key={b.id} className={cn("flex items-center gap-2.5 text-[14px]", !b.earned && "text-ink-subtle")}>
                   <Award className={cn("h-4.5 w-4.5", b.earned ? "text-sera-text" : "text-ink-subtle")} aria-hidden />
                   <span>
@@ -173,12 +227,13 @@ function MeView({ me }: { me: Me }) {
           </div>
           <div className="rounded-2xl border border-rule bg-paper-warm p-5 text-[13.5px] text-ink-muted">
             <p>
-              Your causes: {me.causesOwned.length}.{" "}
+              Your causes: {dash.data ? dash.data.causes.length : "…"}.{" "}
               <Link href="/dashboard" className="text-sera-text underline underline-offset-2">
                 Open the dashboard
               </Link>
             </p>
             <p className="mt-2">Leaderboards: {me.leaderboardOptOut ? "opted out" : "shown as a short address"}.</p>
+            {me.notifications.length > 0 && <p className="mt-2">{me.notifications.filter((n) => !n.readAt).length} unread notifications.</p>}
           </div>
         </aside>
       </div>
@@ -186,22 +241,34 @@ function MeView({ me }: { me: Me }) {
   );
 }
 
-function LedgerRow({ entry }: { entry: LedgerEntry }) {
+const REASON_LABEL: Record<LedgerView["reason"], string> = {
+  gift: "Gift",
+  path: "Verification path agreed with the outcome",
+  vote: "Vote agreed with the outcome",
+  help: "Help request fulfilled",
+  listing: "Listing reached Verified",
+  challenge_win: "Challenge upheld",
+  challenge_stake: "Challenge stake",
+};
+
+function LedgerRow({ entry, causeName }: { entry: LedgerView; causeName: (id: number) => string }) {
   const sign = entry.amount < 0 ? "-" : "+";
+  const note = `${REASON_LABEL[entry.reason] ?? entry.reason}${entry.causeId ? `, ${causeName(entry.causeId)}` : entry.sourceTag === "trading" ? ", swaps on Sera.cx" : ""}`;
+  const mult = entry.multipliers;
   return (
     <li className="grid gap-1 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="min-w-0">
         <p className="text-[14.5px]">
           <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle mr-2">{entry.reason.replace("_", " ")}</span>
-          {entry.note}
+          {note}
         </p>
         <p className="font-mono text-[12px] text-ink-muted">
           {fmtDate(entry.createdAt)} · {entry.sourceTag === "charity" ? "charity-tagged" : "trading"}
-          {entry.multipliers ? ` · heat ${fmtMultiplier(entry.multipliers.heat)} x volume ${fmtMultiplier(entry.multipliers.volume)} x streak ${fmtMultiplier(entry.multipliers.streak)}` : ""}
+          {mult ? ` · heat ${fmtMultiplier(mult.heat)} x volume ${fmtMultiplier(mult.volumeTier)} x streak ${fmtMultiplier(mult.streak)}` : ""}
           {entry.state !== "credited" ? ` · ${entry.state}` : ""}
         </p>
       </div>
-      <span className={cn("font-mono text-[15px] tnum", entry.amount < 0 ? "text-danger" : entry.state === "held" ? "text-ink-muted" : "text-sera-text")}>
+      <span className={cn("font-mono text-[15px] tnum", entry.amount < 0 ? "text-danger" : entry.state !== "credited" ? "text-ink-muted" : "text-sera-text")}>
         {sign}
         {fmtInt(Math.abs(entry.amount))}
       </span>

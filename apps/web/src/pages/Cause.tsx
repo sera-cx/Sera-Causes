@@ -13,13 +13,15 @@ import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "@/components/Wallet";
 import { useSeo } from "@/hooks/useSeo";
-import { pledgeHelp } from "@/lib/api";
+import { ONCHAIN_ONLY, pledgeHelp } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CLAIM_INFO, GSERA, type ClaimCode } from "@/lib/constants";
+import { CLAIM_INFO, GSERA, categoryLabel, type ClaimCode } from "@/lib/constants";
 import { fmtDate, fmtGsera, fmtInt, fmtUsd, plural, timeLeft } from "@/lib/format";
+import { causeImage } from "@/lib/images";
 import { useCause, useInvalidateAll, useRecord } from "@/lib/queries";
-import { requiredClaimsFor } from "@/lib/rules";
-import type { Cause, ClaimSummary, HelpRequest } from "@/lib/types";
+import { recordLines } from "@/lib/record";
+import { claimHref, claimOf, pledgedBy, profileOf } from "@/lib/rules";
+import type { CauseDetail, ClaimSummary, HelpRequestView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotFoundPage } from "./NotFound";
 
@@ -28,13 +30,14 @@ export function CausePage() {
   const id = parseIdSlug(idSlug);
   const q = useCause(id);
   const cause = q.data;
-  useSeo(cause?.name ?? "Cause", cause?.profile.summary);
+  useSeo(cause?.name ?? "Cause", cause?.profile?.summary);
 
   if (q.isLoading) return <div className="container"><Spinner label="Loading cause" /></div>;
   if (!cause) return <NotFoundPage />;
 
   const canGive = cause.stage !== "paused" && cause.stage !== "closed";
-  const p = cause.profile;
+  const p = profileOf(cause);
+  const img = causeImage(cause);
 
   return (
     <article>
@@ -43,7 +46,7 @@ export function CausePage() {
         <div className="container grid gap-6 py-8 md:grid-cols-[1.1fr_1fr] md:items-center md:py-12">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Eyebrow>{p.category}</Eyebrow>
+              <Eyebrow>{categoryLabel(p.category)}</Eyebrow>
               <span className="text-ink-subtle" aria-hidden>·</span>
               <Eyebrow>{[p.location.town, p.location.state].filter(Boolean).join(", ") || "Malaysia"}</Eyebrow>
             </div>
@@ -76,7 +79,7 @@ export function CausePage() {
           </div>
           <figure>
             <div className="overflow-hidden rounded-2xl aspect-[4/3] bg-paper-warm">
-              <img src={p.image?.src ?? "/photos/hero.jpg"} alt={p.image?.alt ?? cause.name} className="h-full w-full object-cover" fetchPriority="high" width={1200} height={900} />
+              <img src={img.src} alt={img.alt} className="h-full w-full object-cover" fetchPriority="high" width={1200} height={900} />
             </div>
             <figcaption className="mt-2">
               <PhotoCredit image={p.image} />
@@ -140,8 +143,9 @@ function rowState(s: ClaimSummary): { icon: React.ReactNode; label: string; tone
   return { icon: <CircleDashed className="h-4.5 w-4.5" aria-hidden />, label: "Not checked yet", tone: "text-ink-subtle" };
 }
 
-function TrustCard({ cause }: { cause: Cause }) {
-  const required = requiredClaimsFor(cause.requiresCareLicence);
+function TrustCard({ cause }: { cause: CauseDetail }) {
+  const required = cause.requiredClaims;
+  const challenged = cause.claims.filter((k) => k.challenged);
   const badges: { code: ClaimCode; on: boolean; label: string }[] = [
     { code: "C5", on: cause.badges.taxExempt, label: "Tax-exempt (s44(6))" },
     { code: "C7", on: cause.badges.accountsPublished, label: "Accounts published" },
@@ -154,7 +158,8 @@ function TrustCard({ cause }: { cause: Cause }) {
       </div>
       <ul className="mt-4 divide-y divide-rule">
         {required.map((code) => {
-          const s = cause.claims[code];
+          const s = claimOf(cause, code);
+          if (!s) return null;
           const r = rowState(s);
           return (
             <li key={code} className="py-3">
@@ -188,28 +193,48 @@ function TrustCard({ cause }: { cause: Cause }) {
       <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-rule pt-4">
         <div>
           <dt className="eyebrow">Given so far</dt>
-          <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtUsd(cause.givenUsd)}</dd>
+          <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtUsd(Number(cause.givenUsd))}</dd>
         </div>
         <div>
           <dt className="eyebrow">Givers</dt>
           <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtInt(cause.giversCount)}</dd>
         </div>
       </dl>
-      {cause.concerns.length > 0 && (
+      {(cause.concerns.length > 0 || challenged.length > 0 || cause.homepageHiddenReason) && (
         <div className="mt-4 space-y-2 border-t border-rule pt-4">
           <Eyebrow>Concerns</Eyebrow>
-          {cause.concerns.map((c, i) => (
-            <Notice key={i} tone={c.kind === "note" ? "info" : c.kind === "steward" || c.kind === "challenge" ? "bad" : "warn"}>
+          {challenged.map((k) => (
+            <Notice key={k.claimType} tone="bad">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <div>
-                  <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">{c.kind.replace("-", " ")}</span>
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">challenge</span>
+                  <p className="mt-0.5 text-[13.5px]">A challenge is open on {k.claimType} ({CLAIM_INFO[k.claimType].label}). Voting reopened.</p>
+                  <Link href={claimHref(cause.id, k.claimType)} className="mt-1 inline-block text-[13px] font-medium underline underline-offset-2">
+                    Open the claim
+                  </Link>
+                </div>
+              </div>
+            </Notice>
+          ))}
+          {cause.homepageHiddenReason && (
+            <Notice tone="warn">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <div>
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">steward</span>
+                  <p className="mt-0.5 text-[13.5px]">Taken off the homepage by a steward: {cause.homepageHiddenReason}</p>
+                </div>
+              </div>
+            </Notice>
+          )}
+          {cause.concerns.map((c, i) => (
+            <Notice key={i} tone={c.kind === "note" ? "info" : c.kind === "steward-note" || c.kind === "challenge" ? "bad" : "warn"}>
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <div>
+                  <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">{c.kind.replace(/-/g, " ")}</span>
                   <p className="mt-0.5 text-[13.5px]">{c.text}</p>
-                  {c.link && (
-                    <Link href={c.link} className="mt-1 inline-block text-[13px] font-medium underline underline-offset-2">
-                      Open the claim
-                    </Link>
-                  )}
                 </div>
               </div>
             </Notice>
@@ -220,15 +245,22 @@ function TrustCard({ cause }: { cause: Cause }) {
   );
 }
 
-function LiveBlock({ cause }: { cause: Cause }) {
+function liveUrlOf(cause: CauseDetail): string | undefined {
+  const stream = cause.updates.find((u) => u.kind === "stream" && (u.body?.link || u.body?.url));
+  return stream?.body?.link ?? stream?.body?.url ?? undefined;
+}
+
+function LiveBlock({ cause }: { cause: CauseDetail }) {
   const [alerts, setAlerts] = useState(false);
-  const socials = cause.profile.contact.socials ?? {};
-  const channels = Object.entries({ ...socials, website: cause.profile.contact.website }).filter(([, v]) => v) as [string, string][];
+  const p = profileOf(cause);
+  const socials = p.contact.socials ?? {};
+  const channels = Object.entries({ ...socials, website: p.contact.website }).filter(([, v]) => v) as [string, string][];
+  const liveUrl = liveUrlOf(cause);
   return (
-    <Section id="live" title={cause.liveUrl ? "Live now" : "Live"} lede={cause.profile.live?.note}>
-      {cause.liveUrl ? (
+    <Section id="live" title={liveUrl ? "Live now" : "Live"} lede={p.live?.note}>
+      {liveUrl ? (
         <div className="overflow-hidden rounded-xl border border-rule bg-black aspect-video">
-          <iframe src={cause.liveUrl} title={`${cause.name} live stream`} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" />
+          <iframe src={liveUrl} title={`${cause.name} live stream`} className="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation" />
         </div>
       ) : (
         <div className="rounded-xl border border-rule bg-paper-warm p-5">
@@ -255,8 +287,8 @@ function LiveBlock({ cause }: { cause: Cause }) {
   );
 }
 
-function WhatTheyDo({ cause }: { cause: Cause }) {
-  const p = cause.profile;
+function WhatTheyDo({ cause }: { cause: CauseDetail }) {
+  const p = profileOf(cause);
   return (
     <Section id="work" title="What they do">
       {p.background && <p className="text-[15.5px] leading-[1.6] text-ink-muted max-w-[64ch]">{p.background}</p>}
@@ -293,12 +325,12 @@ function WhatTheyDo({ cause }: { cause: Cause }) {
   );
 }
 
-function HelpSection({ cause }: { cause: Cause }) {
+function HelpSection({ cause }: { cause: CauseDetail }) {
   const { user, signIn } = useAuth();
   const invalidate = useInvalidateAll();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const onHelp = async (h: HelpRequest) => {
+  const onHelp = async (h: HelpRequestView) => {
     if (!user) return void signIn();
     setBusy(h.id);
     setError(null);
@@ -315,38 +347,46 @@ function HelpSection({ cause }: { cause: Cause }) {
     <Section id="help" title="Help this cause" lede={`Open requests from the listing. A fulfilled request, confirmed by the charity, earns ${fmtGsera(GSERA.helper.helpFulfilled)}.`}>
       {cause.helpRequests.length === 0 && <Empty title="No open requests" body="Check back after the charity claims its listing." />}
       <ul className="grid gap-3 sm:grid-cols-2">
-        {cause.helpRequests.map((h) => (
-          <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
-            <div className="flex items-center justify-between gap-2">
-              <Eyebrow>{h.kind}</Eyebrow>
-              <span className="font-mono text-[11px] text-ink-muted tnum">{fmtGsera(h.rewardGsera)}</span>
-            </div>
-            <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
-            <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>
-            <div className="mt-3">
-              {h.state === "open" ? (
-                <Button size="sm" variant="outline" onClick={() => void onHelp(h)} disabled={busy === h.id}>
-                  {busy === h.id ? "Saving" : "I can help"}
-                </Button>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted">
-                  <Check className="h-4 w-4 text-sera-text" aria-hidden /> {h.state === "fulfilled" ? "Fulfilled" : <>Taken by {h.pledgedBy ? <Wallet address={h.pledgedBy} /> : "a helper"}</>}
-                </span>
-              )}
-            </div>
-          </li>
-        ))}
+        {cause.helpRequests.map((h) => {
+          const taker = pledgedBy(h);
+          return (
+            <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <Eyebrow>{h.kind}</Eyebrow>
+                <span className="font-mono text-[11px] text-ink-muted tnum">{fmtGsera(GSERA.helper.helpFulfilled)}</span>
+              </div>
+              <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
+              <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>
+              <div className="mt-3">
+                {h.state === "open" ? (
+                  ONCHAIN_ONLY ? (
+                    <span className="text-[13px] text-ink-muted">Pledge from your wallet on the registry (pledgeHelp #{h.id}).</span>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => void onHelp(h)} disabled={busy === h.id}>
+                      {busy === h.id ? "Saving" : "I can help"}
+                    </Button>
+                  )
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted">
+                    <Check className="h-4 w-4 text-sera-text" aria-hidden /> {h.state === "fulfilled" ? "Fulfilled" : h.state === "closed" ? "Closed" : <>Taken by {taker ? <Wallet address={taker} /> : "a helper"}</>}
+                  </span>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
       {error && <Notice tone="bad" className="mt-3">{error}</Notice>}
     </Section>
   );
 }
 
-function Organisation({ cause }: { cause: Cause }) {
-  const o = cause.profile.organisation;
-  const c = cause.profile.contact;
+function Organisation({ cause }: { cause: CauseDetail }) {
+  const p = profileOf(cause);
+  const o = p.organisation;
+  const c = p.contact;
   const rows: [string, React.ReactNode][] = [
-    ["Legal name", cause.profile.legalName || "Not published"],
+    ["Legal name", p.legalName || "Not published"],
     ["Entity type", o.entityType || "Not published"],
     ["Registration number", o.registration ? <span className="font-mono tnum">{o.registration}</span> : "Not published"],
     ["Founded", o.founded || "Not published"],
@@ -374,7 +414,7 @@ function Organisation({ cause }: { cause: Cause }) {
   );
 }
 
-function Updates({ cause }: { cause: Cause }) {
+function Updates({ cause }: { cause: CauseDetail }) {
   return (
     <Section id="updates" title="Updates" lede="From the charity, newest first: reports, receipts, photos and streams.">
       {cause.updates.length === 0 ? (
@@ -387,10 +427,10 @@ function Updates({ cause }: { cause: Cause }) {
                 <Eyebrow>{u.kind}</Eyebrow>
                 <time className="font-mono text-[11.5px] text-ink-subtle" dateTime={u.at}>{fmtDate(u.at)}</time>
               </div>
-              <h3 className="mt-1.5 font-display text-[17px] font-semibold leading-snug">{u.title}</h3>
-              <p className="mt-1 text-[14.5px] leading-[1.5] text-ink-muted">{u.body}</p>
-              {u.link && (
-                <a href={u.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[13.5px] text-sera-text underline underline-offset-2">
+              <h3 className="mt-1.5 font-display text-[17px] font-semibold leading-snug">{u.body?.title ?? u.kind}</h3>
+              <p className="mt-1 text-[14.5px] leading-[1.5] text-ink-muted">{u.body?.text ?? u.body?.body ?? ""}</p>
+              {(u.body?.link ?? u.body?.url) && (
+                <a href={u.body?.link ?? u.body?.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[13.5px] text-sera-text underline underline-offset-2">
                   Open link <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                 </a>
               )}
@@ -402,10 +442,10 @@ function Updates({ cause }: { cause: Cause }) {
   );
 }
 
-function Record({ cause }: { cause: Cause }) {
+function Record({ cause }: { cause: CauseDetail }) {
   const rec = useRecord(cause.id);
   const [all, setAll] = useState(false);
-  const events = rec.data ?? [];
+  const events = recordLines(rec.data ?? []);
   return (
     <Section id="record" title="The record" lede="Everything that happened to this cause, newest first. On-chain events link to their transaction. Signed messages are stored by the API with their hash.">
       {rec.isLoading ? <Spinner label="Loading the record" /> : <RecordList events={events} limit={all ? undefined : 12} />}
@@ -418,18 +458,19 @@ function Record({ cause }: { cause: Cause }) {
   );
 }
 
-function Sources({ cause }: { cause: Cause }) {
+function Sources({ cause }: { cause: CauseDetail }) {
+  const p = profileOf(cause);
   return (
-    <Section id="sources" title="Sources" lede={`Every page this profile came from. Profile checked on ${fmtDate(cause.profile.profileCheckedOn)}.`}>
+    <Section id="sources" title="Sources" lede={p.profileCheckedOn ? `Every page this profile came from. Profile checked on ${fmtDate(p.profileCheckedOn)}.` : "Every page this profile came from."}>
       <ul className="space-y-1.5">
-        {cause.profile.sources.map((s) => (
+        {p.sources.map((s) => (
           <li key={s} className="text-[13.5px]">
             <a href={s} target="_blank" rel="noopener noreferrer" className="text-sera-text underline underline-offset-2 break-all">
               {s}
             </a>
           </li>
         ))}
-        {cause.profile.sources.length === 0 && <li className="text-[14px] text-ink-muted">No sources recorded yet.</li>}
+        {p.sources.length === 0 && <li className="text-[14px] text-ink-muted">No sources recorded yet.</li>}
       </ul>
     </Section>
   );

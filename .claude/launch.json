@@ -1,4 +1,5 @@
 {"version":"0.0.1","configurations":[
  {"name":"web","runtimeExecutable":"pnpm","runtimeArgs":["--filter","@sera-causes/web","dev"],"port":3100,"autoPort":true},
- {"name":"api","runtimeExecutable":"pnpm","runtimeArgs":["--filter","@sera-causes/indexer","dev"],"port":3001}
+ {"name":"api","runtimeExecutable":"pnpm","runtimeArgs":["--filter","@sera-causes/indexer","dev"],"port":3001},
+ {"name":"web-api","runtimeExecutable":"env","runtimeArgs":["VITE_API_URL=http://localhost:3001","PORT=3200","pnpm","--filter","@sera-causes/web","dev"],"port":3200}
 ]}
