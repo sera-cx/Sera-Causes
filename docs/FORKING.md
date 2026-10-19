@@ -6,7 +6,9 @@ Sera Protocol. This page explains the rules, which mirror the
 
 ## Fork the whole repository
 
-Fork the entire repo. Do not vendor only the frontend. Redistributed source must
+Fork the entire repo. Do not vendor only the frontend. The Ethereum cause
+registry under `contracts/` and the `indexer/` are fully open: build any front
+end you like on them. Redistributed source must
 keep the full repository, including the settlement layer and the LICENSE file.
 
 ## What you may change freely
