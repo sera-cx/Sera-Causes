@@ -72,7 +72,7 @@ Rules enforced on-chain:
   status becomes `Verified`, `verifiedAt` set, `StatusChanged` emitted with
   note `"all required claims verified"`.
 - `finaliseClaim` setting a required claim to `NotVerified` while the cause is
-  `Verified`: status becomes `Suspended` (refunds open), note
+  `Verified`: status becomes `Suspended`, note
   `"required claim overturned"`.
 - `setPayout` resets `claimOutcome[causeId][C3_Payout]` to `Open` and drops
   Verified (existing behaviour).
@@ -142,7 +142,7 @@ HelpConfirm(uint256 needId,address helper,uint64 signedAt)
 Postgres. Addresses lowercase. Amounts as `Decimal` or string of raw units.
 
 - `IndexerCursor { id, chainId, lastBlock }`
-- `Cause { id (chain id), chainId, slug, owner, payout, category, uri, status, listedAt, waitingSince, verifiedAt, requiresCareLicence, listedVia, profile Json, photoUrl, givenUsd Decimal, giversCount, createdAt, updatedAt }`
+- `Cause { id (chain id), chainId, slug, owner, payout, category, uri, status, listedAt, verifiedAt, requiresCareLicence, listedVia, profile Json, photoUrl, givenUsd Decimal, giversCount, createdAt, updatedAt }`
 - `ClaimState { causeId, claimType, outcome, epoch, state (open|voting|challenge_window|final), votingStart, votingEnd, challengeWindowEnd, resultRoot, finalisedAt, @@id([causeId, claimType]) }`
 - `Evidence { id, causeId, claimType, uploader, kind, fileUrl, fileHash, title, note, redactionConfirmed, createdAt, removedAt, removedReason }`
 - `Path { id, causeId, claimType, epoch, author, body Json, contentHash, result, checkedAt, signature, createdAt, outcomeAgreed Boolean? }`
