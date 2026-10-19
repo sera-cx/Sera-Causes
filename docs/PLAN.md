@@ -1,7 +1,7 @@
 # Sera Causes v1 plan
 
-**Status:** draft for sign-off, 19 October 2026. Nothing below is being built
-until Douglas confirms. The product brief
+**Status:** signed off by Douglas, 19 October 2026 (sections 1 to 4 and the
+answers in section 5). Building. The product brief
 ([PRODUCT-BRIEF.md](PRODUCT-BRIEF.md), v1.1) stays the reference; this file
 records where v1 departs from it and why.
 
@@ -87,18 +87,18 @@ appeal is an off-chain steward action recorded in the API, not on-chain.
 
 | Dependency | Needed for | Owner | Status |
 | --- | --- | --- | --- |
-| gSera partner endpoints (credit, spend, reverse, wallet) and the `source` tag | gSera at launch | gSera repo maintainers | Change request written in GSERA-INTEGRATION.md. **Who implements it?** |
+| gSera partner endpoints (credit, spend, reverse, wallet) and the `source` tag | gSera at launch | Claude, as a PR in the gSera repo for Douglas to review | Change request in GSERA-INTEGRATION.md. Confirmed |
 | Privy app for causes.sera.cx | Sign-in | Douglas | Not created. Needs `PRIVY_APP_ID` and secret |
 | Sera.cx API key and secret | Settlement of cross-stablecoin gifts | Douglas | Not provided. Testnet host to confirm: `api-testnet.sera.cx` (sera-mcp) vs `api.testnet.sera.cx` (sera-pay) |
-| Steward multisig members and threshold | Finaliser and steward roles | Douglas | Brief 17.2, open |
-| Accepted stablecoins at launch | Contract token list | Douglas | Brief 17.3, open. Proposed: USDT, USDC, XSGD, MYRT |
-| Registry chain | Deploy target | Douglas | Brief 17.7, open. Proposed: Sepolia now, Ethereum mainnet at launch |
-| KYT clustering | Anti-gaming rules in 6.7 and voter eligibility in 7.5 | Douglas | Only the free Chainalysis sanctions screen exists in your codebases. Proposed: use it as the v1 "KYT pass" and revisit |
+| Steward multisig members and threshold | Finaliser and steward roles | Douglas | Brief 17.2, still open. Sepolia uses a single steward key for now |
+| Accepted stablecoins at launch | Contract token list | Douglas | USDT, USDC, XSGD, MYRT. Confirmed |
+| Registry chain | Deploy target | Douglas | Sepolia now, Ethereum mainnet at launch. Confirmed |
+| KYT/KYA screening | Anti-gaming rules in 6.7, voter eligibility in 7.5, every gift | Build | **Use kyt.sera.cx** (Sera's own public KYT/KYA service in the sera-cx org), not Chainalysis |
 | IPFS pinning | Profiles and evidence hashes | Build | Proposed: API serves files with hashes recorded on-chain now; pin to IPFS before mainnet |
-| Email provider | Notifications in brief 14 | Build | Proposed: Mailtrap, as sera.cx uses |
+| Email provider | Notifications in brief 14 | Build | **Resend** |
 | Malaysian counsel | Fundraising rules, PDPA, gSera not a security | Douglas | Brief 16 and 18 gate launch on this |
 | Independent security review | Mainnet | Douglas | Before mainnet, not before Sepolia |
-| Hosting | Production | Douglas | Proposed: Docker on the same Linode pattern as sera.cx and gSera |
+| Hosting | Production | Douglas | Docker on Linode, same pattern as sera.cx and gSera. Confirmed |
 
 ## 4. Build order
 
@@ -112,13 +112,11 @@ Each step ends with something you can see or run.
 | D. Live integrations | Privy sign-in, gSera live credit and spend, Chainalysis screen, OG images, QR poster, embed button, email | Staging |
 | E. Launch readiness | Rules page and terms for counsel, security review package, mainnet deploy script, Docker and deploy workflow | Checklist in brief 20 |
 
-## 5. Open questions for Douglas
+## 5. Answers from Douglas, 19 October 2026
 
-1. Should I implement the gSera-side change myself as a pull request in the
-   local gSera repo, following GSERA-INTEGRATION.md, or does someone else own
-   that?
-2. At launch, do community votes decide (brief phase 1) or are they advisory
-   with stewards finalising (phase 0)? The code is the same either way; this
-   is a switch.
-3. Any objection to the proposed defaults in section 3 (stablecoins, Sepolia
-   then mainnet, Chainalysis as the v1 KYT pass, Mailtrap, Linode Docker)?
+1. Claude implements the gSera-side change as a PR in the local gSera repo.
+2. **Launch in advisory mode (brief phase 0):** votes and tallies are shown,
+   stewards finalise every claim with the finaliser CLI. Phase 1 (votes
+   decide) is a configuration switch, `VERIFICATION_MODE=advisory|community`.
+3. Defaults accepted except: KYT/KYA through kyt.sera.cx, email through
+   Resend.
