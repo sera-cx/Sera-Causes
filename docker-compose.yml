@@ -1,5 +1,6 @@
 # Database host/port are configurable: default to the local `db` service,
 # override with e.g. POSTGRES_HOST=my-rds.example.com to use an external DB.
+# on current running DB set to external
 services:
   db:
     image: postgres:16-alpine
