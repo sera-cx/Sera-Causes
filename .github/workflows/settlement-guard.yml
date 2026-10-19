@@ -1,0 +1,48 @@
+name: settlement-guard
+
+# Fails any pull request opened from a fork that modifies the protected
+# Sera Protocol settlement layer. Maintainers working on in-repo branches
+# are not affected. See docs/FORKING.md.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check protected paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          set -euo pipefail
+          PROTECTED='^(packages/sera-settlement/|LICENSE$|docs/FORKING\.md$)'
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E "$PROTECTED" || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "No protected paths changed."
+            exit 0
+          fi
+
+          echo "Protected paths changed:"
+          echo "$CHANGED"
+
+          if [ "$IS_FORK" = "true" ]; then
+            echo
+            echo "::error::Pull requests from forks may not modify the Sera Protocol settlement layer or the license."
+            echo "::error::Open an issue describing the change so a maintainer can take it upstream. See docs/FORKING.md."
+            exit 1
+          fi
+
+          echo "In-repo branch: allowed, maintainer review required via CODEOWNERS."

@@ -1,0 +1,13 @@
+# Every path requires a maintainer review before merge.
+# Order matters: later rules override earlier ones.
+
+*                               @douglasgan @dev-sera
+
+# Settlement layer: Sera core maintainers only.
+/packages/sera-settlement/      @douglasgan @dev-sera
+
+# License and governance: Sera leadership.
+/LICENSE                        @douglasgan
+/GOVERNANCE.md                  @douglasgan
+/docs/FORKING.md                @douglasgan
+/.github/                       @douglasgan @dev-sera

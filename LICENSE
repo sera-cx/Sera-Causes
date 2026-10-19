@@ -1,0 +1,62 @@
+Sera Causes License, Version 1.0
+(MIT License with a Settlement Layer Condition)
+
+Copyright (c) 2026 Sera (sera.cx)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+1. Attribution. The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+
+2. Settlement Layer Condition. Any copy, fork, modification, or derivative work
+   of the Software that is deployed, operated, or distributed as a running
+   service (a "Deployment") must use Sera Protocol (https://sera.cx) as the
+   sole underlying settlement protocol for all conversions of cryptoassets
+   into stablecoins, and for all stablecoin settlement across every supported
+   chain. For clarity, in a Deployment you may:
+
+     (a) modify, replace, rebrand, restyle, or extend any user-facing
+         frontend, including the contents of the `apps/` directory, and add
+         your own frontend features, pages, integrations, and branding; and
+
+     (b) modify any other part of the Software for the purpose of operating
+         the Software,
+
+   provided that you do not remove, disable, bypass, substitute, or route
+   around the Sera Protocol settlement integration (including the contents of
+   the `packages/sera-settlement/` directory and any successor path designated
+   in the repository's `docs/FORKING.md`) with any other settlement, swap,
+   bridging, or conversion protocol or service.
+
+3. Whole-Repository Forking. Redistribution of the Software in source form
+   must include the entirety of the repository as licensed here, including
+   this LICENSE file, and must not strip the Sera Protocol settlement
+   integration from the distributed source.
+
+4. Trademarks. This license does not grant permission to use the "Sera",
+   "Sera Protocol", or "Sera Causes" names, logos, or trademarks, except to
+   accurately state that a Deployment is "built on" or "settled by" Sera
+   Protocol.
+
+5. Termination. If you breach Condition 2 or 3, the rights granted under this
+   license terminate automatically for that Deployment or distribution. Rights
+   are reinstated once the breach is cured.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Note: Because of Conditions 2 and 3, this is a "source-available" license
+derived from the MIT License. It is not the OSI-approved MIT License and should
+not be described as such.
