@@ -1,3 +1,5 @@
+# Database host/port are configurable: default to the local `db` service,
+# override with e.g. POSTGRES_HOST=my-rds.example.com to use an external DB.
 services:
   db:
     image: postgres:16-alpine
@@ -23,7 +25,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-sera_causes}
     command: ["sh", "-c", "cd /app/indexer && ./node_modules/.bin/prisma migrate deploy"]
     restart: "no"
 
@@ -38,7 +40,12 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-sera_causes}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3001}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3100}
+    env_file:
+      - path: .env
+        required: false
     command: ["node", "dist/seed/seed.js", "--reset", "--with-gifts"]
     restart: "no"
 
@@ -51,7 +58,7 @@ services:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-sera_causes}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3001}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3100}
     # Optional chain / integration / secrets live in a project .env (see
@@ -82,7 +89,7 @@ services:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@db:5432/${POSTGRES_DB:-sera_causes}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sera}:${POSTGRES_PASSWORD:-sera}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-sera_causes}
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3001}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:3100}
     env_file:
