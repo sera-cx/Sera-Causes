@@ -4,14 +4,15 @@
 [Sera.cx](https://sera.cx).
 
 Sera Causes is the code behind **Care Share Donate (CSD)** at **causes.sera.cx**.
-Anyone can add a cause. Anyone can give to it in stablecoins. Gifts wait in
-escrow until the community has verified the charity, then the charity claims
-them. Giving and helping earn gSera points, which steer what the site
-highlights each week. Every cause, piece of evidence, vote and gift is recorded
-on a public cause registry on Ethereum.
+Anyone can add a cause, upload the documents that prove it is real, and share
+it anywhere. Anyone can give to it in stablecoins, from the site or by sending
+straight to the cause's own address. The community checks each cause in the
+open, claim by claim, and giving and helping earn gSera points. Every gift,
+conversion and update is a public record.
 
-The full product and build brief is in
-[docs/PRODUCT-BRIEF.md](docs/PRODUCT-BRIEF.md). Read it before contributing.
+Start with [docs/PLAN.md](docs/PLAN.md), which records the v1 decisions, then
+the original brief in [docs/PRODUCT-BRIEF.md](docs/PRODUCT-BRIEF.md). Where
+they differ, the plan wins.
 
 > Status: scaffold. The v0.1 registry contract, tests, indexer and 44 seeded
 > Malaysian causes described in the brief are being brought into this repo.
@@ -20,33 +21,35 @@ The full product and build brief is in
 ## How it works
 
 ```
-Giver wallet (stablecoins, any supported chain)
+Giver (any wallet or exchange, signed in or not)
+        │  stablecoin transfer, or a Sera.cx swap delivered to the cause
+        ▼
+  Cause deposit wallet (one per cause)
+        │                                   packages/sera-settlement (protected)
+        ├── auto-convert or manual convert ──►  Sera.cx settlement
+        ▼
+  contracts/CauseRegistry  (Ethereum: causes, claims, roles, updates)
         │
         ▼
-  apps/web  ──►  packages/sera-settlement  ──►  Sera.cx settlement
-  (forkable)     (protected: quote, convert     (when the cause takes a
-                  and settle via Sera.cx)        different stablecoin)
+  indexer/  ──►  gifts from on-chain transfers, public record, read API
         │
         ▼
-  contracts/CauseRegistry  (Ethereum: causes, claims, escrow, refunds, rounds)
-        │
-        ▼
-  indexer/  ──►  public read API and the record feed
+  apps/web  (causes.sera.cx, forkable)
 ```
 
 - **Causes** are listed by anyone and verified one claim at a time
-  (registration, current status, payout wallet, real work). Helpers write
+  (registration, current status, deposit wallet, real work). Helpers write
   verification paths showing exactly how they checked. The community votes,
-  with a challenge window before anything is final.
-- **Gifts** sit in the registry's escrow, not with Sera.cx. Only verified
-  causes can claim. If a cause is not verified within 90 days, givers can take
-  their gift back.
+  with a challenge window before anything is final. Verification is a public
+  trust signal, not a gate on the money.
+- **Gifts** go straight to each cause's own deposit address. The owner keeps
+  one currency (auto-converted on arrival through Sera.cx) or holds what
+  arrives and converts when they choose. Gifts are final.
 - **gSera** is earned on gifts at the same rate as takers on g.sera.cx
-  (100 per US$1 with multipliers) and on helping. It is spent to boost causes
-  in the weekly highlight round. Charity-tagged gSera cannot buy Lucky Draw
-  tickets.
-- **Settlement** of any cross-stablecoin gift runs through Sera.cx. That layer
-  is protected by the licence. Everything else is yours to fork.
+  (100 per US$1 with multipliers) and on helping. Charity-tagged gSera cannot
+  buy Lucky Draw tickets.
+- **Settlement** of every conversion runs through Sera.cx. That layer is
+  protected by the licence. Everything else is yours to fork.
 
 ## Repository layout
 
