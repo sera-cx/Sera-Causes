@@ -1,0 +1,60 @@
+{
+  "name": "@sera-causes/indexer",
+  "version": "0.1.0",
+  "description": "Postgres-backed service behind causes.sera.cx: chain listener, signed-message store, read and write API, gift flow, CSD gSera ledger, finaliser CLI and snapshot publisher.",
+  "type": "module",
+  "private": true,
+  "license": "SEE LICENSE IN ../LICENSE",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/api/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.check.json --noEmit",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:seed": "tsx src/seed/seed.ts",
+    "worker": "tsx src/workers/index.ts",
+    "finaliser": "tsx src/finaliser/cli.ts"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@sera-causes/contracts": "workspace:*",
+    "@sera-causes/gsera-client": "workspace:*",
+    "@sera-causes/sera-settlement": "workspace:*",
+    "@sera-causes/shared": "workspace:*",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jose": "^5.9.6",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.15.1",
+    "pino": "^9.5.0",
+    "pino-http": "^10.3.0",
+    "qrcode": "^1.5.4",
+    "viem": "^2.21.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.0",
+    "@types/pdfkit": "^0.13.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/supertest": "^6.0.2",
+    "pino-pretty": "^13.0.0",
+    "prisma": "^5.22.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

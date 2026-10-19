@@ -1,0 +1,519 @@
+// Sera Causes indexer schema (ARCHITECTURE.md section 5, revised by docs/PLAN.md:
+// no rounds or boosts; HomepageFlag, UrgentAppeal, ShareEvent, MockGseraWallet,
+// Notification and EmailOutbox added). Addresses are stored lowercase.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model IndexerCursor {
+  id        String   @id
+  chainId   Int
+  lastBlock BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model Cause {
+  id                  Int       @id
+  chainId             Int
+  slug                String
+  owner               String
+  payout              String
+  /// The wallet that listed the cause. Earns the listing reward when the cause reaches Verified.
+  lister              String
+  category            String
+  uri                 String
+  status              String    @default("listed")
+  listedAt            DateTime
+  waitingSince        DateTime
+  verifiedAt          DateTime?
+  requiresCareLicence Boolean   @default(false)
+  listedVia           String
+  profile             Json?
+  photoUrl            String?
+  givenUsd            Decimal   @default(0) @db.Decimal(18, 2)
+  giversCount         Int       @default(0)
+  listingRewarded     Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  claims       ClaimState[]
+  evidence     Evidence[]
+  paths        Path[]
+  votes        Vote[]
+  challenges   Challenge[]
+  homepage     HomepageFlag?
+  appeals      UrgentAppeal[]
+  shares       ShareEvent[]
+  gifts        Gift[]
+  wallet       CauseWallet?
+  conversions  Conversion[]
+  withdrawals  Withdrawal[]
+  media        Media[]
+  needs        Need[]
+  progress     Progress[]
+  attestations Attestation[]
+  events       RecordEvent[]
+
+  @@index([status])
+  @@index([category])
+  @@index([slug])
+  @@index([owner])
+}
+
+model ClaimState {
+  causeId            Int
+  claimType          String
+  outcome            String    @default("open")
+  epoch              Int       @default(0)
+  state              String    @default("open")
+  votingStart        DateTime?
+  votingEnd          DateTime?
+  challengeWindowEnd DateTime?
+  resultRoot         String?
+  finalisedAt        DateTime?
+  /// Rewards and reputation have been settled for the current outcome.
+  settledAt          DateTime?
+  updatedAt          DateTime  @updatedAt
+  cause              Cause     @relation(fields: [causeId], references: [id])
+
+  @@id([causeId, claimType])
+  @@index([state])
+}
+
+model Evidence {
+  id                 String    @id @default(cuid())
+  causeId            Int
+  claimType          String
+  uploader           String
+  kind               String
+  fileUrl            String
+  fileHash           String
+  mime               String?
+  size               Int?
+  title              String
+  note               String?
+  redactionConfirmed Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  removedAt          DateTime?
+  removedReason      String?
+  cause              Cause     @relation(fields: [causeId], references: [id])
+
+  @@index([causeId, claimType])
+  @@index([fileHash])
+}
+
+model Path {
+  id            String   @id @default(cuid())
+  causeId       Int
+  claimType     String
+  epoch         Int
+  author        String
+  body          Json
+  contentHash   String
+  result        String
+  checkedAt     DateTime
+  signature     String
+  createdAt     DateTime @default(now())
+  outcomeAgreed Boolean?
+  cause         Cause    @relation(fields: [causeId], references: [id])
+
+  @@unique([causeId, claimType, epoch, author])
+  @@index([author])
+}
+
+model Vote {
+  id            String   @id @default(cuid())
+  causeId       Int
+  claimType     String
+  epoch         Int
+  voter         String
+  choice        String
+  reason        String
+  weight        Float
+  signature     String
+  signedAt      DateTime
+  createdAt     DateTime @default(now())
+  outcomeAgreed Boolean?
+  cause         Cause    @relation(fields: [causeId], references: [id])
+
+  @@unique([causeId, claimType, epoch, voter])
+  @@index([voter])
+}
+
+model Challenge {
+  id          String    @id @default(cuid())
+  causeId     Int
+  claimType   String
+  epoch       Int
+  challenger  String
+  stake       Int
+  contentHash String
+  body        Json
+  signature   String
+  state       String    @default("open")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+  cause       Cause     @relation(fields: [causeId], references: [id])
+
+  @@unique([causeId, claimType, epoch, challenger])
+  @@index([state])
+}
+
+model HomepageFlag {
+  causeId             Int       @id
+  shown               Boolean   @default(false)
+  setBy               String
+  signature           String
+  signedAt            DateTime
+  updatedAt           DateTime  @updatedAt
+  stewardHiddenReason String?
+  stewardHiddenBy     String?
+  stewardHiddenAt     DateTime?
+  cause               Cause     @relation(fields: [causeId], references: [id])
+}
+
+model UrgentAppeal {
+  id        String    @id @default(cuid())
+  causeId   Int
+  reason    String
+  setBy     String
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
+  clearedAt DateTime?
+  clearedBy String?
+  cause     Cause     @relation(fields: [causeId], references: [id])
+
+  @@index([causeId])
+}
+
+model ShareEvent {
+  id      String   @id @default(cuid())
+  causeId Int
+  channel String
+  at      DateTime @default(now())
+  cause   Cause    @relation(fields: [causeId], references: [id])
+
+  @@index([causeId])
+}
+
+model Gift {
+  id         String   @id @default(cuid())
+  causeId    Int
+  /// Wallet that sent the stablecoin (the `from` of the ERC-20 Transfer).
+  sender     String
+  token      String
+  /// Raw token units as a decimal string.
+  amount     String
+  usd        Decimal  @db.Decimal(18, 2)
+  /// site: sent from the give page; direct: any wallet or exchange; sera_swap: output of a Sera.cx swap.
+  source     String   @default("direct")
+  txHash     String
+  logIndex   Int
+  block      BigInt
+  tradeId    String?
+  kytState   String   @default("unknown")
+  /// Why no gSera was earned, when that is the case (owner, payout, flagged, cap, kyt_pending).
+  ledgerNote String?
+  createdAt  DateTime
+  cause      Cause    @relation(fields: [causeId], references: [id])
+
+  @@unique([txHash, logIndex])
+  @@index([sender])
+  @@index([causeId, sender])
+  @@index([causeId, createdAt])
+}
+
+/// The cause's deposit wallet (an embedded Privy wallet under the owner's account) and its treasury setting.
+model CauseWallet {
+  causeId       Int      @id
+  address       String
+  privyWalletId String?
+  delegated     Boolean  @default(false)
+  treasuryMode  String   @default("manual")
+  targetToken   String?
+  updatedAt     DateTime @updatedAt
+  cause         Cause    @relation(fields: [causeId], references: [id])
+
+  @@index([address])
+}
+
+/// A Sera.cx conversion of held balance into the cause's target token.
+model Conversion {
+  id          String    @id @default(cuid())
+  causeId     Int
+  fromToken   String
+  toToken     String
+  amountIn    String
+  amountOut   String?
+  quoteId     String?
+  tradeId     String?
+  state       String    @default("quoted")
+  txHash      String?
+  triggeredBy String    @default("owner")
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  settledAt   DateTime?
+  cause       Cause     @relation(fields: [causeId], references: [id])
+
+  @@index([causeId])
+  @@index([state])
+}
+
+/// A transfer out of the cause wallet recorded by the owner (the browser sends it).
+model Withdrawal {
+  id        String   @id @default(cuid())
+  causeId   Int
+  token     String
+  amount    String
+  to        String
+  txHash    String?
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  cause     Cause    @relation(fields: [causeId], references: [id])
+
+  @@index([causeId])
+}
+
+/// Gallery items on the cause page: photos uploaded to UPLOAD_DIR or embeddable video links.
+model Media {
+  id        String    @id @default(cuid())
+  causeId   Int
+  kind      String
+  url       String
+  embedUrl  String?
+  provider  String?
+  caption   String    @default("")
+  credit    String    @default("")
+  position  Int       @default(0)
+  fileHash  String?
+  mime      String?
+  createdAt DateTime  @default(now())
+  removedAt DateTime?
+  cause     Cause     @relation(fields: [causeId], references: [id])
+
+  @@index([causeId, position])
+}
+
+/// A Sera.cx swap quote accepted through POST /gifts/quote and submitted through POST /gifts/submit.
+model GiftTrade {
+  id          String    @id
+  causeId     Int
+  giver       String
+  recipient   String
+  fromToken   String
+  toToken     String
+  amountRaw   String
+  quote       Json
+  tradeId     String?
+  state       String    @default("quoted")
+  txHash      String?
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  submittedAt DateTime?
+  settledAt   DateTime?
+
+  @@index([state])
+  @@index([giver, causeId])
+}
+
+model LedgerEntry {
+  id          String    @id @default(cuid())
+  wallet      String
+  amount      Int
+  reason      String
+  sourceTag   String    @default("charity")
+  sourceRef   String
+  causeId     Int?
+  multipliers Json?
+  /// credited | cancelled | spent | burned (queued only while a credit call is being retried).
+  state       String    @default("credited")
+  gseraRef    String?
+  lastError   String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([reason, sourceRef, wallet])
+  @@index([wallet])
+  @@index([state])
+}
+
+model Reputation {
+  wallet String @id
+  score  Int    @default(0)
+}
+
+model ReputationEntry {
+  id        String   @id @default(cuid())
+  wallet    String
+  delta     Int
+  reason    String
+  sourceRef String
+  createdAt DateTime @default(now())
+
+  @@unique([reason, sourceRef, wallet])
+  @@index([wallet])
+}
+
+model Wallet {
+  address          String    @id
+  kytState         String    @default("unknown")
+  kytCheckedAt     DateTime?
+  kytReasons       Json?
+  privyUserId      String?
+  email            String?
+  leaderboardOptOut Boolean  @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Need {
+  id               Int       @id
+  causeId          Int
+  uri              String
+  kind             String    @default("other")
+  title            String    @default("")
+  detail           String    @default("")
+  open             Boolean   @default(true)
+  postedAt         DateTime
+  /// Helper the owner closed the need with on-chain.
+  helper           String?
+  closedAt         DateTime?
+  /// Off-chain HelpConfirm by the owner (brief 6.3: 500 gSera).
+  confirmedHelper  String?
+  confirmedAt      DateTime?
+  confirmSignature String?
+  cause            Cause     @relation(fields: [causeId], references: [id])
+  pledges          Pledge[]
+
+  @@index([causeId])
+}
+
+model Pledge {
+  id        String   @id @default(cuid())
+  needId    Int
+  helper    String
+  uri       String
+  note      String   @default("")
+  at        DateTime
+  txHash    String
+  logIndex  Int
+  need      Need     @relation(fields: [needId], references: [id])
+
+  @@unique([txHash, logIndex])
+  @@index([helper])
+}
+
+model Progress {
+  id       String   @id @default(cuid())
+  causeId  Int
+  kind     String
+  uri      String
+  body     Json?
+  at       DateTime
+  txHash   String
+  logIndex Int
+  cause    Cause    @relation(fields: [causeId], references: [id])
+
+  @@unique([txHash, logIndex])
+  @@index([causeId])
+}
+
+model Attestation {
+  id       String   @id @default(cuid())
+  causeId  Int
+  attester String
+  kind     String
+  uri      String
+  body     Json?
+  at       DateTime
+  txHash   String
+  logIndex Int
+  cause    Cause    @relation(fields: [causeId], references: [id])
+
+  @@unique([txHash, logIndex])
+  @@index([causeId])
+}
+
+model RecordEvent {
+  id       String   @id @default(cuid())
+  causeId  Int?
+  type     String
+  block    BigInt
+  txHash   String
+  logIndex Int
+  at       DateTime
+  data     Json
+  cause    Cause?   @relation(fields: [causeId], references: [id])
+
+  @@unique([txHash, logIndex])
+  @@index([causeId, at])
+  @@index([type, at])
+}
+
+/// Accepted stablecoins mirrored from TokenSet.
+model Token {
+  address  String  @id
+  symbol   String
+  decimals Int     @default(6)
+  currency String  @default("USD")
+  accepted Boolean @default(true)
+}
+
+/// Finaliser and steward roles mirrored from FinaliserSet and StewardSet.
+model ChainRole {
+  address String
+  role    String
+  on      Boolean @default(true)
+
+  @@id([address, role])
+}
+
+/// Cause metadata stored by POST /causes/prepare and served at GET /profiles/:hash.json.
+model StoredProfile {
+  hash      String   @id
+  body      Json
+  createdBy String
+  createdAt DateTime @default(now())
+}
+
+/// Backing store for the gSera mock (GSERA_MODE=mock).
+model MockGseraWallet {
+  wallet    String   @id
+  state     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  wallet    String
+  kind      String
+  title     String
+  body      String
+  causeId   Int?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([wallet, createdAt])
+}
+
+model EmailOutbox {
+  id        String    @id @default(cuid())
+  to        String
+  subject   String
+  text      String
+  html      String?
+  state     String    @default("pending")
+  attempts  Int       @default(0)
+  lastError String?
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([state])
+}

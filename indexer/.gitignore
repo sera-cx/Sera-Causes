@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+uploads/
+uploads-test/
+public-test/
+public/snapshot.json
+public/snapshot.json.tmp
+public/results/*.json
+*.tsbuildinfo
