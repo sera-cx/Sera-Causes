@@ -32,7 +32,7 @@ import {
 } from './types.js';
 
 // ---------------------------------------------------------------------------
-// gSera for gifts (brief 6.2, docs/PLAN.md 2.1)
+// gSera for gifts (brief 6.2, docs/PLAN.md 2.1 and 6). Credited on arrival once KYT is clear; no vesting.
 // ---------------------------------------------------------------------------
 
 export type HeatKey = keyof typeof GSERA.heat;
@@ -108,11 +108,6 @@ export function giftCapRemaining(
     if (at > since && at <= nowMs) used += g.usd;
   }
   return Math.max(0, GSERA.giftCapUsdPerWalletPerCausePer30d - used);
-}
-
-/** When a gift's pending gSera vests if no refund is taken and the cause has not claimed. */
-export function vestsAt(giftAt: string | number | Date): Date {
-  return new Date(toMs(giftAt) + GSERA.vestDays * 24 * 60 * 60 * 1000);
 }
 
 // ---------------------------------------------------------------------------

@@ -36,7 +36,7 @@ describe('claims', () => {
     expect(CLAIM_INFO.C7.required).toBe('badge');
   });
 
-  it('copy uses no em dashes', () => {
+  it('copy mentions no escrow or refunds and uses no em dashes', () => {
     const text = [
       ...CLAIMS.flatMap((c) => [CLAIM_INFO[c].label, CLAIM_INFO[c].proof, CLAIM_INFO[c].whereToCheck]),
       ...Object.values(STATUS).flatMap((s) => [s.label, s.hint]),
@@ -53,7 +53,7 @@ describe('numbers from the brief', () => {
     expect(GSERA.heat).toEqual({ urgent: 2.5, normal: 1 });
     expect(GSERA.helper).toEqual({ listingVerified: 2500, pathAgrees: 1000, voteAgrees: 100, helpFulfilled: 500, challengeWin: 2000 });
     expect(GSERA.giftCapUsdPerWalletPerCausePer30d).toBe(1000);
-    expect(GSERA.vestDays).toBe(90);
+    expect(GSERA).not.toHaveProperty('vestDays');
   });
 });
 

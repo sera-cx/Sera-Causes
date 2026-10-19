@@ -215,8 +215,6 @@ export const GSERA = {
   giftCapUsdPerWalletPerCausePer30d: 1000, // proposed, see /rules
   /** Window for the gift cap, in days. */
   giftCapWindowDays: 30, // proposed, see /rules
-  /** Pending gift gSera vests after this many days with no refund, or sooner when the cause claims. */
-  vestDays: 90,
 } as const;
 
 /** Ledger reason to gSera `grant_type` (ARCHITECTURE.md section 7). */
@@ -364,7 +362,7 @@ export const STATUS: Readonly<Record<CauseStage, StatusPill>> = {
     label: 'Paused',
     tone: 'red',
     icon: 'pause',
-    hint: 'A challenge succeeded or a steward paused it. Refunds are open',
+    hint: 'A challenge succeeded or a steward paused it',
     showCount: false,
   },
   closed: {
@@ -372,7 +370,7 @@ export const STATUS: Readonly<Record<CauseStage, StatusPill>> = {
     label: 'Closed',
     tone: 'grey',
     icon: 'lock',
-    hint: 'Closed by the owner or a steward. Refunds are open',
+    hint: 'Closed by the owner or a steward',
     showCount: false,
   },
 };
@@ -392,11 +390,20 @@ export const HOME_NEW_RAIL = 6; // proposed, see /rules
 export const URGENT_APPEAL_LABEL = 'Urgent appeal, chosen by Sera.cx';
 
 // ---------------------------------------------------------------------------
-// Escrow and signatures
+// Signatures, uploads and money (docs/PLAN.md section 6)
 // ---------------------------------------------------------------------------
 
-/** Days a cause has to reach Verified before givers can take gifts back (contract rule). */
-export const REFUND_DAYS = 90;
+/** Stablecoins a cause address accepts at launch, by symbol. Other ERC-20s show as held balances. */
+export const LAUNCH_STABLECOINS = ['USDT', 'USDC', 'XSGD', 'MYRT'] as const;
+
+/** How a cause treats arriving funds: convert into one target token on arrival, or hold and convert by hand. */
+export const TREASURY_MODES = ['auto', 'manual'] as const;
+
+/** Organisation type picked on add-a-cause when uploading documents. */
+export const ORG_TYPES = ['licensed', 'registered', 'informal'] as const;
+
+/** Claims a document uploaded on add-a-cause can support. */
+export const DOCUMENT_CLAIMS: readonly ClaimCode[] = ['C1', 'C5', 'C6'];
 
 /** Signed messages older or newer than this are rejected by the API (ARCHITECTURE.md section 4). */
 export const SIGNED_AT_TOLERANCE_SECONDS = 10 * 60;

@@ -12,7 +12,11 @@ import {
   CATEGORY_SLUGS,
   CHALLENGE_STAKE,
   CLAIMS,
+  DOCUMENT_CLAIMS,
+  ORG_TYPES,
+  TREASURY_MODES,
 } from './constants.js';
+import { embedFor } from './media.js';
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -49,6 +53,7 @@ export const uint8Schema = z.number().int().min(0).max(255);
 export const causeIdSchema = z.number().int().nonnegative();
 
 export const claimCodeSchema = z.enum(CLAIMS);
+type ClaimCodeLiteral = (typeof CLAIMS)[number];
 
 /** Solidity `ClaimType` index, 0 to 6. */
 export const claimTypeIndexSchema = z.number().int().min(0).max(CLAIMS.length - 1);
@@ -57,6 +62,12 @@ export const pathResultSchema = z.enum(['verified', 'not_verified', 'could_not_c
 export const voteChoiceSchema = z.enum(['verified', 'not_verified', 'needs_more']);
 export const evidenceKindSchema = z.enum(['document', 'link', 'photo', 'video', 'signature']);
 export const helpKindSchema = z.enum(['intro', 'visit', 'translate', 'items', 'skills', 'other']);
+export const treasuryModeSchema = z.enum(TREASURY_MODES);
+export const orgTypeSchema = z.enum(ORG_TYPES);
+export const mediaKindSchema = z.enum(['photo', 'video']);
+
+/** Raw token units as a positive decimal integer string. */
+const amountRawSchema = z.string().regex(/^[1-9]\d*$/, 'expected a positive integer string');
 
 const isoDateTime = z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'expected an ISO 8601 date-time');
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
@@ -177,6 +188,33 @@ export const prepareCauseSchema = z
   .refine((v) => !v.photos || v.photos.length === 0 || v.photoPermission === true, {
     message: 'photoPermission must be ticked when photos are supplied',
     path: ['photoPermission'],
+  });
+
+/**
+ * A document uploaded during add-a-cause (the metadata part of the multipart
+ * body). It lands as evidence on the claim it supports: C1 for a
+ * registration, C5 for an LHDN approval, C6 for a care licence.
+ */
+export const causeDocumentSchema = z
+  .object({
+    /** Licensed (care centre), registered (society, company, trust) or informal (no registration yet). */
+    orgType: orgTypeSchema,
+    /** The claim this document supports. */
+    claimType: z.enum(DOCUMENT_CLAIMS as [ClaimCodeLiteral, ...ClaimCodeLiteral[]]),
+    title: shortText(160),
+    note: z.string().trim().max(2000).optional(),
+    /** keccak256 of the uploaded file, as computed by the browser. The API recomputes it. */
+    fileHash: bytes32Schema.optional(),
+    /** Personal data has been redacted. Must be true. */
+    redactionConfirmed: z.literal(true),
+  })
+  .refine((v) => v.orgType !== 'informal' || v.claimType === 'C1', {
+    message: 'an informal organisation can only upload documents towards C1',
+    path: ['claimType'],
+  })
+  .refine((v) => v.claimType !== 'C6' || v.orgType === 'licensed', {
+    message: 'a care licence (C6) needs the licensed organisation type',
+    path: ['claimType'],
   });
 
 // ---------------------------------------------------------------------------
@@ -301,6 +339,51 @@ export const helpConfirmSubmitSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Treasury, conversions, withdrawals and media (docs/PLAN.md section 6). Owner session, no signature.
+// ---------------------------------------------------------------------------
+
+/** POST /causes/:id/treasury. Auto mode needs a target token to keep. */
+export const treasurySettingsSchema = z
+  .object({
+    treasuryMode: treasuryModeSchema,
+    targetToken: addressSchema.optional(),
+  })
+  .refine((v) => v.treasuryMode !== 'auto' || !!v.targetToken, {
+    message: 'targetToken is required in auto mode',
+    path: ['targetToken'],
+  });
+
+/** POST /causes/:id/convert. A manual conversion of held balance through Sera.cx. */
+export const convertRequestSchema = z
+  .object({
+    fromToken: addressSchema,
+    toToken: addressSchema,
+    amountRaw: amountRawSchema,
+  })
+  .refine((v) => v.fromToken !== v.toToken, { message: 'fromToken and toToken must differ', path: ['toToken'] });
+
+/** POST /causes/:id/withdraw. Sends held balance from the cause address. */
+export const withdrawRequestSchema = z.object({
+  token: addressSchema,
+  amountRaw: amountRawSchema,
+  to: addressSchema,
+});
+
+/** POST /causes/:id/media. Video links must be from an embeddable provider (`EMBED_PROVIDERS`). */
+export const mediaSubmitSchema = z
+  .object({
+    kind: mediaKindSchema,
+    url: httpUrl,
+    caption: z.string().trim().max(300).default(''),
+    credit: z.string().trim().max(200).default(''),
+    position: z.number().int().nonnegative().optional(),
+  })
+  .refine((v) => v.kind !== 'video' || embedFor(v.url) !== null, {
+    message: 'video links must be from YouTube, TikTok, Instagram, X, Vimeo or Twitch',
+    path: ['url'],
+  });
+
+// ---------------------------------------------------------------------------
 // Gifts
 // ---------------------------------------------------------------------------
 
@@ -309,9 +392,9 @@ export const giftQuoteSchema = z.object({
   /** Token contract address the giver holds. */
   fromToken: addressSchema,
   /** Raw token units as a decimal string. */
-  amountRaw: z.string().regex(/^[1-9]\d*$/, 'expected a positive integer string'),
+  amountRaw: amountRawSchema,
   /** Wallet that will sign; defaults to the authenticated wallet. */
-  giver: addressSchema.optional(),
+  sender: addressSchema.optional(),
 });
 
 export const giftSubmitSchema = z.object({
@@ -375,3 +458,8 @@ export type HelpConfirmSubmitBody = z.infer<typeof helpConfirmSubmitSchema>;
 export type GiftQuoteBody = z.infer<typeof giftQuoteSchema>;
 export type GiftSubmitBody = z.infer<typeof giftSubmitSchema>;
 export type HelpRequestBody = z.infer<typeof helpRequestSchema>;
+export type CauseDocumentBody = z.infer<typeof causeDocumentSchema>;
+export type TreasurySettingsBody = z.infer<typeof treasurySettingsSchema>;
+export type ConvertRequestBody = z.infer<typeof convertRequestSchema>;
+export type WithdrawRequestBody = z.infer<typeof withdrawRequestSchema>;
+export type MediaSubmitBody = z.infer<typeof mediaSubmitSchema>;

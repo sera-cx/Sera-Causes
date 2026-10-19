@@ -108,11 +108,21 @@ export type LedgerReason =
   | 'challenge_win'
   | 'challenge_stake';
 
-export type LedgerState = 'pending' | 'vested' | 'cancelled' | 'spent' | 'burned';
+export type LedgerState = 'credited' | 'cancelled' | 'spent' | 'burned';
 
 export type LedgerSourceTag = 'charity' | 'trading';
 
-export type SettlementState = 'direct' | 'pending' | 'settled' | 'failed' | 'expired';
+/** State of a Sera.cx trade behind a swap gift or a conversion. */
+export type SettlementState = 'pending' | 'settled' | 'failed' | 'expired';
+
+/** Where a gift came from: the give page, a direct transfer to the cause address, or a Sera.cx swap with the cause address as recipient. */
+export type GiftSource = 'site' | 'direct' | 'sera_swap';
+
+export type TreasuryMode = 'auto' | 'manual';
+
+export type MediaKind = 'photo' | 'video';
+
+export type OrgType = 'licensed' | 'registered' | 'informal';
 
 export type KytState = 'unknown' | 'clear' | 'flagged';
 
@@ -393,21 +403,74 @@ export interface Challenge {
 export interface Gift {
   id: string;
   causeId: number;
-  giver: Address;
+  /** Wallet the stablecoins came from. */
+  sender: Address;
   token: Address;
   /** Raw token units as a decimal string. */
   amount: string;
   /** US$ value as a decimal string. */
   usd: string;
-  frontend: string;
+  source: GiftSource;
   txHash: Hex;
   logIndex: number;
+  /** Sera.cx trade id when the gift arrived through a swap. */
   tradeId: string | null;
-  settlementState: SettlementState;
   kytState: KytState;
   createdAt: string;
-  refundedAt: string | null;
-  claimedAt: string | null;
+}
+
+/** The deposit address of a cause: an embedded wallet under the owner's Privy account. */
+export interface CauseWallet {
+  causeId: number;
+  address: Address;
+  /** Delegated signing granted, so the treasury worker can auto-convert. */
+  delegated: boolean;
+  treasuryMode: TreasuryMode;
+  /** Token to keep when `treasuryMode` is `auto`. */
+  targetToken?: Address;
+}
+
+export interface Conversion {
+  id: string;
+  causeId: number;
+  fromToken: Address;
+  toToken: Address;
+  /** Raw units as decimal strings. */
+  amountIn: string;
+  amountOut: string | null;
+  tradeId: string;
+  state: SettlementState;
+  txHash: Hex | null;
+  triggeredBy: 'auto' | 'owner';
+  createdAt: string;
+}
+
+export interface Withdrawal {
+  id: string;
+  causeId: number;
+  token: Address;
+  /** Raw units as a decimal string. */
+  amount: string;
+  to: Address;
+  txHash: Hex;
+  createdAt: string;
+}
+
+/** A gallery item on the cause page: an uploaded photo or an embeddable video link. */
+export interface Media {
+  id?: string;
+  causeId?: number;
+  kind: MediaKind;
+  url: string;
+  /** Player URL for a video, from `embedFor`. */
+  embedUrl?: string;
+  /** Provider key from `EMBED_PROVIDERS`. */
+  provider?: string;
+  caption: string;
+  credit: string;
+  /** Order in the gallery, 0 first. */
+  position: number;
+  createdAt?: string;
 }
 
 export interface GiftMultipliers {
@@ -429,7 +492,6 @@ export interface LedgerEntry {
   sourceRef: string;
   multipliers: GiftMultipliers | null;
   state: LedgerState;
-  vestsAt: string | null;
   /** Remote id on g.sera.cx once pushed. */
   gseraRef: string | null;
   createdAt: string;

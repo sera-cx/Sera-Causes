@@ -5,20 +5,25 @@ import { describe, expect, it } from 'vitest';
 import { CHALLENGE_STAKE } from '../src/constants.js';
 import { contentHash, textHash } from '../src/eip712.js';
 import {
+  causeDocumentSchema,
   causeProfileSchema,
   challengeSubmitSchema,
+  convertRequestSchema,
   evidenceMetadataSchema,
   giftQuoteSchema,
   giftSubmitSchema,
   helpConfirmSubmitSchema,
   helpRequestSchema,
   homepageToggleSubmitSchema,
+  mediaSubmitSchema,
   pathBodySchema,
   pathSubmitSchema,
   prepareCauseSchema,
   stewardHideSchema,
+  treasurySettingsSchema,
   urgentAppealSchema,
   voteSubmitSchema,
+  withdrawRequestSchema,
 } from '../src/schemas.js';
 import type { CauseProfile } from '../src/types.js';
 
@@ -205,5 +210,54 @@ describe('gifts and help requests', () => {
   it('help request payload matches docs/CAUSE-METADATA.md', () => {
     expect(helpRequestSchema.safeParse({ kind: 'visit', title: 'Visit the hatchery', detail: 'Any weekend in November.' }).success).toBe(true);
     expect(helpRequestSchema.safeParse({ kind: 'money', title: 'x', detail: 'y' }).success).toBe(false);
+  });
+});
+
+describe('add-a-cause documents', () => {
+  const base = { title: 'ROS certificate', redactionConfirmed: true };
+
+  it('accepts C1, C5 and C6 documents and nothing else', () => {
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'registered', claimType: 'C1' }).success).toBe(true);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'registered', claimType: 'C5' }).success).toBe(true);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'licensed', claimType: 'C6' }).success).toBe(true);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'registered', claimType: 'C4' }).success).toBe(false);
+  });
+
+  it('ties the claim to the organisation type', () => {
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'informal', claimType: 'C5' }).success).toBe(false);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'informal', claimType: 'C1' }).success).toBe(true);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'registered', claimType: 'C6' }).success).toBe(false);
+    expect(causeDocumentSchema.safeParse({ ...base, orgType: 'registered', claimType: 'C1', redactionConfirmed: false }).success).toBe(false);
+  });
+});
+
+describe('treasury, conversions, withdrawals and media', () => {
+  const usdt = '0x00000000000000000000000000000000000000a1';
+  const myrt = '0x00000000000000000000000000000000000000b2';
+
+  it('auto mode needs a target token', () => {
+    expect(treasurySettingsSchema.safeParse({ treasuryMode: 'manual' }).success).toBe(true);
+    expect(treasurySettingsSchema.safeParse({ treasuryMode: 'auto' }).success).toBe(false);
+    expect(treasurySettingsSchema.safeParse({ treasuryMode: 'auto', targetToken: myrt }).success).toBe(true);
+    expect(treasurySettingsSchema.safeParse({ treasuryMode: 'hold' }).success).toBe(false);
+  });
+
+  it('conversions need two different tokens and a positive amount', () => {
+    expect(convertRequestSchema.safeParse({ fromToken: usdt, toToken: myrt, amountRaw: '1000000' }).success).toBe(true);
+    expect(convertRequestSchema.safeParse({ fromToken: usdt, toToken: usdt, amountRaw: '1000000' }).success).toBe(false);
+    expect(convertRequestSchema.safeParse({ fromToken: usdt, toToken: myrt, amountRaw: '0' }).success).toBe(false);
+  });
+
+  it('withdrawals need a token, amount and destination', () => {
+    expect(withdrawRequestSchema.safeParse({ token: usdt, amountRaw: '5000000', to: addr }).success).toBe(true);
+    expect(withdrawRequestSchema.safeParse({ token: usdt, amountRaw: '5000000' }).success).toBe(false);
+  });
+
+  it('video media must be from an embeddable provider; photos may be any http(s) URL', () => {
+    const yt = mediaSubmitSchema.parse({ kind: 'video', url: 'https://youtu.be/dQw4w9WgXcQ' });
+    expect(yt.caption).toBe('');
+    expect(mediaSubmitSchema.safeParse({ kind: 'video', url: 'https://example.org/video.mp4' }).success).toBe(false);
+    expect(mediaSubmitSchema.safeParse({ kind: 'photo', url: 'https://example.org/photo.jpg', caption: 'Hatchlings', credit: 'Kasih' }).success).toBe(true);
+    expect(mediaSubmitSchema.safeParse({ kind: 'photo', url: 'ftp://example.org/photo.jpg' }).success).toBe(false);
   });
 });

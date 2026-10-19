@@ -16,7 +16,6 @@ import {
   newestCauses,
   requiredClaimsFor,
   tallyClaim,
-  vestsAt,
   voteWeight,
   votingCanClose,
   votingCanOpen,
@@ -55,7 +54,7 @@ describe('giftGsera (brief 6.2)', () => {
   });
 });
 
-describe('giftCapRemaining and vestsAt (brief 6.4, 6.7)', () => {
+describe('giftCapRemaining (brief 6.7, docs/PLAN.md 6)', () => {
   const now = Date.parse('2026-10-19T00:00:00Z');
   const day = 24 * 60 * 60 * 1000;
 
@@ -71,10 +70,6 @@ describe('giftCapRemaining and vestsAt (brief 6.4, 6.7)', () => {
   it('never goes below zero', () => {
     expect(giftCapRemaining([{ at: now - day, usd: 5000 }], now)).toBe(0);
     expect(giftCapRemaining([], now)).toBe(GSERA.giftCapUsdPerWalletPerCausePer30d);
-  });
-
-  it('vests 90 days after the gift', () => {
-    expect(vestsAt('2026-01-01T00:00:00Z').toISOString()).toBe('2026-04-01T00:00:00.000Z');
   });
 });
 
