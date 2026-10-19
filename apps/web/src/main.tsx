@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { AuthProvider } from "./lib/auth";
+import { AppAuthProvider } from "./lib/auth";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } },
@@ -12,9 +12,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AppAuthProvider>
         <App />
-      </AuthProvider>
+      </AppAuthProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

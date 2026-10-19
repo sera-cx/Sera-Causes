@@ -1,5 +1,6 @@
 /* Footer after sera.cx's FooterStack Footer: ink background, white wordmark. */
 import { Link } from "wouter";
+import { useSignInNote } from "@/lib/auth";
 import { LINKS } from "@/lib/constants";
 import { SeraLogo } from "./SeraLogo";
 
@@ -10,6 +11,7 @@ const COLS = [
 ];
 
 export function Footer() {
+  const signInNote = useSignInNote();
   return (
     <footer className="no-print" style={{ background: "#0B1426", color: "rgba(255,255,255,0.7)" }}>
       <div className="container py-12 md:py-16">
@@ -39,6 +41,7 @@ export function Footer() {
             </div>
           ))}
         </div>
+        {signInNote && <p className="mt-10 text-[13px] text-white/50">{signInNote}</p>}
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 md:flex-row md:items-center md:justify-between">
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/50">2026 Sera.cx. Settled on Sera.cx. Not a licensed charity or fundraiser.</span>
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white/50">causes.sera.cx</span>

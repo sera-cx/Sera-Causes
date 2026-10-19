@@ -14,6 +14,8 @@ export const unauthorized = (m = 'sign in required') => new HttpError(401, m);
 export const forbidden = (m = 'not allowed') => new HttpError(403, m);
 export const notFound = (m = 'not found') => new HttpError(404, m);
 export const conflict = (m: string, detail?: unknown) => new HttpError(409, m, detail);
+/** The server cannot do this at all, as configured. Never a sign-in problem. */
+export const unavailable = (m: string) => new HttpError(503, m);
 
 /** Wraps an async handler so rejections reach the error middleware. */
 export function wrap(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>): RequestHandler {

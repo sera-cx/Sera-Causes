@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { SignInButton } from "@/components/SignInButton";
 import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import { USING_MOCK, quoteGift, submitGift } from "@/lib/api";
@@ -101,7 +102,7 @@ function GiveSheet({ cause }: { cause: CauseDetail }) {
 type Step = 1 | 2 | 3;
 
 function FromSite({ cause, onDone }: { cause: CauseDetail; onDone: (r: Receipt) => void }) {
-  const { user, signIn, busy: signingIn } = useAuth();
+  const { user } = useAuth();
   const invalidate = useInvalidateAll();
   const tokens = cause.acceptedTokens;
   const kept = keptToken(cause);
@@ -276,9 +277,7 @@ function FromSite({ cause, onDone }: { cause: CauseDetail; onDone: (r: Receipt) 
                 <WalletIcon className="h-4 w-4" aria-hidden /> Confirm in wallet
               </Button>
             ) : (
-              <Button size="lg" onClick={() => void signIn()} disabled={signingIn}>
-                {signingIn ? "Signing in" : "Sign in to give"}
-              </Button>
+              <SignInButton size="lg" label="Sign in to give" />
             )}
           </div>
         </div>

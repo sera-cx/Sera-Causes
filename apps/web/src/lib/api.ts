@@ -78,18 +78,23 @@ export class NotAvailableError extends Error {
   }
 }
 
+/**
+ * What the auth layer hands the client once someone is signed in: the wallet
+ * every signed write is attributed to, the wallet's EIP-712 signer, and the
+ * credential the API authenticates the request with.
+ */
 export interface Signer {
   wallet: Address;
   signTypedData(data: TypedDataLike): Promise<Hex>;
+  /** Privy access token, sent as `Authorization: Bearer`. Absent in mock mode. */
+  getAccessToken?: () => Promise<string | null>;
+  /** Dev only: send `X-Dev-Wallet` instead, which the API accepts outside production. */
+  devWallet?: boolean;
 }
 
-let devWallet: string | null = null;
 let signer: Signer | null = null;
 
-/** The real API accepts X-Dev-Wallet outside production; Privy JWTs replace this later. */
-export function setApiWallet(wallet: string | null) {
-  devWallet = wallet;
-}
+/** Called by the auth layer on sign in, sign out and wallet change. */
 export function setApiSigner(s: Signer | null) {
   signer = s;
 }
@@ -108,7 +113,15 @@ function detailMessage(body: { error?: string; message?: string; detail?: unknow
 async function http<T>(path: string, init?: RequestInit & { json?: unknown; form?: FormData }): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (init?.json !== undefined) headers["Content-Type"] = "application/json";
-  if (devWallet) headers["X-Dev-Wallet"] = devWallet;
+  if (signer) {
+    // X-Wallet names which of the account's linked wallets is acting; the API
+    // only honours it when Privy confirms the wallet belongs to the caller.
+    headers["X-Wallet"] = signer.wallet;
+    const token = signer.getAccessToken ? await signer.getAccessToken().catch(() => null) : null;
+    if (token) headers.Authorization = `Bearer ${token}`;
+    // Dev bypass, matched by `!isProduction` on the API. Never in a production build.
+    if (import.meta.env.DEV && signer.devWallet) headers["X-Dev-Wallet"] = signer.wallet;
+  }
   const res = await fetch(`${API_URL}/api/v1${path}`, {
     method: init?.method ?? (init?.json !== undefined || init?.form ? "POST" : "GET"),
     headers,

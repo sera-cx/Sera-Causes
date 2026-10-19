@@ -326,12 +326,15 @@ function WhatTheyDo({ cause }: { cause: CauseDetail }) {
 }
 
 function HelpSection({ cause }: { cause: CauseDetail }) {
-  const { user, signIn } = useAuth();
+  const { user, signIn, canSignIn, unavailableReason } = useAuth();
   const invalidate = useInvalidateAll();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const onHelp = async (h: HelpRequestView) => {
-    if (!user) return void signIn();
+    if (!user) {
+      if (!canSignIn) return setError(unavailableReason);
+      return void signIn();
+    }
     setBusy(h.id);
     setError(null);
     try {

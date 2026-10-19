@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { Empty, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
+import { SignInButton } from "@/components/SignInButton";
 import { Pill, StatusPill } from "@/components/StatusPill";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -184,7 +185,7 @@ function EvidenceList({ ws }: { ws: ClaimWorkspace }) {
 }
 
 function UploadEvidence({ ws }: { ws: ClaimWorkspace }) {
-  const { user, signIn } = useAuth();
+  const { user } = useAuth();
   const invalidate = useInvalidateAll();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<EvidenceKind>("document");
@@ -195,12 +196,7 @@ function UploadEvidence({ ws }: { ws: ClaimWorkspace }) {
   const [redacted, setRedacted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  if (!user)
-    return (
-      <Button variant="outline" size="sm" onClick={() => void signIn()}>
-        Sign in to upload
-      </Button>
-    );
+  if (!user) return <SignInButton variant="outline" size="sm" label="Sign in to upload" />;
   const needsFile = kind !== "link";
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -427,7 +423,7 @@ function PathFields({ f, setF, idPrefix, ws }: { f: PathForm; setF: (f: PathForm
 }
 
 function AddPath({ ws }: { ws: ClaimWorkspace }) {
-  const { user, signIn } = useAuth();
+  const { user } = useAuth();
   const invalidate = useInvalidateAll();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState<PathForm>(emptyPathForm);
@@ -435,12 +431,7 @@ function AddPath({ ws }: { ws: ClaimWorkspace }) {
   const [redacted, setRedacted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  if (!user)
-    return (
-      <Button variant="outline" size="sm" onClick={() => void signIn()}>
-        Sign in to add a check
-      </Button>
-    );
+  if (!user) return <SignInButton variant="outline" size="sm" label="Sign in to add a check" />;
   const already = ws.paths.some((p) => p.author.toLowerCase() === user.wallet.toLowerCase());
   const valid = f.source.trim() && f.steps.trim() && f.findings.trim() && f.exactQuery.trim() && screenshot && f.checkedAt && redacted;
   const submit = async (e: React.FormEvent) => {
@@ -560,7 +551,7 @@ function Tally({ ws }: { ws: ClaimWorkspace }) {
 }
 
 function VotePanel({ ws, unlocked }: { ws: ClaimWorkspace; unlocked: boolean }) {
-  const { user, signIn } = useAuth();
+  const { user } = useAuth();
   const me = useMe();
   const invalidate = useInvalidateAll();
   const [choice, setChoice] = useState<VoteChoice>("verified");
@@ -591,9 +582,7 @@ function VotePanel({ ws, unlocked }: { ws: ClaimWorkspace; unlocked: boolean }) 
       {!user ? (
         <div className="mt-2">
           <p className="text-[13.5px] text-ink-muted">Voting needs a wallet that has passed screening and has one gift or one accepted contribution.</p>
-          <Button size="sm" className="mt-3" onClick={() => void signIn()}>
-            Sign in
-          </Button>
+          <SignInButton size="sm" className="mt-3" label="Sign in" />
         </div>
       ) : already || done ? (
         <Notice tone="good" className="mt-3">You have voted on this claim. {fmtXp(XP.care_vote_agreed.amount)} on {COMMUNITY_SITE} when the final outcome agrees.</Notice>
@@ -657,7 +646,7 @@ function ChallengeCard({ ws, challenge: ch }: { ws: ClaimWorkspace; challenge: C
 }
 
 function ChallengePanel({ ws }: { ws: ClaimWorkspace }) {
-  const { user, signIn } = useAuth();
+  const { user } = useAuth();
   const me = useMe();
   const invalidate = useInvalidateAll();
   const [open, setOpen] = useState(false);
@@ -690,9 +679,7 @@ function ChallengePanel({ ws }: { ws: ClaimWorkspace }) {
         {ws.claim.state === "challenge_window" && ws.claim.challengeWindowEnd ? ` Window: ${timeLeft(ws.claim.challengeWindowEnd)}.` : ""}
       </p>
       {!user ? (
-        <Button size="sm" variant="outline" className="mt-3" onClick={() => void signIn()}>
-          Sign in to challenge
-        </Button>
+        <SignInButton size="sm" variant="outline" className="mt-3" label="Sign in to challenge" />
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>

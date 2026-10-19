@@ -3,8 +3,8 @@ import { Link } from "wouter";
 import { Empty, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
+import { SignInButton } from "@/components/SignInButton";
 import { Pill } from "@/components/StatusPill";
-import { Button } from "@/components/ui/button";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
 import { COMMUNITY_SITE, LINKS, VOTE_WEIGHT, XP } from "@/lib/constants";
@@ -18,7 +18,7 @@ const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
 export function MePage() {
   useSeo("My gSera and XP", `Your gSera balance from giving, your Care XP on ${COMMUNITY_SITE}, reputation, gifts and contributions.`);
-  const { user, signIn, busy, ready } = useAuth();
+  const { user, ready } = useAuth();
   const me = useMe();
   if (!ready) return <div className="container"><Spinner /></div>;
   if (!user)
@@ -27,9 +27,7 @@ export function MePage() {
         <Eyebrow>My gSera and XP</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to see your balance.</h1>
         <p className="mt-2 text-ink-muted">The same gSera balance as g.sera.cx for giving, your Care XP on {COMMUNITY_SITE} for helping, plus reputation, gifts and contributions.</p>
-        <Button size="lg" className="mt-6" onClick={() => void signIn()} disabled={busy}>
-          {busy ? "Signing in" : "Sign in"}
-        </Button>
+        <SignInButton size="lg" className="mt-6" label="Sign in" />
       </div>
     );
   if (me.isError) return <div className="container py-10"><Notice tone="bad">Could not load your balance: {me.error instanceof Error ? me.error.message : "unknown error"}</Notice></div>;

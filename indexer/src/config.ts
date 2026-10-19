@@ -61,8 +61,17 @@ const schema = z.object({
   /** Where seed/causes and seed/photos live (relative uris like seed/causes/x.json resolve here). */
   SEED_DIR: z.string().default(path.resolve(INDEXER_ROOT, '..', 'seed')),
 
-  PRIVY_APP_ID: z.string().optional().transform((v) => (v ? v : undefined)),
-  PRIVY_APP_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  /**
+   * Sera.cx's existing Privy app, the one g.sera.cx and sera-pay use.
+   * `PRIVY_APP_ID` verifies bearer tokens against that app's JWKS;
+   * `PRIVY_APP_SECRET` resolves which Ethereum wallets an account owns, which
+   * is what binds a signature to a signed-in user. Without the id nobody can
+   * sign in and write routes answer 503; without the secret ownership cannot
+   * be verified and they answer 503 as well. causes.sera.cx has to be in the
+   * app's allowed origins for the browser side to work.
+   */
+  PRIVY_APP_ID: z.string().optional().transform((v) => (v ? v.trim() : undefined)),
+  PRIVY_APP_SECRET: z.string().optional().transform((v) => (v ? v.trim() : undefined)),
   STEWARD_WALLETS: list,
   STEWARD_CACHE_SECONDS: z.coerce.number().int().positive().default(60),
 

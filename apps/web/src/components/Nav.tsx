@@ -1,10 +1,12 @@
 /* Top navigation, restrained and left-anchored, after sera.cx's Nav.tsx.
    Links: Causes, Verify, Add a cause, Technology. Signed in: Dashboard.
-   Right: gSera chip (signed in) and Sign in. Mobile: hamburger. */
+   Right: the connected wallet as a short address, the gSera chip and Sign in.
+   With no sign-in configured there is no Sign in button at all. Mobile:
+   hamburger. */
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { shortAddress, useAuth } from "@/lib/auth";
 import { fmtInt } from "@/lib/format";
 import { useMe } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -21,7 +23,7 @@ const LINKS = [
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
-  const { user, signIn, signOut, busy, ready } = useAuth();
+  const { user, signIn, signOut, busy, ready, canSignIn } = useAuth();
   const me = useMe();
 
   const isActive = (path: string) => location === path || (path !== "/" && location.startsWith(path + "/")) || (path === "/causes" && location.startsWith("/c/"));
@@ -55,12 +57,17 @@ export function Nav() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           {user && (
+            <span className="hidden sm:inline-flex h-9 items-center rounded-full border border-rule px-3 font-mono text-[12.5px] text-ink-muted" title={user.displayName}>
+              {shortAddress(user.wallet)}
+            </span>
+          )}
+          {user && (
             <Link href="/me" className="inline-flex h-9 items-center gap-2 rounded-full border border-rule bg-paper-warm px-3 font-mono text-[12.5px] tnum text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={gsera !== null ? `${fmtInt(gsera)} gSera, open My gSera` : "My gSera"}>
               <span className="h-1.5 w-1.5 rounded-full bg-sera" aria-hidden />
               {gsera !== null ? `${fmtInt(gsera)} gSera` : "gSera"}
             </Link>
           )}
-          {ready && !user && (
+          {ready && !user && canSignIn && (
             <Button size="sm" onClick={() => void signIn()} disabled={busy}>
               {busy ? "Signing in" : "Sign in"}
             </Button>

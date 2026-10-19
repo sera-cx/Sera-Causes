@@ -11,6 +11,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { StatusPill } from "@/components/StatusPill";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { SignInButton } from "@/components/SignInButton";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Wallet } from "@/components/Wallet";
 import { useCopy } from "@/hooks/useCopy";
@@ -28,7 +29,7 @@ import { cn } from "@/lib/utils";
 
 export function DashboardPage() {
   useSeo("Creator dashboard");
-  const { user, signIn, busy, ready } = useAuth();
+  const { user, ready } = useAuth();
   const dash = useDashboard();
 
   if (!ready) return <div className="container"><Spinner /></div>;
@@ -38,9 +39,7 @@ export function DashboardPage() {
         <Eyebrow>Dashboard</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to manage your causes.</h1>
         <p className="mt-2 text-ink-muted">Your causes, gifts received, treasury, sharing tools, updates and help requests.</p>
-        <Button size="lg" className="mt-6" onClick={() => void signIn()} disabled={busy}>
-          {busy ? "Signing in" : "Sign in"}
-        </Button>
+        <SignInButton size="lg" className="mt-6" label="Sign in" />
       </div>
     );
   }

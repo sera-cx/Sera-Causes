@@ -81,7 +81,7 @@ Names follow the root `.env.example`. Extras added here are marked.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | required | Postgres URL. Needs a user, e.g. `postgresql://douglas@localhost:5432/sera_causes` |
-| `NODE_ENV` | `development` | `production` disables the `X-Dev-Wallet` bypass and `STEWARD_WALLETS` |
+| `NODE_ENV` | `development` | `production` rejects the `X-Dev-Wallet` bypass outright and disables `STEWARD_WALLETS` |
 | `LOG_LEVEL` | `info` | pino level |
 | `CHAIN_ID` | `11155111` | Chain for EIP-712 domains and the listener |
 | `RPC_URL` | unset | viem transport. Unset means the listener idles and steward checks use the role mirror |
@@ -98,7 +98,8 @@ Names follow the root `.env.example`. Extras added here are marked.
 | `UPLOAD_DIR` | `./uploads` | Evidence and photo uploads, served at `/uploads/<sha256>` |
 | `PUBLIC_DIR` *(extra)* | `./public` | `snapshot.json` and `results/*.json`, served at `/` |
 | `SEED_DIR` *(extra)* | `../seed` | Where `seed/causes/*.json` uris and `/photos/*` resolve |
-| `PRIVY_APP_ID`, `PRIVY_APP_SECRET` | unset | Bearer JWT verification against Privy's JWKS; the secret resolves the user's wallets |
+| `PRIVY_APP_ID` | unset | Sera.cx's existing Privy app (the one g.sera.cx and sera-pay use). Verifies `Authorization: Bearer <Privy access token>` against that app's JWKS. Unset in production means nobody can sign in and every write route answers 503. `causes.sera.cx` must be added to the app's allowed origins |
+| `PRIVY_APP_SECRET` | unset | Same Privy app's secret. Resolves which Ethereum wallets an account owns, through the Privy user API (cached 5 minutes), which is what binds an EIP-712 signature to the signed-in account. Unset means write routes answer 503 |
 | `STEWARD_WALLETS` *(extra)* | unset | Comma list of steward wallets, dev only. On-chain `isSteward` (60 s cache) is used when a registry is configured |
 | `STEWARD_CACHE_SECONDS` *(extra)* | `60` | |
 | `SETTLEMENT_MODE` *(extra)* | `mock`, or `live` when `SERA_API_KEY` is set | `createMockSettlement` vs `createSettlement` |
@@ -116,9 +117,21 @@ Names follow the root `.env.example`. Extras added here are marked.
 
 Auth: `Authorization: Bearer <Privy access token>` (plus optional `X-Wallet` to
 pick one of the user's linked wallets), or `X-Dev-Wallet: 0x…` when
-`NODE_ENV !== 'production'`. Signed routes verify the EIP-712 payload with viem
-`verifyTypedData` against the signed-in wallet, reject duplicates, and reject
-`signedAt` outside `SIGNED_AT_TOLERANCE_SECONDS`.
+`NODE_ENV !== 'production'`.
+
+The order is deliberate, and it is the one sera-pay settled on. The token is
+verified against the Privy JWKS for `PRIVY_APP_ID`; then the account's linked
+Ethereum wallets are read from the Privy user API with `PRIVY_APP_SECRET` and
+`X-Wallet` is rejected with 403 unless Privy confirms the account owns it; only
+then do signed routes verify the EIP-712 payload with viem `verifyTypedData`
+against that wallet, reject duplicates, and reject `signedAt` outside
+`SIGNED_AT_TOLERANCE_SECONDS`. A signature proves who holds a key, not who is
+signed in, so it is never the first gate.
+
+With `NODE_ENV=production` and no `PRIVY_APP_ID`, or with no
+`PRIVY_APP_SECRET`, nobody can be authenticated: every write route answers
+`503` with a plain message, reads keep working, and the API logs a warning at
+startup.
 
 | Method | Path | Auth | What |
 | --- | --- | --- | --- |

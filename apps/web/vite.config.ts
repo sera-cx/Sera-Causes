@@ -9,10 +9,20 @@ import { defineConfig } from "vite";
 // top level so they can render on the server unchanged.
 const repoRoot = path.resolve(import.meta.dirname, "..", "..");
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, "src") },
+    alias: [
+      { find: "@", replacement: path.resolve(import.meta.dirname, "src") },
+      // src/lib/devWallet.ts holds a private key for local signing. Nothing
+      // imports it statically and the one dynamic import sits inside an
+      // `import.meta.env.DEV` branch, but a production build also swaps the
+      // module for a throwing stub, so the key cannot reach dist/ by accident.
+      // src/test/devWallet.test.ts builds for production and greps for it.
+      ...(command === "build" && mode !== "development"
+        ? [{ find: /^(.*)\/devWallet$/, replacement: path.resolve(import.meta.dirname, "src/lib/devWallet.prod.ts") }]
+        : []),
+    ],
   },
   server: {
     port: 3000,
@@ -42,4 +52,4 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
   },
-});
+}));

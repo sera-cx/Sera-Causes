@@ -7,6 +7,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
+import { SignInButton } from "@/components/SignInButton";
 import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, prepareCause, submitCause } from "@/lib/api";
@@ -67,7 +68,7 @@ type Step = "details" | "documents" | "review" | "done";
 
 export function AddPage() {
   useSeo("Add a cause", "List a cause on Care Share Donate. Anyone with a wallet can add one.");
-  const { user, signIn, busy: signingIn } = useAuth();
+  const { user, signIn, canSignIn } = useAuth();
   const invalidate = useInvalidateAll();
   const [step, setStep] = useState<Step>("details");
   const [form, setForm] = useState<NewCauseInput>(EMPTY);
@@ -83,7 +84,7 @@ export function AddPage() {
 
   const toReview = async () => {
     setError(null);
-    if (!user) {
+    if (!user && canSignIn) {
       await signIn();
     }
     setBusy(true);
@@ -356,9 +357,7 @@ export function AddPage() {
                 {busy ? "Listing" : "List this cause"}
               </Button>
             ) : (
-              <Button size="lg" onClick={() => void signIn()} disabled={signingIn}>
-                {signingIn ? "Signing in" : "Sign in to list"}
-              </Button>
+              <SignInButton size="lg" label="Sign in to list" />
             )}
           </div>
         </div>

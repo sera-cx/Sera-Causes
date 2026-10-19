@@ -5,7 +5,6 @@
  * loads so countdowns and "x days ago" read naturally.
  */
 import { CHALLENGE_STAKE, CLAIMS, GSERA, VOTING, XP, causeStage, embedFor, giftGsera, requiredClaimsFor, voteWeight, type Address, type CauseProfile, type CauseStatus, type ClaimCode, type Hex, type PathBody, type PathResult, type VoteChoice, type XpEventType } from "@sera-causes/shared";
-import { DEMO_WALLET } from "../devWallet";
 import type {
   CauseDetail,
   Challenge,
@@ -27,7 +26,14 @@ import type {
 } from "../types";
 import { SEED_ATTEST, SEED_PROFILES } from "./seed";
 
-export { DEMO_WALLET };
+/**
+ * The demo wallet the mock world is built around: owner of cause 1 and cause
+ * 14, and the `giver` in the indexer seed. Written out here rather than
+ * imported from ../devWallet so the mock layer, which every build includes,
+ * never pulls the dev private key into the bundle. src/test/devWallet.test.ts
+ * checks the two still agree.
+ */
+export const DEMO_WALLET: Address = "0x95ced938f7991cd0dfcb48f0a06a40fa1af46ebc";
 
 // ---------------------------------------------------------------------------
 // Deterministic helpers
