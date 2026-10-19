@@ -1,8 +1,9 @@
 # Sera Causes architecture (v1)
 
 > Revised 19 October 2026 after the decisions in docs/PLAN.md: no highlight
-> rounds or boosts, creator-controlled homepage, sharing tools and a creator
-> dashboard. Where this file and PLAN.md disagree, PLAN.md wins until this
+> rounds or boosts, creator-controlled homepage, sharing tools, a creator
+> dashboard, and (section 6 of PLAN.md) no escrow, no refunds, per-cause
+> deposit wallets with gifts detected from on-chain transfers. Where this file and PLAN.md disagree, PLAN.md wins until this
 > file is updated.
 
 This is the shared contract between every package in the monorepo. Change it
@@ -26,12 +27,14 @@ is installed.
 
 ## 2. CauseRegistry v1.1
 
-Keep from v0.1 unchanged: `listCause`, `updateCause`, `setPayout` (drops
-Verified), `transferCauseOwnership`, `closeCause`, `attest`, `donate` (escrow
-per cause per token, `frontend` tag), `claim`, `refund` (90 days or on
-suspend/close, capped at escrow), `postProgress`, `postNeed`, `pledge`,
-`closeNeed`, council-managed accepted tokens, `_pull`/`_push` USDT-safe
-transfers, reentrancy lock.
+Keep from v0.1: `listCause`, `updateCause`, `setPayout` (drops Verified;
+`payout` is now the cause's deposit address), `transferCauseOwnership`,
+`closeCause`, `attest`, `postProgress`, `postNeed`, `pledge`, `closeNeed`.
+
+**Removed (PLAN.md section 6):** `donate`, `claim`, `refund`, `refundable`,
+`held`, `givenBy`, `totalGiven`, `acceptedToken`, `setToken`, `TokenSet`,
+`Donated`, `Claimed`, `Refunded`, `REFUND_WINDOW`, `waitingSince`, the
+transfer helpers and the reentrancy lock. The contract holds no funds.
 
 Changes:
 
@@ -148,8 +151,12 @@ Postgres. Addresses lowercase. Amounts as `Decimal` or string of raw units.
 - `HomepageFlag { causeId, shown, setBy, signature, updatedAt, stewardHiddenReason? }`
 - `UrgentAppeal { id, causeId, reason, setBy, startsAt, endsAt }`
 - `ShareEvent { id, causeId, channel, at }` (counts only, no personal data)
-- `Gift { id, causeId, giver, token, amount, usd Decimal, frontend, txHash, logIndex, tradeId?, settlementState, kytState, createdAt, refundedAt, claimedAt, @@unique([txHash, logIndex]) }`
-- `LedgerEntry { id, wallet, amount, reason (gift|path|vote|help|listing|challenge_win|challenge_stake), sourceTag (charity), sourceRef, multipliers Json, state (pending|vested|cancelled|spent|burned), vestsAt, gseraRef (remote id), createdAt }`
+- `Gift { id, causeId, sender, token, amount, usd Decimal, source (site|direct|sera_swap), txHash, logIndex, tradeId?, kytState, createdAt, @@unique([txHash, logIndex]) }` detected from ERC-20 `Transfer` logs to cause deposit addresses
+- `CauseWallet { causeId, address, privyWalletId, delegated Boolean, treasuryMode (auto|manual), targetToken?, updatedAt }`
+- `Conversion { id, causeId, fromToken, toToken, amountIn, amountOut, tradeId, state, txHash?, triggeredBy (auto|owner), createdAt }`
+- `Withdrawal { id, causeId, token, amount, to, txHash, createdAt }`
+- `Media { id, causeId, kind (photo|video), url, embedUrl?, provider?, caption, credit, position, createdAt }`
+- `LedgerEntry { id, wallet, amount, reason (gift|path|vote|help|listing|challenge_win|challenge_stake), sourceTag (charity), sourceRef, multipliers Json, state (credited|cancelled|spent|burned), gseraRef (remote id), createdAt }`
 - `Reputation { wallet, score, @@id([wallet]) }` plus `ReputationEntry { id, wallet, delta, reason, sourceRef, createdAt }`
 - `Wallet { address, kytState (unknown|clear|flagged), kytCheckedAt, privyUserId?, leaderboardOptOut }`
 - `Need`, `Pledge`, `Progress`, `Attestation`, `RecordEvent { id, causeId, type, block, txHash, at, data Json }` mirrored from chain (shapes from the v0.1 indexer).
@@ -173,11 +180,12 @@ Writes (auth + signature where noted):
 `POST /evidence` (multipart, 10 MB, pdf/png/jpg/webp/mp4 or a link),
 `POST /paths` (Path), `POST /votes` (Vote), `POST /causes/:id/homepage` (HomepageToggle by the owner), `POST /stewards/urgent-appeal` and `POST /stewards/hide` (steward wallet, public reason),
 `POST /challenges` (Challenge, stake via spend), `POST /needs/:id/confirm` (HelpConfirm by cause owner),
-`POST /gifts/quote` `{ causeId, fromToken, amountRaw }` → if `fromToken` is accepted by the cause's token set, returns a direct-donate plan; else returns a Sera.cx quote with signing payloads (settlement adapter),
-`POST /gifts/submit` `{ quoteId, signature, permitSignature?, permitDeadline? }` → `{ tradeId }`, then donate is a second on-chain step the browser performs once settled,
-`GET /gifts/:id`.
+`POST /gifts/quote` `{ causeId, fromToken, amountRaw }` → same currency: a transfer plan `{ to: causeAddress, token, amountRaw }` the browser sends itself; different currency: a Sera.cx quote with `recipient = causeAddress` and signing payloads,
+`POST /gifts/submit` `{ quoteId, signature, permitSignature?, permitDeadline? }` → `{ tradeId }` (Sera path only),
+`GET /gifts/:id`, `GET /causes/:id/address` (deposit address and QR payload),
+`POST /causes/:id/treasury` (owner: auto or manual, target token), `POST /causes/:id/convert` (owner: manual conversion via Sera.cx), `POST /causes/:id/withdraw`, `POST /causes/:id/media`, `DELETE /media/:id`.
 
-Workers (`indexer/src/workers`): `chain-listener` (viem `getLogs` from cursor, every 15 s, writes mirrored tables and `RecordEvent`, computes USD via Sera `/fx/rate` or 1:1 for USD stables, creates pending `LedgerEntry` for gifts with the brief's multipliers from gsera-client `multipliers`), `vesting` (hourly: vest entries whose gift is claimed or `vestsAt` passed; cancel on refund; credit remote), `settlement-poll` (pending Sera trades), `snapshot` (every 5 min, writes `public/snapshot.json`).
+Workers (`indexer/src/workers`): `chain-listener` (viem `getLogs` from cursor, every 15 s: registry events into mirrored tables and `RecordEvent`, plus ERC-20 `Transfer` logs for the listed stablecoins filtered by `to` in the set of cause deposit addresses, valued in USD via Sera `/fx/rate` or 1:1 for USD stables, KYT-screened, and credited to gSera at once through `LedgerEntry` with the brief's multipliers), `treasury` (for causes in auto mode with delegated signing: quote and execute a Sera.cx conversion of newly arrived balances into the target token), `settlement-poll` (pending Sera trades), `snapshot` (every 5 min, writes `public/snapshot.json`).
 
 Finaliser CLI (`indexer/src/finaliser`): `tally-claim <causeId> <claim>`,
 `finalise-claim …` (publishes inputs JSON, computes root, sends
@@ -197,8 +205,10 @@ Finaliser CLI (`indexer/src/finaliser`): `tally-claim <causeId> <claim>`,
   `causes_help`, `causes_listing`, `causes_challenge`. Charity-tag exclusion
   from Lucky Draw is a gSera-side change tracked in `docs/GSERA-INTEGRATION.md`.
 - `gsera-client` signs `X-Sera-Signature: sha256=<hmac of raw body>` and
-  exposes `credit`, `spend`, `getWallet`. `GSERA_MODE=mock` stores balances
-  in Postgres so the full flow works locally.
+  exposes `credit`, `spend`, `getWallet`, `reverseCredit`. `GSERA_MODE=mock`
+  stores balances in Postgres so the full flow works locally.
+- With no refunds there is no vesting: gift gSera is credited on arrival once
+  KYT is clear. `reverseCredit` is for steward clawbacks only.
 
 ## 8. Settlement adapter (`packages/sera-settlement`)
 
@@ -225,7 +235,7 @@ on the server. No webhooks: poll.
 - Nav: Causes · Verify · Add a cause · Technology. Signed in: Dashboard. Right: gSera chip, Sign in.
 - Design: copy `index.css` tokens, fonts (IBM Plex Sans/Mono, Instrument Serif), `components.json`, `cn()`, Nav/Footer/SectionHeader patterns from sera.cx. Warm paper backgrounds, Sera green fills with ink text, `#007A3D` for green text, giving accent `#C2410C` on Give buttons and thank-you only. Status is always icon + word + colour. WCAG 2.2 AA, dark mode via system, 360 px wide with no sideways scroll.
 - Copy: "Sera.cx" not "Sera", British spelling, no em dashes, short sentences. Every tunable number comes from `@sera-causes/shared` and is shown only on `/rules`.
-- Wallet: Privy (`@privy-io/react-auth`) for sign-in and embedded or external wallets; viem wallet client for `approve`, `donate`, `listCause`, `claim`, `refund`, `postProgress`, `postNeed`, `pledge`; `signTypedData` for paths, votes, challenges, the homepage toggle and Sera.cx intents. The site renders read-only when `VITE_PRIVY_APP_ID` is unset.
+- Wallet: Sera's existing Privy app (`@privy-io/react-auth`) for sign-in; each cause gets its own embedded wallet under the owner's Privy user (its deposit address) with delegated signing requested for auto-convert; viem wallet client for stablecoin transfers, `listCause`, `postProgress`, `postNeed`, `pledge`; `signTypedData` for paths, votes, challenges, the homepage toggle and Sera.cx intents. The site renders read-only when `VITE_PRIVY_APP_ID` is unset.
 - Data: fetch from `VITE_API_URL`; SSR pre-fetches the home and cause pages for SEO like sera.cx's `server/ssr.ts`.
 
 ## 10. Scope and deferrals

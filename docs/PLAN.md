@@ -120,3 +120,27 @@ Each step ends with something you can see or run.
    decide) is a configuration switch, `VERIFICATION_MODE=advisory|community`.
 3. Defaults accepted except: KYT/KYA through kyt.sera.cx, email through
    Resend.
+
+## 6. Money model, revised 19 October 2026 (second round of decisions)
+
+Douglas's answers: no escrow, no refunds, Sera.cx-listed stablecoins only at
+launch, sign-in through Sera's existing Privy app.
+
+| Topic | v1 | Brief said |
+| --- | --- | --- |
+| Cause address | Each cause has its own deposit address: an embedded wallet created under the owner's Privy account for that cause. Shown with a QR on the give page and in share tools | Gifts go into the registry contract's escrow |
+| Who can give | Anyone, signed in or not. From the site: a stablecoin transfer, or a Sera.cx swap with the cause address as recipient when currencies differ. Directly: any wallet or exchange sends a listed stablecoin to the address | Only through `donate` on the site |
+| Escrow and claiming | None. The owner can use funds from day one. Verification is a public trust signal, not a gate | Only Verified causes could claim |
+| Refunds | None. Gifts are final | 90-day refund when never verified |
+| Accepted tokens | Sera.cx-listed stablecoins (USDT, USDC, XSGD, MYRT at launch). Other ERC-20s show as held balances the owner can withdraw; aggregator conversion is phase 2 | Council-managed token list in the contract |
+| Conversion | Treasury setting per cause: keep one currency (auto-convert on arrival through Sera.cx, using Privy delegated signing on the cause wallet) or hold and convert manually from the dashboard | Charity claims in the given stablecoin |
+| Public record | Every transfer in, conversion, withdrawal and update is on the cause page, from on-chain data | Same |
+| gSera on gifts | Credited to the sender wallet on arrival once KYT is clear. No vesting (there is nothing to refund). Owner and payout wallets excluded; US$1,000 per wallet per cause per 30 days cap kept | Pending until claim or 90 days |
+| Contract | Registry only: list, update, ownership, deposit address (payout), status, claims, finaliser and steward roles, attest, needs, pledges, progress. `donate`, `claim`, `refund`, `held`, `givenBy`, `totalGiven`, `acceptedToken`, `REFUND_WINDOW` and the token events are removed | Escrow in the contract |
+| Media | Photos plus embeddable video links (YouTube, TikTok, Instagram, X, any oEmbed URL) in a gallery on the cause page, managed from the dashboard | Live stream link only |
+| Documents | Uploaded during add-a-cause against C1, C5 or C6, with a licensed, registered or informal selector | Evidence uploaded per claim later |
+
+Dependency added: Privy embedded wallets per cause and delegated signing for
+auto-convert. If delegated signing is unavailable for a wallet (for example an
+external wallet owner who declined it), that cause falls back to manual
+conversion.
