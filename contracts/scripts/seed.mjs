@@ -71,12 +71,16 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     console.error("Set RPC_URL, REGISTRY, LISTER_KEY, RESEARCH_KEY and URI_BASE (pin seed/causes to IPFS first)");
     process.exit(1);
   }
+  // A JsonRpcProvider caches the account nonce for a short window. Against a
+  // fast chain, or a public endpoint that lags, the next send reuses a stale
+  // nonce and the node rejects it. NonceManager tracks the nonce locally
+  // instead, so a long run of sequential sends is safe.
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   const reg = new ethers.Contract(REGISTRY, ABI, provider);
   const ids = await seedRegistry({
     reg,
-    lister: new ethers.Wallet(LISTER_KEY, provider),
-    research: new ethers.Wallet(RESEARCH_KEY, provider),
+    lister: new ethers.NonceManager(new ethers.Wallet(LISTER_KEY, provider)),
+    research: new ethers.NonceManager(new ethers.Wallet(RESEARCH_KEY, provider)),
     uriBase: URI_BASE,
     frontend: FRONTEND_TAG || "causes.sera.cx",
     onEach: (s, id) => console.log(id, s),

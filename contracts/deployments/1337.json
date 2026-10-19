@@ -1,0 +1,10 @@
+{
+  "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+  "block": 1,
+  "council": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+  "deployedAt": "2026-10-19T16:45:46.166Z",
+  "deployer": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+  "tx": "0x54b37d6a9994151f7bacafe3365bd86913201d5fbb9e01aaafc611e9baabc4d5",
+  "contract": "CauseRegistry",
+  "version": "1.1"
+}

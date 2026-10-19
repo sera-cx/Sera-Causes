@@ -31,3 +31,6 @@ Thumbs.db
 contracts/build/
 uploads/
 *.tsbuildinfo
+
+# Local testnet deployer key, never committed
+.sepolia-deployer.env

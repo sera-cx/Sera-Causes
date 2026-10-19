@@ -40,6 +40,14 @@ export function createApp(): Express {
 
   // Seed photos, uploads, and the public snapshot and results.
   app.use('/photos', express.static(path.join(c.seedDir, 'photos'), { maxAge: '1d', index: false }));
+  // The bundled demo seed. A profile's `image.src` is relative ("photos/x.jpg"),
+  // so the profile has to be served with `photos/` as its sibling for that to
+  // resolve, which is how an IPFS directory holding both would behave. Hence
+  // profiles at `/seed/<slug>.json` and photos at `/seed/photos/<slug>.jpg`,
+  // even though on disk they sit in `seed/causes` and `seed/photos`.
+  // Profiles people create go to `/api/v1/profiles/<hash>.json` instead.
+  app.use('/seed/photos', express.static(path.join(c.seedDir, 'photos'), { maxAge: '1d', index: false }));
+  app.use('/seed', express.static(path.join(c.seedDir, 'causes'), { maxAge: '1d', index: false }));
   app.use(express.static(c.publicDir, { maxAge: '1m', index: false }));
   app.get(
     '/uploads/:hash',
