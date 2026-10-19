@@ -1,0 +1,276 @@
+/* ============================================================
+   Care Share Donate on Sera.cx
+   ------------------------------------------------------------
+   Tokens and base layer copied from sera.cx (client/src/index.css), then
+   extended for causes.sera.cx:
+   - Paper white page, deep navy ink, cream editorial surfaces
+   - Sera.cx green #00D26A for accents and live signals, #007A3D for green text on white
+   - Giving accent (burnt orange) only on Give buttons and thank-you moments
+   - Green Field tokens for anything that shows numbers
+   - Dark mode follows the system setting
+   - Type: IBM Plex Sans (display, body, UI), IBM Plex Mono (eyebrows,
+     numerics, labels), Instrument Serif (italic emphasis only via em/i)
+   ============================================================ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Semantic brand tokens */
+  --color-paper: var(--paper);
+  --color-paper-warm: var(--paper-warm);
+  --color-paper-warm-deep: var(--paper-warm-deep);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-sera: var(--sera);
+  --color-sera-deep: var(--sera-deep);
+  --color-sera-text: var(--sera-text);
+  --color-rule: var(--rule);
+  --color-danger: var(--danger-strong);
+  --color-give: var(--give);
+  --color-give-foreground: var(--give-foreground);
+
+  /* Green Field (house style for numbers) */
+  --color-gf-field: #00D26A;
+  --color-gf-card: #08150E;
+  --color-gf-ink: #06120C;
+  --color-gf-bright: #00E676;
+  --color-gf-mint: #59E39A;
+  --color-gf-signal: #E35420;
+
+  --font-display: "IBM Plex Sans", -apple-system, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", -apple-system, ui-sans-serif, system-ui, sans-serif;
+  --font-emphasis: "Instrument Serif", "Times New Roman", Georgia, serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: light dark;
+  --radius: 0.375rem;
+
+  /* Brand palette from sera.cx/brand */
+  --paper: #FFFFFF;
+  --paper-warm: #FAF7EE;
+  --paper-warm-deep: #F3EFE4;
+  --ink: #0B1426;
+  --ink-rgb: 11 20 38;
+  --ink-muted: #455067;
+  --ink-subtle: #6B7384;              /* lifted from #9DA4B3 so small labels pass AA */
+  --sera: #00D26A;
+  --sera-deep: #1B7A3F;
+  --sera-text: #007A3D;               /* green as text on white, 5.4:1 */
+  --rule: #E5E7E0;
+  --danger-strong: #B83A1F;
+  --give: #C2410C;                    /* giving accent, Give buttons and thank-you only */
+  --give-foreground: #FFFFFF;
+
+  /* Status pill surfaces (always icon + word + colour) */
+  --pill-grey-bg: #EEF0EC;    --pill-grey-fg: #3C4556;
+  --pill-amber-bg: #FDEFC7;   --pill-amber-fg: #7A4A00;
+  --pill-green-bg: #D8F7E6;   --pill-green-fg: #0B5E31;
+  --pill-red-bg: #FBE1DA;     --pill-red-fg: #9A2E14;
+
+  /* shadcn-compatible tokens mapped to brand */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #FFFFFF;
+  --card-foreground: var(--ink);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: #F6F6F2;
+  --secondary-foreground: var(--ink);
+  --muted: #F3F4F0;
+  --muted-foreground: var(--ink-muted);
+  --accent: #F6F6F2;
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger-strong);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--sera-deep);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141A26;
+    --paper-warm: #1B2230;
+    --paper-warm-deep: #222A3A;
+    --ink: #F3F4F0;
+    --ink-rgb: 243 244 240;
+    --ink-muted: #B5BCC9;
+    --ink-subtle: #8A93A5;
+    --sera-deep: #59E39A;
+    --sera-text: #59E39A;
+    --rule: #2B3344;
+    --danger-strong: #F0876B;
+    --give: #FB8B4E;
+    --give-foreground: #0B1426;
+
+    --pill-grey-bg: #2A3140;    --pill-grey-fg: #D5DAE3;
+    --pill-amber-bg: #3D2E0E;   --pill-amber-fg: #F6D27A;
+    --pill-green-bg: #0F2E1D;   --pill-green-fg: #7CE8AE;
+    --pill-red-bg: #3B1A12;     --pill-red-fg: #F7A48C;
+
+    --card: #1B2230;
+    --card-foreground: var(--ink);
+    --popover: #1B2230;
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: #0B1426;
+    --secondary: #222A3A;
+    --secondary-foreground: var(--ink);
+    --muted: #222A3A;
+    --muted-foreground: var(--ink-muted);
+    --accent: #222A3A;
+    --accent-foreground: var(--ink);
+    --border: var(--rule);
+    --input: var(--rule);
+    --ring: var(--sera);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    overflow-x: hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.6;
+    font-feature-settings: "kern", "liga", "onum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    min-width: 320px;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-feature-settings: "kern", "ss01", "cv11";
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+  }
+  p, li, dd, dt, td, th { overflow-wrap: anywhere; }
+  .font-mono, code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum", "zero";
+  }
+  em, i, .italic {
+    font-family: var(--font-emphasis);
+    font-style: italic;
+    font-weight: 400;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--sera) 30%, transparent);
+    color: var(--ink);
+  }
+  img { max-width: 100%; }
+}
+
+@utility container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  @media (min-width: 640px) { padding-left: 2rem; padding-right: 2rem; }
+  @media (min-width: 1024px) { padding-left: 2.5rem; padding-right: 2.5rem; max-width: 1180px !important; }
+}
+
+@layer components {
+  .flex { min-height: 0; min-width: 0; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+    font-weight: 500;
+  }
+  .hairline { height: 1px; background: var(--rule); width: 100%; }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.85); }
+  }
+  .live-dot { animation: live-pulse 1.8s ease-in-out infinite; }
+
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rise-in { animation: rise-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  /* Green Field: the field itself never changes with the colour scheme. */
+  .green-field { background: #00D26A; color: #06120C; color-scheme: light; }
+  .gf-card { background: #08150E; color: #FFFFFF; border-radius: 14px; overflow: hidden; position: relative; }
+
+  .prose-csd h2 { font-size: 26px; line-height: 1.15; font-weight: 600; margin-top: 2.5rem; }
+  .prose-csd h3 { font-size: 19px; line-height: 1.3; font-weight: 600; margin-top: 1.75rem; }
+  .prose-csd p { margin-top: 0.9rem; color: var(--ink-muted); max-width: 64ch; }
+  .prose-csd ul, .prose-csd ol { margin-top: 0.75rem; padding-left: 1.25rem; color: var(--ink-muted); max-width: 64ch; }
+  .prose-csd li { margin-top: 0.3rem; }
+  .prose-csd ul { list-style: disc; }
+  .prose-csd ol { list-style: decimal; }
+  .prose-csd a { color: var(--sera-text); text-decoration: underline; text-underline-offset: 3px; }
+  .prose-csd table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 15px; }
+  .prose-csd th, .prose-csd td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  .prose-csd th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-subtle); }
+  .prose-csd td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .rise-in { animation: none; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}
