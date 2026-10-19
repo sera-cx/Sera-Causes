@@ -1,0 +1,34 @@
+{
+  "name": "@sera-causes/sera-settlement",
+  "version": "0.1.0",
+  "description": "Protected Sera Protocol settlement adapter for Sera Causes: deployment config, currencies, gift quotes, EIP-712 signing payloads, swap submission, settlement status and sanctions screening.",
+  "type": "module",
+  "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}
