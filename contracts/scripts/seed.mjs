@@ -79,8 +79,18 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const reg = new ethers.Contract(REGISTRY, ABI, provider);
   const ids = await seedRegistry({
     reg,
-    lister: new ethers.NonceManager(new ethers.Wallet(LISTER_KEY, provider)),
-    research: new ethers.NonceManager(new ethers.Wallet(RESEARCH_KEY, provider)),
+    // One NonceManager per account, not per role: a demo run often points both
+    // roles at the same key, and two managers over one account each track their
+    // own counter and collide.
+    ...(() => {
+      const managers = new Map();
+      const signer = (key) => {
+        const addr = new ethers.Wallet(key).address.toLowerCase();
+        if (!managers.has(addr)) managers.set(addr, new ethers.NonceManager(new ethers.Wallet(key, provider)));
+        return managers.get(addr);
+      };
+      return { lister: signer(LISTER_KEY), research: signer(RESEARCH_KEY) };
+    })(),
     uriBase: URI_BASE,
     frontend: FRONTEND_TAG || "causes.sera.cx",
     onEach: (s, id) => console.log(id, s),

@@ -1,0 +1,11 @@
+{
+  "address": "0x06A0e9D5B2D02847E72aad9eD2fee57244268034",
+  "block": 11949609,
+  "council": "0x31860Cf4C76b99619b7aa124a9876d6C1f7da4bb",
+  "deployedAt": "2026-10-19T17:19:51.288Z",
+  "deployer": "0x31860Cf4C76b99619b7aa124a9876d6C1f7da4bb",
+  "tx": "0x148d86c239271adc7db5e5943435281929e3dded7e96aad9b9d62fc7fe234d00",
+  "contract": "CauseRegistry",
+  "version": "1.1",
+  "note": "Sepolia demo. Council, finaliser and steward are all the one demo deployer, so it is a single-key testnet deployment and nothing here is trust-minimised. Partially seeded: 6 causes."
+}

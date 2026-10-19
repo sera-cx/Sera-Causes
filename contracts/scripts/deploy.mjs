@@ -17,9 +17,10 @@ if (!ethers.isAddress(COUNCIL)) { console.error("COUNCIL is not an address"); pr
 
 const art = JSON.parse(readFileSync(new URL("../build/CauseRegistry.json", import.meta.url)));
 const provider = new ethers.JsonRpcProvider(RPC_URL);
-const deployer = new ethers.Wallet(DEPLOYER_KEY, provider);
+const deployer = new ethers.NonceManager(new ethers.Wallet(DEPLOYER_KEY, provider));
 const { chainId } = await provider.getNetwork();
-console.error(`chain ${chainId}, deployer ${deployer.address}, council ${COUNCIL}`);
+const deployerAddress = await deployer.getAddress();
+console.error(`chain ${chainId}, deployer ${deployerAddress}, council ${COUNCIL}`);
 
 const factory = new ethers.ContractFactory(art.abi, art.bytecode, deployer);
 const reg = await factory.deploy(COUNCIL);
@@ -27,7 +28,16 @@ const receipt = await reg.deploymentTransaction().wait();
 const address = await reg.getAddress();
 console.error(`CauseRegistry at ${address}, block ${receipt.blockNumber}`);
 
-if (deployer.address.toLowerCase() === COUNCIL.toLowerCase()) {
+// A public endpoint is usually several nodes behind one address, and the one
+// that answers next may not have the new contract yet. Sending a role call
+// into that gap gets it estimated against an empty account and reverted on
+// chain. Wait until this RPC can actually see the code.
+for (let i = 1; (await provider.getCode(address)) === "0x"; i++) {
+  if (i > 30) { console.error("the RPC still cannot see the contract; set the roles separately"); break; }
+  await new Promise((r) => setTimeout(r, 2000));
+}
+
+if (deployerAddress.toLowerCase() === COUNCIL.toLowerCase()) {
   if (FINALISER) { await (await reg.setFinaliser(FINALISER, true)).wait(); console.error(`finaliser ${FINALISER}`); }
   if (STEWARD) { await (await reg.setSteward(STEWARD, true)).wait(); console.error(`steward ${STEWARD}`); }
 } else if (FINALISER || STEWARD) {
@@ -39,7 +49,7 @@ const record = {
   block: receipt.blockNumber,
   council: COUNCIL,
   deployedAt: new Date().toISOString(),
-  deployer: deployer.address,
+  deployer: deployerAddress,
   tx: receipt.hash,
   contract: "CauseRegistry",
   version: "1.1",
