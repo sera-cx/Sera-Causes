@@ -12,6 +12,7 @@ export type NotificationKind =
   | 'claim_finalised'
   | 'claim_challenged'
   | 'gsera_credited'
+  | 'xp_queued'
   | 'help_confirmed'
   | 'challenge_resolved';
 

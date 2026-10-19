@@ -181,7 +181,7 @@ export function parseVerificationMode(value: string | undefined | null): Verific
 }
 
 // ---------------------------------------------------------------------------
-// gSera (brief 6)
+// gSera for giving (brief 6, narrowed by docs/PLAN.md section 7)
 // ---------------------------------------------------------------------------
 
 export const GSERA = {
@@ -198,34 +198,163 @@ export const GSERA = {
   volumeTier: { min: 1, max: 1.6 },
   /** Same weekly streak as takers. */
   streak: { min: 1, max: 1.3 },
-  /** Helper rewards, credited once the outcome is final (brief 6.3). */
-  helper: {
-    /** Add a cause that later reaches Verified. */
-    listingVerified: 2500, // proposed, see /rules
-    /** Write a path the final outcome agrees with. */
-    pathAgrees: 1000, // proposed, see /rules
-    /** Vote in line with the final outcome. */
-    voteAgrees: 100, // proposed, see /rules
-    /** Help request fulfilled, confirmed by the charity. */
-    helpFulfilled: 500, // proposed, see /rules
-    /** Successful challenge, on top of the returned stake. */
-    challengeWin: 2000, // proposed, see /rules
-  },
   /** gSera-earning gifts are capped per wallet per cause over a rolling window. Gifts above it earn 0x. */
   giftCapUsdPerWalletPerCausePer30d: 1000, // proposed, see /rules
   /** Window for the gift cap, in days. */
   giftCapWindowDays: 30, // proposed, see /rules
 } as const;
 
-/** Ledger reason to gSera `grant_type` (ARCHITECTURE.md section 7). */
+/**
+ * Ledger reason to gSera `grant_type` (ARCHITECTURE.md section 7).
+ *
+ * Only two reasons remain: a gift, and the stake returned when a challenge is
+ * upheld. Helper actions earn XP on community.sera.cx instead, see `XP` below.
+ */
 export const GSERA_GRANT_TYPES = {
   gift: 'causes_gift',
-  path: 'causes_path',
-  vote: 'causes_vote',
-  help: 'causes_help',
-  listing: 'causes_listing',
-  challenge_win: 'causes_challenge',
+  challenge_stake_return: 'causes_challenge',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Care XP on community.sera.cx (docs/PLAN.md section 7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Every helper action earns XP on community.sera.cx, not gSera. XP is a
+ * standing in the community programme. It is not a balance, it cannot be
+ * spent and it has no cash value.
+ */
+export const XP_EVENT_TYPES = [
+  'care_cause_listed',
+  'care_cause_verified',
+  'care_evidence_accepted',
+  'care_path_agreed',
+  'care_site_visit',
+  'care_vote_agreed',
+  'care_help_fulfilled',
+  'care_translation',
+  'care_charity_claimed',
+  'care_challenge_upheld',
+  'community_referral',
+] as const;
+
+/** Event key sent to community.sera.cx. */
+export type XpEventType = (typeof XP_EVENT_TYPES)[number];
+
+export interface XpReward {
+  /** Event key sent to community.sera.cx. */
+  type: XpEventType;
+  /** XP awarded for one event. */
+  amount: number;
+  /** Short label for the rules table and the claim workspace. */
+  label: string;
+  /** When the XP is credited. */
+  when: string;
+}
+
+/**
+ * The Care XP table, pending the community team's assessment. Amounts and the
+ * partner route are both proposals until they reply, see /rules.
+ */
+export const XP: Readonly<Record<XpEventType, XpReward>> = {
+  care_cause_listed: {
+    type: 'care_cause_listed',
+    amount: 100,
+    label: 'Add a cause',
+    when: 'On listing, once the duplicate check passes',
+  },
+  care_cause_verified: {
+    type: 'care_cause_verified',
+    amount: 1500,
+    label: 'A cause you added reaches Verified',
+    when: 'When the last required claim is final, to the person who listed it',
+  },
+  care_evidence_accepted: {
+    type: 'care_evidence_accepted',
+    amount: 100,
+    label: 'Evidence accepted',
+    when: 'When the claim the evidence supports is final',
+  },
+  care_path_agreed: {
+    type: 'care_path_agreed',
+    amount: 400,
+    label: 'A verification path the final outcome agrees with',
+    when: 'When the claim is final and the challenge window has closed',
+  },
+  care_site_visit: {
+    type: 'care_site_visit',
+    amount: 400,
+    label: 'Site visit with a dated photo',
+    when: 'Added to a C4 path that carries a dated photo',
+  },
+  care_vote_agreed: {
+    type: 'care_vote_agreed',
+    amount: 25,
+    label: 'A vote in line with the final outcome',
+    when: 'When the claim is final and the challenge window has closed',
+  },
+  care_help_fulfilled: {
+    type: 'care_help_fulfilled',
+    amount: 250,
+    label: 'Help request fulfilled',
+    when: "On the cause owner's signed confirmation",
+  },
+  care_translation: {
+    type: 'care_translation',
+    amount: 250,
+    label: 'Translation',
+    when: "On the cause owner's confirmation",
+  },
+  care_charity_claimed: {
+    type: 'care_charity_claimed',
+    amount: 500,
+    label: 'The charity claims a cause you added',
+    when: 'When ownership of the cause transfers to the charity',
+  },
+  care_challenge_upheld: {
+    type: 'care_challenge_upheld',
+    amount: 1000,
+    label: 'Challenge upheld',
+    when: 'When the challenge resolves upheld, with the gSera stake returned',
+  },
+  community_referral: {
+    type: 'community_referral',
+    amount: 500,
+    label: 'Referral',
+    when: "On a referred member's first credited Care event",
+  },
+};
+
+/** XP for one event of this type. */
+export function xpFor(eventType: XpEventType): number {
+  const reward = XP[eventType];
+  if (!reward) throw new RangeError(`unknown XP event type ${String(eventType)}`);
+  return reward.amount;
+}
+
+/** Where a queued XP event has got to. `unmatched`: community.sera.cx has no member for that wallet. */
+export const XP_EVENT_STATES = ['queued', 'sent', 'unmatched'] as const;
+export type XpEventState = (typeof XP_EVENT_STATES)[number];
+
+/** One Care XP event, recorded here and pushed to community.sera.cx. */
+export interface XpEvent {
+  id: string;
+  /** Wallet that earned it, lowercase. */
+  wallet: string;
+  eventType: XpEventType;
+  xp: number;
+  /** The row this event came from, unique with `eventType`: a cause, claim, path, vote, evidence, need or challenge id. */
+  sourceRef: string;
+  causeId?: number;
+  /** Public link a reviewer on community.sera.cx can open. */
+  proofUrl?: string;
+  state: XpEventState;
+  createdAt: string;
+  sentAt?: string;
+}
+
+/** Where Care XP lives. Nothing about XP is spendable on Sera.cx. */
+export const COMMUNITY_SITE = 'community.sera.cx';
 
 // ---------------------------------------------------------------------------
 // Categories and places

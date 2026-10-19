@@ -11,8 +11,8 @@ import { Wallet } from "@/components/Wallet";
 import { useSeo } from "@/hooks/useSeo";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CHALLENGE_STAKE, CLAIM_INFO, CLAIMS, GSERA, VOTING, type ClaimCode } from "@/lib/constants";
-import { fmtDate, fmtGsera, fmtInt, timeLeft } from "@/lib/format";
+import { CHALLENGE_STAKE, CLAIM_INFO, CLAIMS, COMMUNITY_SITE, VOTING, XP, type ClaimCode } from "@/lib/constants";
+import { fmtDate, fmtGsera, fmtInt, fmtXp, timeLeft } from "@/lib/format";
 import { useClaim, useInvalidateAll, useMe, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
 import { causeHref, voteWeight } from "@/lib/rules";
@@ -46,10 +46,11 @@ function stateLabel(ws: ClaimWorkspace) {
   return { label: `Needs checking, ${c.pathCount} of ${VOTING.minPaths} paths`, tone: "amber" as const, icon: CircleDashed, time: "" };
 }
 
-function gseraOnOffer(ws: ClaimWorkspace): number {
+/** The XP a helper can earn on this claim right now, credited on community.sera.cx. */
+function xpOnOffer(ws: ClaimWorkspace): number {
   const c = ws.claim;
-  if (c.state === "voting") return GSERA.helper.voteAgrees;
-  if (c.state === "open" && c.outcome !== "verified") return GSERA.helper.pathAgrees;
+  if (c.state === "voting") return XP.care_vote_agreed.amount;
+  if (c.state === "open" && c.outcome !== "verified") return XP.care_path_agreed.amount;
   return 0;
 }
 
@@ -61,7 +62,7 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
   const openChallenge = ws.challenges.find((ch) => ch.state === "open");
   const canVote = claim.state === "voting";
   const canChallenge = claim.outcome !== "open" && (claim.state === "challenge_window" || claim.state === "final") && !claim.challenged;
-  const offer = gseraOnOffer(ws);
+  const offer = xpOnOffer(ws);
 
   return (
     <div className="container max-w-5xl py-8 md:py-12">
@@ -83,7 +84,11 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
           </Pill>
           {s.time && <span className="font-mono text-[12.5px] text-ink-muted tnum">{s.time}</span>}
           <StatusPill stage={ws.cause.stage} />
-          {offer > 0 && <span className="font-mono text-[12.5px] text-sera-text tnum">{fmtGsera(offer)} on offer</span>}
+          {offer > 0 && (
+            <span className="font-mono text-[12.5px] text-sera-text tnum">
+              {fmtXp(offer)} on offer, on {COMMUNITY_SITE}
+            </span>
+          )}
         </div>
         <div className="mt-4 grid gap-3 rounded-xl border border-rule bg-paper-warm p-4 text-[14px] sm:grid-cols-2">
           <div>
@@ -282,7 +287,7 @@ function Paths({ ws, onOpened }: { ws: ClaimWorkspace; onOpened: () => void }) {
   return (
     <Block title="Verification paths" lede={`How each helper checked this claim, in the fixed template. ${n} independent ${n === 1 ? "check agrees" : "checks agree"}. Open a path to unlock the vote.`} action={<AddPath ws={ws} />}>
       {ws.paths.length === 0 ? (
-        <Empty title="No paths yet" body={`Be the first. Write down how you checked it and earn ${fmtGsera(GSERA.helper.pathAgrees)} when the outcome agrees.`} />
+        <Empty title="No paths yet" body={`Be the first. Write down how you checked it and earn ${fmtXp(XP.care_path_agreed.amount)} on ${COMMUNITY_SITE} when the final outcome agrees.`} />
       ) : (
         <ul className="space-y-3">
           {[...ws.paths].reverse().map((p) => (
@@ -591,7 +596,7 @@ function VotePanel({ ws, unlocked }: { ws: ClaimWorkspace; unlocked: boolean }) 
           </Button>
         </div>
       ) : already || done ? (
-        <Notice tone="good" className="mt-3">You have voted on this claim. {fmtGsera(GSERA.helper.voteAgrees)} when the final outcome agrees.</Notice>
+        <Notice tone="good" className="mt-3">You have voted on this claim. {fmtXp(XP.care_vote_agreed.amount)} on {COMMUNITY_SITE} when the final outcome agrees.</Notice>
       ) : eligibility && !eligibility.canVote ? (
         <Notice tone="warn" className="mt-3">Not eligible yet: {eligibility.reasons.join("; ")}.</Notice>
       ) : !unlocked ? (
@@ -643,7 +648,7 @@ function ChallengeCard({ ws, challenge: ch }: { ws: ClaimWorkspace; challenge: C
             {ch.body.evidenceIds.length > 0 ? ` ${ch.body.evidenceIds.length} piece${ch.body.evidenceIds.length === 1 ? "" : "s"} of counter-evidence uploaded.` : ""}
           </p>
           <p className="mt-1 font-mono text-[11.5px] opacity-80">
-            Voting reopened{ws.claim.votingEnd ? `, ${timeLeft(ws.claim.votingEnd)}` : ""}. If upheld, the challenger gets the stake back plus {fmtGsera(GSERA.helper.challengeWin)}. If not, the stake is burned.
+            Voting reopened{ws.claim.votingEnd ? `, ${timeLeft(ws.claim.votingEnd)}` : ""}. If upheld, the challenger gets the stake back plus {fmtXp(XP.care_challenge_upheld.amount)} on {COMMUNITY_SITE}. If not, the stake is burned.
           </p>
         </div>
       </div>
@@ -695,7 +700,7 @@ function ChallengePanel({ ws }: { ws: ClaimWorkspace }) {
               Challenge this claim
             </Button>
           </DialogTrigger>
-          <DialogContent title="Challenge this claim" description={`Stake ${fmtGsera(CHALLENGE_STAKE)}. Returned plus ${fmtGsera(GSERA.helper.challengeWin)} if upheld, burned if not.`} className="max-w-2xl">
+          <DialogContent title="Challenge this claim" description={`Stake ${fmtGsera(CHALLENGE_STAKE)}. Returned with ${fmtXp(XP.care_challenge_upheld.amount)} on ${COMMUNITY_SITE} if upheld, burned if not.`} className="max-w-2xl">
             <form onSubmit={(e) => void submit(e)} className="space-y-3">
               <p className="font-mono text-[12.5px] tnum text-ink-muted">Your spendable gSera: {fmtInt(spendable)}</p>
               {spendable < CHALLENGE_STAKE && <Notice tone="warn">You need {fmtGsera(CHALLENGE_STAKE)} spendable to stake.</Notice>}

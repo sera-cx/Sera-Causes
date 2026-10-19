@@ -3,7 +3,7 @@
  * in memory for the session. Every write mutates the world and returns the
  * same shapes the real API does (indexer/src/api/routes/*.ts).
  */
-import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, GSERA, VOTING, contentHash, embedFor, giftGsera, tallyClaim, voteWeight, votingCanOpen, type ClaimCode, type PathBody } from "@sera-causes/shared";
+import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, COMMUNITY_SITE, GSERA, VOTING, XP, contentHash, embedFor, giftGsera, tallyClaim, voteWeight, votingCanOpen, type ClaimCode, type PathBody } from "@sera-causes/shared";
 import { slugify } from "../rules";
 import type {
   CauseDetail,
@@ -89,6 +89,7 @@ function stats(w: MockWorld): StatsResponse {
     helpers: new Set(w.paths.map((p) => p.author)).size,
     gseraCredited: credited,
     gseraQueued: 0,
+    xpQueued: w.xpEvents.filter((e) => e.state === "queued").reduce((s2, e) => s2 + e.xp, 0),
     helpRequestsOpen: w.causes.reduce((s, c) => s + c.helpRequests.filter((h) => h.open).length, 0),
     verificationMode: "advisory",
   };
@@ -255,6 +256,8 @@ export async function getMe(): Promise<Me> {
   const w = getWorld();
   const wallet = DEMO_WALLET;
   const ledger = w.ledger.filter((l) => l.wallet === wallet);
+  const xpEvents = w.xpEvents.filter((e) => e.wallet === wallet).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const xpSum = (state: string) => xpEvents.filter((e) => e.state === state).reduce((s, e) => s + e.xp, 0);
   const sum = (state: string) => ledger.filter((e) => e.state === state && e.reason !== "challenge_stake").reduce((s, e) => s + e.amount, 0);
   const staked = ledger.filter((e) => e.reason === "challenge_stake").reduce((s, e) => s + e.amount, 0);
   const gifts = w.gifts.filter((g) => g.sender === wallet).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -271,6 +274,15 @@ export async function getMe(): Promise<Me> {
     kytState: "clear",
     gsera: { spendable: credited + staked, earned: credited, spent: -staked, multipliers: { volumeTier: 1.2, streak: 1.1 } },
     ledger: { credited, queued: sum("queued"), cancelled: sum("cancelled"), staked, entries: ledger.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)) },
+    xp: {
+      total: xpEvents.reduce((s2, e) => s2 + e.xp, 0),
+      queued: xpSum("queued"),
+      sent: xpSum("sent"),
+      unmatched: xpSum("unmatched"),
+      site: COMMUNITY_SITE,
+      mode: "queue",
+      events: xpEvents,
+    },
     reputation: w.reputation.get(wallet) ?? 0,
     gifts,
     paths,
@@ -303,12 +315,17 @@ export async function getLeaderboards(board: LeaderboardBoard, period: Leaderboa
     return { board, period, entries };
   }
   if (board === "helpers") {
-    const entries = HELPERS.map((h) => ({ wallet: h.wallet, gsera: (period === "all" ? h.acceptedPaths : h.recentPaths) * GSERA.helper.pathAgrees + (period === "all" ? h.helpFulfilled : Math.min(1, h.helpFulfilled)) * GSERA.helper.helpFulfilled, reputation: h.reputation }))
-      .concat([{ wallet: DEMO_WALLET, gsera: w.ledger.filter((l) => l.wallet === DEMO_WALLET && ["path", "vote", "help", "listing", "challenge_win"].includes(l.reason) && l.state === "credited" && l.createdAt >= since).reduce((s, l) => s + l.amount, 0), reputation: w.reputation.get(DEMO_WALLET) ?? 0 }])
-      .filter((e) => e.gsera > 0)
-      .sort((a, b) => b.gsera - a.gsera)
+    // Helpers rank by Care XP on community.sera.cx, not by gSera.
+    const entries = HELPERS.map((h) => {
+      const paths = period === "all" ? h.acceptedPaths : h.recentPaths;
+      const helps = period === "all" ? h.helpFulfilled : Math.min(1, h.helpFulfilled);
+      return { wallet: h.wallet, xp: paths * XP.care_path_agreed.amount + helps * XP.care_help_fulfilled.amount, events: paths + helps, reputation: h.reputation };
+    })
+      .concat([{ wallet: DEMO_WALLET, xp: w.xpEvents.filter((e) => e.wallet === DEMO_WALLET && e.createdAt >= since).reduce((s, e) => s + e.xp, 0), events: w.xpEvents.filter((e) => e.wallet === DEMO_WALLET && e.createdAt >= since).length, reputation: w.reputation.get(DEMO_WALLET) ?? 0 }])
+      .filter((e) => e.xp > 0)
+      .sort((a, b) => b.xp - a.xp)
       .slice(0, 20);
-    return { board, period, entries };
+    return { board, period, site: COMMUNITY_SITE, entries };
   }
   const by = new Map<number, { usd: number; gifts: number }>();
   for (const g of w.gifts) {

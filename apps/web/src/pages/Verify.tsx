@@ -8,8 +8,8 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label, Select } from "@/components/ui/input";
 import { useSeo } from "@/hooks/useSeo";
-import { CATEGORIES, CLAIMS, CLAIM_INFO, CLAIM_SHORT, GSERA, STATE_NAMES, VOTING, categoryLabel, type ClaimCode } from "@/lib/constants";
-import { fmtGsera, fmtInt, timeAgo } from "@/lib/format";
+import { CATEGORIES, CLAIMS, CLAIM_INFO, CLAIM_SHORT, COMMUNITY_SITE, STATE_NAMES, VOTING, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
+import { fmtInt, fmtXp, timeAgo } from "@/lib/format";
 import { useClaims, useLeaderboards } from "@/lib/queries";
 import { shortAddress } from "@/lib/rules";
 import type { ClaimListItem, ClaimTab } from "@/lib/types";
@@ -23,7 +23,7 @@ const TABS: { id: ClaimTab; label: string; blurb: string }[] = [
 ];
 
 export function VerifyPage() {
-  useSeo("Verification hub", "Claims that need evidence, checking or votes. Help check a charity and earn gSera.");
+  useSeo("Verification hub", `Claims that need evidence, checking or votes. Help check a charity and earn XP on ${COMMUNITY_SITE}.`);
   const search = useSearch();
   const [, navigate] = useLocation();
   const tab = (new URLSearchParams(search).get("tab") as ClaimTab | null) ?? "needs_checking";
@@ -41,9 +41,9 @@ export function VerifyPage() {
       <GreenField className="mt-8" kicker="Top helpers this month" footer={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {topHelpers.map((r, i) => (
-            <GfCard key={r.wallet} label={`#${i + 1} helper`} ticker={shortAddress(r.wallet)} figure={fmtInt(r.gsera)} meta={[{ label: "gSera earned", value: `reputation ${r.reputation}` }]} tab={["#00D26A", "#00E676", "#59E39A"][i]} />
+            <GfCard key={r.wallet} label={`#${i + 1} helper`} ticker={shortAddress(r.wallet)} figure={fmtInt(r.xp)} meta={[{ label: `XP on ${COMMUNITY_SITE}`, value: `reputation ${r.reputation}` }]} tab={["#00D26A", "#00E676", "#59E39A"][i]} />
           ))}
-          {!helpers.isLoading && topHelpers.length === 0 && <p className="text-[14px] text-white/70">No helper rewards credited in the last 30 days yet.</p>}
+          {!helpers.isLoading && topHelpers.length === 0 && <p className="text-[14px] text-white/70">No helper XP recorded in the last 30 days yet.</p>}
         </div>
       </GreenField>
       <div className="container grid gap-10 py-10 lg:grid-cols-[1fr_340px] lg:py-14">
@@ -123,14 +123,15 @@ function missingFor(tab: ClaimTab, item: ClaimListItem): string {
   }
 }
 
+/** XP on offer for this queue, credited on community.sera.cx. */
 function offerFor(tab: ClaimTab): number {
   switch (tab) {
     case "needs_evidence":
     case "needs_checking":
-      return GSERA.helper.pathAgrees;
+      return XP.care_path_agreed.amount;
     case "open_for_votes":
     case "challenged":
-      return GSERA.helper.voteAgrees;
+      return XP.care_vote_agreed.amount;
     default:
       return 0;
   }
@@ -185,7 +186,7 @@ function ClaimRowItem({ item, tab }: { item: ClaimListItem; tab: ClaimTab }) {
           </p>
         </div>
         <div className="flex items-center gap-4 sm:justify-end">
-          {offer > 0 && <span className="font-mono text-[12px] text-sera-text tnum">{fmtGsera(offer)}</span>}
+          {offer > 0 && <span className="font-mono text-[12px] text-sera-text tnum" title={`XP on ${COMMUNITY_SITE}`}>{fmtXp(offer)}</span>}
           <span className="font-mono text-[11.5px] text-ink-subtle">{tab === "recently_verified" ? `final ${timeAgo(since)}` : `open ${timeAgo(since)}`}</span>
           <ArrowRight className="h-4 w-4 text-ink-subtle group-hover:text-ink" aria-hidden />
         </div>
@@ -207,7 +208,7 @@ function SidePanel() {
           <li>2. Go to the official source in the library below. Not the charity's own site, unless the claim is about it.</li>
           <li>3. Write down every step, the exact search you used, and what you found. Take a dated screenshot.</li>
           <li>4. Say whether it matches the profile, and declare any conflict of interest.</li>
-          <li>5. "Not verified" and "Could not check" are useful results and earn the same {fmtGsera(GSERA.helper.pathAgrees)} when the outcome agrees.</li>
+          <li>5. "Not verified" and "Could not check" are useful results and earn the same {fmtXp(XP.care_path_agreed.amount)} on {COMMUNITY_SITE} when the outcome agrees.</li>
         </ol>
       </div>
       <div className="rounded-2xl border border-rule bg-card p-5">

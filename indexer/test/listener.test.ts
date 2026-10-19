@@ -40,6 +40,18 @@ describe('registry event folding', () => {
     expect(cause.lister).toBe(addr('owner'));
     expect(await db().claimState.count({ where: { causeId: 7 } })).toBe(7);
     expect(await db().recordEvent.count({ where: { causeId: 7, type: 'CauseListed' } })).toBe(1);
+    // Listing earns 100 XP on community.sera.cx, once.
+    const listed = await db().xpEvent.findMany({ where: { eventType: 'care_cause_listed', causeId: 7 } });
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({ wallet: addr('owner'), xp: 100, state: 'queued', sourceRef: 'cause:7' });
+  });
+
+  it('queues 500 XP for the lister when the charity claims the cause', async () => {
+    await makeCause(3, { owner: addr('owner') });
+    await applyLog(log('OwnerChanged', { causeId: 3n, owner: addr('helper') }), ctx);
+    expect((await db().cause.findUniqueOrThrow({ where: { id: 3 } })).owner).toBe(addr('helper'));
+    const claimed = await db().xpEvent.findFirstOrThrow({ where: { eventType: 'care_charity_claimed', causeId: 3 } });
+    expect(claimed).toMatchObject({ wallet: addr('owner'), xp: 500, state: 'queued' });
   });
 
   it('reads a seed profile by relative uri and stores the photo url', async () => {
@@ -71,7 +83,7 @@ describe('registry event folding', () => {
     expect((await db().cause.findUniqueOrThrow({ where: { id: 1 } })).payout).toBe(addr('helper'));
   });
 
-  it('pays the listing reward and notifies givers when a cause becomes Verified', async () => {
+  it('queues the listing XP and notifies givers when a cause becomes Verified', async () => {
     await makeCause(1, { owner: addr('owner') });
     await db().gift.create({ data: { causeId: 1, sender: addr('giver'), token: '0x1000000000000000000000000000000000000002', amount: '1000000', usd: 1, source: 'direct', txHash: `0x${'1'.padStart(64, '0')}`, logIndex: 0, block: 1n, kytState: 'clear', createdAt: new Date() } });
     await db().wallet.create({ data: { address: addr('giver'), email: 'giver@example.org' } });
@@ -79,18 +91,20 @@ describe('registry event folding', () => {
     const cause = await db().cause.findUniqueOrThrow({ where: { id: 1 } });
     expect(cause.status).toBe('verified');
     expect(cause.verifiedAt).toBeTruthy();
-    const reward = await db().ledgerEntry.findFirstOrThrow({ where: { reason: 'listing' } });
+    const reward = await db().xpEvent.findFirstOrThrow({ where: { eventType: 'care_cause_verified' } });
     expect(reward.wallet).toBe(addr('owner'));
-    expect(reward.amount).toBe(2500);
-    expect(reward.state).toBe('credited');
+    expect(reward.xp).toBe(1500);
+    expect(reward.state).toBe('queued');
+    // Helper actions never credit gSera.
+    expect(await db().ledgerEntry.count()).toBe(0);
     expect(await db().notification.count({ where: { wallet: addr('giver'), kind: 'cause_verified' } })).toBe(1);
     expect(await db().emailOutbox.count({ where: { to: 'giver@example.org' } })).toBe(1);
-    // Listing reward is paid once.
+    // Listing XP is queued once.
     await applyLog(log('StatusChanged', { causeId: 1n, status: 2, by: addr('steward'), note: 'again' }), ctx);
-    expect(await db().ledgerEntry.count({ where: { reason: 'listing' } })).toBe(1);
+    expect(await db().xpEvent.count({ where: { eventType: 'care_cause_verified' } })).toBe(1);
   });
 
-  it('mirrors needs, pledges and a closed need with the help reward', async () => {
+  it('mirrors needs, pledges and a closed need with the help XP', async () => {
     await makeCause(1);
     const need = { kind: 'visit', title: 'Visit', detail: 'Go there' };
     await applyLog(log('NeedPosted', { needId: 1n, causeId: 1n, uri: `data:application/json,${encodeURIComponent(JSON.stringify(need))}` }), ctx);
@@ -100,8 +114,9 @@ describe('registry event folding', () => {
     expect(row.title).toBe('Visit');
     expect(row.open).toBe(false);
     expect(row.pledges[0]?.note).toBe('I can go');
-    const reward = await db().ledgerEntry.findFirstOrThrow({ where: { reason: 'help' } });
-    expect(reward.amount).toBe(500);
+    const reward = await db().xpEvent.findFirstOrThrow({ where: { eventType: 'care_help_fulfilled' } });
+    expect(reward.xp).toBe(250);
     expect(reward.wallet).toBe(addr('helper'));
+    expect(reward.state).toBe('queued');
   });
 });

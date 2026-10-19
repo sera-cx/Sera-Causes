@@ -2,8 +2,8 @@
  * Database rows to API shapes (packages/shared types plus a few derived fields
  * the web app shows: stage, checks, claim summaries, homepage and urgent state).
  */
-import type { Cause as CauseRow, ClaimState as ClaimRow, Gift as GiftRow, LedgerEntry as LedgerRow, Media as MediaRow, CauseWallet as WalletRow, Conversion as ConversionRow, Withdrawal as WithdrawalRow, Evidence as EvidenceRow, Path as PathRow, Vote as VoteRow, Challenge as ChallengeRow, Need as NeedRow, UrgentAppeal as AppealRow, HomepageFlag as FlagRow } from '@prisma/client';
-import { causeStage, requiredClaimsFor, type CauseProfile, type ClaimCode, type ClaimOutcomeName, type CauseStatus } from '@sera-causes/shared';
+import type { Cause as CauseRow, ClaimState as ClaimRow, Gift as GiftRow, LedgerEntry as LedgerRow, XpEvent as XpEventRow, Media as MediaRow, CauseWallet as WalletRow, Conversion as ConversionRow, Withdrawal as WithdrawalRow, Evidence as EvidenceRow, Path as PathRow, Vote as VoteRow, Challenge as ChallengeRow, Need as NeedRow, UrgentAppeal as AppealRow, HomepageFlag as FlagRow } from '@prisma/client';
+import { XP, causeStage, requiredClaimsFor, type CauseProfile, type ClaimCode, type ClaimOutcomeName, type CauseStatus, type XpEventType } from '@sera-causes/shared';
 import { config } from '../config.js';
 
 export const iso = (d: Date | null | undefined): string | null => (d ? d.toISOString() : null);
@@ -210,6 +210,23 @@ export function serializeLedger(e: LedgerRow) {
     state: e.state,
     gseraRef: e.gseraRef,
     createdAt: e.createdAt.toISOString(),
+  };
+}
+
+/** One Care XP event, with the label the web app shows. */
+export function serializeXpEvent(e: XpEventRow) {
+  return {
+    id: e.id,
+    wallet: e.wallet,
+    eventType: e.eventType,
+    label: XP[e.eventType as XpEventType]?.label ?? e.eventType,
+    xp: e.xp,
+    sourceRef: e.sourceRef,
+    causeId: e.causeId,
+    proofUrl: e.proofUrl,
+    state: e.state,
+    createdAt: e.createdAt.toISOString(),
+    sentAt: iso(e.sentAt),
   };
 }
 

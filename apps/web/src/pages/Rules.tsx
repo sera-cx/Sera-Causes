@@ -1,7 +1,7 @@
 /* Every tunable number is rendered from src/lib/constants.ts and shown only here. */
 import { SectionHeader } from "@/components/SectionHeader";
 import { useSeo } from "@/hooks/useSeo";
-import { CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, DEFAULT_VERIFICATION_MODE, GSERA, LINKS, REPUTATION, VOTE_WEIGHT, VOTING } from "@/lib/constants";
+import { CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, COMMUNITY_SITE, DEFAULT_VERIFICATION_MODE, GSERA, LINKS, REPUTATION, VOTE_WEIGHT, VOTING, XP, XP_EVENT_TYPES } from "@/lib/constants";
 import { fmtInt, fmtMultiplier } from "@/lib/format";
 import { useStats } from "@/lib/queries";
 import { giftGsera, voteWeight } from "@/lib/rules";
@@ -15,7 +15,7 @@ export function RulesPage() {
     <div className="container max-w-4xl py-10 md:py-14">
       <SectionHeader kicker="Rules" title="The rules, with every number in one place." lede="Written so a 15 year old can follow it. Numbers marked proposed may change before community mode; we change them here and nowhere else." size="lg" />
       <nav aria-label="On this page" className="mt-6 flex flex-wrap gap-2 font-mono text-[11.5px] uppercase tracking-[0.1em]">
-        {[["gsera", "gSera"], ["verification", "Verification"], ["challenges", "Challenges"], ["stewards", "Stewards"], ["reports", "Reports"], ["data", "Personal data"], ["faq", "FAQ"]].map(([id, label]) => (
+        {[["gsera", "gSera"], ["xp", "Care XP"], ["verification", "Verification"], ["challenges", "Challenges"], ["stewards", "Stewards"], ["reports", "Reports"], ["data", "Personal data"], ["faq", "FAQ"]].map(([id, label]) => (
           <a key={id} href={`#${id}`} className="rounded-full border border-rule px-3 py-1.5 text-ink-muted hover:text-ink">
             {label}
           </a>
@@ -23,8 +23,8 @@ export function RulesPage() {
       </nav>
 
       <div className="prose-csd">
-        <h2 id="gsera" className="scroll-mt-24">gSera points</h2>
-        <p>gSera is the same balance as g.sera.cx. Gifts and helping earn it. It is credited to your wallet when the gift arrives and passes screening. There is nothing to refund, so there is no waiting period.</p>
+        <h2 id="gsera" className="scroll-mt-24">gSera points, for giving</h2>
+        <p>gSera is the same balance as g.sera.cx. Giving earns it. It is credited to your wallet when the gift arrives and passes screening. There is nothing to refund, so there is no waiting period. Helping earns Care XP on {COMMUNITY_SITE} instead, in the next section.</p>
         <h3>Gifts</h3>
         <p>gSera per gift = gift in US$ x {GSERA.perUsd} x heat x volume tier x streak, capped at {GSERA.compoundCap}x in total.</p>
         <table>
@@ -41,22 +41,8 @@ export function RulesPage() {
         </table>
         <p>Example: a US$50 gift to an urgent appeal, on a 1.2x volume tier and a 1.1x streak, earns 50 x {GSERA.perUsd} x {GSERA.heat.urgent} x 1.2 x 1.1 = {fmtInt(example)} gSera.</p>
         <p>A gift that settles through a Sera.cx swap earns once, at the donor rate. The swap leg does not also earn taker gSera. A gift in the cause's own stablecoin still earns, because the point is the gift, not the swap.</p>
-        <h3>Helping</h3>
-        <table>
-          <thead>
-            <tr><th>Action</th><th>gSera</th><th>Credited</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Add a cause that later reaches Verified</td><td className="num">{fmtInt(GSERA.helper.listingVerified)}</td><td>On Verified</td></tr>
-            <tr><td>Write a verification path the final outcome agrees with</td><td className="num">{fmtInt(GSERA.helper.pathAgrees)}</td><td>When the claim is final and the challenge window has closed</td></tr>
-            <tr><td>Vote in line with the final outcome</td><td className="num">{fmtInt(GSERA.helper.voteAgrees)}</td><td>Same</td></tr>
-            <tr><td>Help request fulfilled, confirmed by the charity</td><td className="num">{fmtInt(GSERA.helper.helpFulfilled)}</td><td>On confirmation</td></tr>
-            <tr><td>Successful challenge</td><td className="num">stake back + {fmtInt(GSERA.helper.challengeWin)}</td><td>When the challenge is upheld</td></tr>
-          </tbody>
-        </table>
-        <p>All helper numbers are proposed.</p>
         <h3>Charity gSera</h3>
-        <p>gSera earned from gifts and helping is tagged by source. It can be spent on g.sera.cx and staked on challenges, but it cannot buy Lucky Draw tickets. Spending never lowers your lifetime rank.</p>
+        <p>gSera earned from gifts is tagged by source. It can be spent on g.sera.cx and staked on challenges, but it cannot buy Lucky Draw tickets. Spending never lowers your lifetime rank.</p>
         <h3>Anti-gaming</h3>
         <ul>
           <li>Wallets linked to a cause's owner or payout wallet earn no gSera on that cause. Linked means the same address, funded directly from it within 30 days, or flagged by Sera.cx KYT clustering.</li>
@@ -65,6 +51,31 @@ export function RulesPage() {
           <li>Vote rewards are small. Voting against the final outcome costs reputation.</li>
           <li>All gifts pass Sera.cx KYT and KYA screening. Flagged gifts earn no gSera.</li>
         </ul>
+
+        <h2 id="xp" className="scroll-mt-24">Care XP, for helping</h2>
+        <p>
+          Helping earns XP on{" "}
+          <a href={LINKS.community} target="_blank" rel="noopener noreferrer">
+            {COMMUNITY_SITE}
+          </a>
+          , not gSera. XP is your standing in the Care track of the Sera.cx community programme. It is not a balance, it cannot be spent and it has no cash value.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Action</th><th>XP</th><th>Credited</th></tr>
+          </thead>
+          <tbody>
+            {XP_EVENT_TYPES.map((t) => (
+              <tr key={t}>
+                <td>{XP[t].label}</td>
+                <td className="num">{fmtInt(XP[t].amount)}</td>
+                <td>{XP[t].when}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>Every XP number is proposed, pending the community team's assessment.</p>
+        <p>Each event is recorded on causes.sera.cx the moment you earn it, once per listing, path, vote, piece of evidence, help request or challenge. It is credited on {COMMUNITY_SITE} once the link between the two sites is live. Until then your XP is held here and nothing is lost.</p>
 
         <h2 id="verification" className="scroll-mt-24">Verification</h2>
         <p>A cause is verified one claim at a time. Each claim is a single fact with a clear yes or no. Verified means C1, C2, C3 and C4 are all verified, plus C6 where the law needs a care licence. C5 and C7 are separate badges. Verification is a trust signal. It does not control the money, which goes straight to the cause.</p>
@@ -107,7 +118,7 @@ export function RulesPage() {
         </table>
         <p>Voters must open the paths first. The vote button sits under the paths and unlocks only after they have been opened. A "Needs more evidence" outcome reopens the claim. It is not a fail.</p>
         <h3>Vote weight and reputation</h3>
-        <p>weight = 1 + min({VOTE_WEIGHT.max - VOTE_WEIGHT.min}, log2(1 + reputation)), so between {VOTE_WEIGHT.min} and {VOTE_WEIGHT.max}. New voters count as {VOTE_WEIGHT.min}. Reputation grows by {REPUTATION.agrees} for each vote and each path that matches a final, unchallenged outcome, and drops by {Math.abs(REPUTATION.overturned)} for each one a successful challenge overturns. gSera does not add vote weight. Points cannot buy verification.</p>
+        <p>weight = 1 + min({VOTE_WEIGHT.max - VOTE_WEIGHT.min}, log2(1 + reputation)), so between {VOTE_WEIGHT.min} and {VOTE_WEIGHT.max}. New voters count as {VOTE_WEIGHT.min}. Reputation grows by {REPUTATION.agrees} for each vote and each path that matches a final, unchallenged outcome, and drops by {Math.abs(REPUTATION.overturned)} for each one a successful challenge overturns.Neither gSera nor XP adds vote weight. Points cannot buy verification.</p>
         <table>
           <thead>
             <tr><th>Reputation</th><th>Weight</th></tr>
@@ -125,7 +136,7 @@ export function RulesPage() {
         <ul>
           <li>Anyone can challenge a verified or pending-final claim by staking {fmtInt(CHALLENGE_STAKE)} gSera (proposed) and uploading counter-evidence with their own path.</li>
           <li>A challenge reopens voting on that claim for {VOTING.periodDays} days, with the challenge shown at the top.</li>
-          <li>If the challenge wins: the claim flips, the challenger gets the stake back plus {fmtInt(GSERA.helper.challengeWin)} gSera, and the people whose paths and votes were overturned lose {Math.abs(REPUTATION.overturned)} reputation each. If the claim was required, the cause loses Verified.</li>
+          <li>If the challenge wins: the claim flips, the challenger gets the stake back plus {fmtInt(XP.care_challenge_upheld.amount)} XP on {COMMUNITY_SITE}, and the people whose paths and votes were overturned lose {Math.abs(REPUTATION.overturned)} reputation each. If the claim was required, the cause loses Verified.</li>
           <li>If the challenge loses: the stake is burned.</li>
         </ul>
 
@@ -154,6 +165,8 @@ export function RulesPage() {
         <p>Verified is removed and the payout wallet claim (C3) has to be checked again with a new signed message.</p>
         <h3>Which stablecoins can I use?</h3>
         <p>USDT, USDC, XSGD and MYRT at launch. If the cause keeps a different one, the site swaps through Sera.cx and shows the rate and fees before you confirm.</p>
+        <h3>Can I spend my XP?</h3>
+        <p>No. XP is a standing on {COMMUNITY_SITE}, not money and not a balance. gSera is the balance, and giving is what earns it.</p>
         <h3>Is this a licensed charity or fundraiser?</h3>
         <p>No. Care Share Donate is an open list and a set of tools on Sera.cx. Gifts go to the organisations themselves. Check the C5 badge for tax deductibility.</p>
         <p>

@@ -81,6 +81,16 @@ describe("mock world built from the seed, in the API's shapes", () => {
     expect(me.ledger.credited).toBeGreaterThan(0);
     expect(me.eligibility.canVote).toBe(true);
     expect(me.causes.some((c) => c.slug === "mercy-malaysia")).toBe(true);
+    // Helping shows as Care XP on community.sera.cx, not as gSera.
+    expect(me.xp.site).toBe("community.sera.cx");
+    expect(me.xp.mode).toBe("queue");
+    expect(me.xp.total).toBe(me.xp.queued);
+    expect(me.xp.total).toBeGreaterThan(0);
+    expect(me.xp.events.every((e) => e.eventType.startsWith("care_"))).toBe(true);
+    expect(me.ledger.entries.every((l) => ["gift", "challenge_stake", "challenge_stake_return"].includes(l.reason))).toBe(true);
+    const helpers = await api.getLeaderboards("helpers", "all");
+    if (helpers.board !== "helpers") throw new Error("expected the helpers board");
+    expect(helpers.entries[0]!.xp).toBeGreaterThan(0);
   });
 
   it("locks the vote until the paths were opened, then records it", async () => {

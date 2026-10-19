@@ -34,6 +34,8 @@ import type {
   Vote,
   VoteChoice,
   Withdrawal,
+  XpEventState,
+  XpEventType,
 } from "@sera-causes/shared";
 
 export type {
@@ -84,6 +86,9 @@ export type {
   Vote,
   VoteChoice,
   Withdrawal,
+  XpEventState,
+  XpEventType,
+  XpReward,
 } from "@sera-causes/shared";
 
 // ---------------------------------------------------------------------------
@@ -363,6 +368,8 @@ export interface Stats {
   helpers: number;
   gseraCredited: number;
   gseraQueued: number;
+  /** Care XP waiting to go to community.sera.cx. */
+  xpQueued: number;
   helpRequestsOpen: number;
 }
 
@@ -398,7 +405,9 @@ export interface GiverEntry {
 }
 export interface HelperEntry {
   wallet: Address;
-  gsera: number;
+  /** Care XP on community.sera.cx. */
+  xp: number;
+  events: number;
   reputation: number;
 }
 export interface CauseEntry {
@@ -409,7 +418,7 @@ export interface CauseEntry {
 
 export type Leaderboards =
   | { board: "givers"; period: LeaderboardPeriod; entries: GiverEntry[] }
-  | { board: "helpers"; period: LeaderboardPeriod; entries: HelperEntry[] }
+  | { board: "helpers"; period: LeaderboardPeriod; site?: string; entries: HelperEntry[] }
   | { board: "causes"; period: LeaderboardPeriod; entries: CauseEntry[] };
 
 // ---------------------------------------------------------------------------
@@ -425,6 +434,33 @@ export interface GseraWallet {
 
 export interface LedgerView extends LedgerEntry {
   causeId: number | null;
+}
+
+export interface XpEventView {
+  id: string;
+  wallet: Address;
+  eventType: XpEventType;
+  /** Short label from the shared XP table. */
+  label: string;
+  xp: number;
+  sourceRef: string;
+  causeId: number | null;
+  proofUrl: string | null;
+  state: XpEventState;
+  createdAt: string;
+  sentAt: string | null;
+}
+
+export interface XpSummary {
+  total: number;
+  queued: number;
+  sent: number;
+  unmatched: number;
+  /** Always community.sera.cx. */
+  site: string;
+  /** queue until the partner route is live. */
+  mode: "queue" | "live";
+  events: XpEventView[];
 }
 
 export interface NotificationView {
@@ -453,6 +489,8 @@ export interface Me {
   kytState: KytState;
   gsera: GseraWallet | null;
   ledger: { credited: number; queued: number; cancelled: number; staked: number; entries: LedgerView[] };
+  /** Care XP on community.sera.cx. A standing, not a balance: it cannot be spent. */
+  xp: XpSummary;
   reputation: number;
   gifts: GiftView[];
   paths: PathView[];

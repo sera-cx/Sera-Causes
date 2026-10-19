@@ -128,7 +128,7 @@ export async function refreshCauseTotals(causeId: number): Promise<void> {
 
 /** Platform numbers for /stats and the homepage strip. */
 export async function stats() {
-  const [causes, verified, given, gifts, givers, helpers, vested, pending, needsOpen] = await Promise.all([
+  const [causes, verified, given, gifts, givers, helpers, vested, pending, xpPending, needsOpen] = await Promise.all([
     db().cause.count({ where: { status: { in: ['listed', 'verified'] } } }),
     db().cause.count({ where: { status: 'verified' } }),
     db().gift.aggregate({ _sum: { usd: true } }),
@@ -137,6 +137,7 @@ export async function stats() {
     db().path.findMany({ select: { author: true }, distinct: ['author'] }),
     db().ledgerEntry.aggregate({ _sum: { amount: true }, where: { state: 'credited', reason: { not: 'challenge_stake' } } }),
     db().ledgerEntry.aggregate({ _sum: { amount: true }, where: { state: 'queued' } }),
+    db().xpEvent.aggregate({ _sum: { xp: true }, where: { state: 'queued' } }),
     db().need.count({ where: { open: true } }),
   ]);
   return {
@@ -148,6 +149,8 @@ export async function stats() {
     helpers: helpers.length,
     gseraCredited: vested._sum.amount ?? 0,
     gseraQueued: pending._sum.amount ?? 0,
+    /** Care XP waiting to go to community.sera.cx. */
+    xpQueued: xpPending._sum.xp ?? 0,
     helpRequestsOpen: needsOpen,
   };
 }

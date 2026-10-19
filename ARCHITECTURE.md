@@ -99,8 +99,13 @@ export const REQUIRED_CLAIMS = ['C1','C2','C3','C4'];                        // 
 export const VOTING = { minPaths: 2, periodDays: 5, minHours: 48, quorumWeight: 7, thresholdPct: 75, challengeWindowHours: 72 };
 export const CHALLENGE_STAKE = 5000;
 export const GSERA = { perUsd: 100, compoundCap: 10, heat: { urgent: 2.5, normal: 1 },
-  helper: { listingVerified: 2500, pathAgrees: 1000, voteAgrees: 100, helpFulfilled: 500, challengeWin: 2000 },
-  giftCapUsdPerWalletPerCausePer30d: 1000, vestDays: 90 };
+  giftCapUsdPerWalletPerCausePer30d: 1000, giftCapWindowDays: 30 };          // giving only
+// Helpers earn XP on community.sera.cx, not gSera (docs/PLAN.md section 7).
+export const XP = { care_cause_listed: 100, care_cause_verified: 1500, care_evidence_accepted: 100,
+  care_path_agreed: 400, care_site_visit: 400, care_vote_agreed: 25, care_help_fulfilled: 250,
+  care_translation: 250, care_charity_claimed: 500, care_challenge_upheld: 1000,
+  community_referral: 500 };                                                 // each with a label and when
+export function xpFor(eventType: XpEventType): number;
 
 export function giftGsera(usd, { heat, volumeTier, streak }): number;        // usd*100*min(10, heat*volume*streak), floor
 export function voteWeight(reputation: number): number;                       // 1 + min(4, log2(1 + rep))
@@ -201,14 +206,30 @@ Finaliser CLI (`indexer/src/finaliser`): `tally-claim <causeId> <claim>`,
   partner routes: `POST /v1/causes/credit { wallet, amount_gsera, grant_type, reference_id, reason }`
   and `POST /v1/causes/spend { wallet, amount_gsera, reason, reference_id }`,
   plus `GET /v1/causes/wallet/:address` returning `{ spendable, multipliers }`.
-  `grant_type` values: `causes_gift`, `causes_path`, `causes_vote`,
-  `causes_help`, `causes_listing`, `causes_challenge`. Charity-tag exclusion
-  from Lucky Draw is a gSera-side change tracked in `docs/GSERA-INTEGRATION.md`.
+  `grant_type` values in use: `causes_gift` (a gift) and `causes_challenge`
+  (the stake returned when a challenge is upheld). The helper grant types are
+  retired: helpers earn XP, see section 7a. Charity-tag exclusion from Lucky
+  Draw is a gSera-side change tracked in `docs/GSERA-INTEGRATION.md`.
 - `gsera-client` signs `X-Sera-Signature: sha256=<hmac of raw body>` and
   exposes `credit`, `spend`, `getWallet`, `reverseCredit`. `GSERA_MODE=mock`
   stores balances in Postgres so the full flow works locally.
 - With no refunds there is no vesting: gift gSera is credited on arrival once
   KYT is clear. `reverseCredit` is for steward clawbacks only.
+- gSera has two jobs on causes.sera.cx and only two: gifts, and the challenge
+  stake. Nothing a helper does credits gSera.
+
+## 7a. community.sera.cx integration (Care XP)
+
+- Every helper action is an `XpEvent` row, unique on `(eventType, sourceRef)`,
+  created by `indexer/src/ledger/xp.ts` and queued through
+  `indexer/src/community/client.ts`. States: `queued`, `sent`, `unmatched`.
+- The proposed partner route is `POST /api/partner/xp` on
+  `COMMUNITY_BASE_URL`, signed with `X-Sera-Signature: sha256=<hmac of raw
+  body>` keyed by `COMMUNITY_HMAC_KEY`, the same scheme as the gSera partner
+  calls. It is not agreed yet, so `COMMUNITY_MODE=queue` is the only mode that
+  does anything: it records the event and logs it.
+- XP is a standing on community.sera.cx. It is not a balance, it cannot be
+  spent and it has no cash value.
 
 ## 8. Settlement adapter (`packages/sera-settlement`)
 

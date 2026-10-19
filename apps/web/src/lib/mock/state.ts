@@ -4,7 +4,7 @@
  * same output, except that timestamps are relative to the moment the module
  * loads so countdowns and "x days ago" read naturally.
  */
-import { CHALLENGE_STAKE, CLAIMS, GSERA, VOTING, causeStage, embedFor, giftGsera, requiredClaimsFor, voteWeight, type Address, type CauseProfile, type CauseStatus, type ClaimCode, type Hex, type PathBody, type PathResult, type VoteChoice } from "@sera-causes/shared";
+import { CHALLENGE_STAKE, CLAIMS, GSERA, VOTING, XP, causeStage, embedFor, giftGsera, requiredClaimsFor, voteWeight, type Address, type CauseProfile, type CauseStatus, type ClaimCode, type Hex, type PathBody, type PathResult, type VoteChoice, type XpEventType } from "@sera-causes/shared";
 import { DEMO_WALLET } from "../devWallet";
 import type {
   CauseDetail,
@@ -23,6 +23,7 @@ import type {
   VoteView,
   WalletView,
   WithdrawalView,
+  XpEventView,
 } from "../types";
 import { SEED_ATTEST, SEED_PROFILES } from "./seed";
 
@@ -424,6 +425,8 @@ export interface MockWorld {
   record: MockRecord[];
   gifts: GiftView[];
   ledger: LedgerView[];
+  /** Care XP events, queued for community.sera.cx. */
+  xpEvents: XpEventView[];
   reputation: Map<string, number>;
   shares: Map<number, Record<string, number>>;
   /** Wallets the demo wallet's `pathsOpened` gate tracks per claim key. */
@@ -467,6 +470,7 @@ export function buildWorld(): MockWorld {
   const record: MockRecord[] = [];
   const gifts: GiftView[] = [];
   const ledger: LedgerView[] = [];
+  const xpEvents: XpEventView[] = [];
   const reputation = new Map<string, number>();
   const shares = new Map<number, Record<string, number>>();
   let seq = 1000;
@@ -781,13 +785,13 @@ export function buildWorld(): MockWorld {
     return cause;
   });
 
-  seedDemoWallet(causes, gifts, ledger, paths, votes, nextSeq);
+  seedDemoWallet(causes, gifts, ledger, xpEvents, paths, votes, nextSeq);
 
-  return { causes, evidence, paths, votes, challenges, record, gifts, ledger, reputation, shares, pathsOpened: new Set(), nextId: seq + 1 };
+  return { causes, evidence, paths, votes, challenges, record, gifts, ledger, xpEvents, reputation, shares, pathsOpened: new Set(), nextId: seq + 1 };
 }
 
 /** The demo wallet's own history: two gifts, a swap, a held vote, three agreed paths. */
-function seedDemoWallet(causes: CauseDetail[], gifts: GiftView[], ledger: LedgerView[], paths: PathView[], votes: VoteView[], nextSeq: () => number): void {
+function seedDemoWallet(causes: CauseDetail[], gifts: GiftView[], ledger: LedgerView[], xpEvents: XpEventView[], paths: PathView[], votes: VoteView[], nextSeq: () => number): void {
   const mercy = causes.find((c) => c.slug === "mercy-malaysia")!;
   const hospis = causes.find((c) => c.slug === "hospis-malaysia")!;
   const wwf = causes.find((c) => c.slug === "wwf-malaysia")!;
@@ -818,7 +822,21 @@ function seedDemoWallet(causes: CauseDetail[], gifts: GiftView[], ledger: Ledger
     createdAt,
   });
   ledger.push(entry(8_800, "gift", "trading", "season-1-swaps", null, "credited", ago(24 * 70)));
-  for (const p of paths.filter((p) => p.author === DEMO_WALLET)) ledger.push(entry(GSERA.helper.pathAgrees, "path", "charity", p.id, p.causeId, "credited", p.createdAt));
+  // Helping earns Care XP on community.sera.cx, never gSera (docs/PLAN.md section 7).
+  const xpEvent = (eventType: XpEventType, sourceRef: string, causeId: number | null, createdAt: string): XpEventView => ({
+    id: `xp_${nextSeq()}`,
+    wallet: DEMO_WALLET,
+    eventType,
+    label: XP[eventType].label,
+    xp: XP[eventType].amount,
+    sourceRef,
+    causeId,
+    proofUrl: causeId === null ? null : `/c/${causeId}`,
+    state: "queued",
+    createdAt,
+    sentAt: null,
+  });
+  for (const p of paths.filter((p) => p.author === DEMO_WALLET)) xpEvents.push(xpEvent("care_path_agreed", p.id, p.causeId, p.createdAt));
   ledger.push(entry(g1, "gift", "charity", gift1.id, mercy.id, "credited", g1At, { heat: GSERA.heat.urgent, volumeTier: multipliers.volumeTier, streak: multipliers.streak, compound: GSERA.heat.urgent * multipliers.volumeTier * multipliers.streak }));
   ledger.push(entry(g2, "gift", "charity", gift2.id, hospis.id, "credited", g2At, { heat: 1, volumeTier: multipliers.volumeTier, streak: multipliers.streak, compound: multipliers.volumeTier * multipliers.streak }));
 

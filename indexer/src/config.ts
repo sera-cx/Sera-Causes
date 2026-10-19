@@ -75,6 +75,16 @@ const schema = z.object({
   GSERA_BASE_URL: z.string().url().default('https://g.sera.cx'),
   GSERA_HMAC_KEY: z.string().default(''),
 
+  /**
+   * community.sera.cx, where helpers earn Care XP (docs/PLAN.md section 7).
+   * `queue`: XP events are recorded here and left queued, which is all v1 can
+   * do until `POST /api/partner/xp` is agreed. `live` will push them.
+   */
+  COMMUNITY_MODE: z.enum(['queue', 'live']).default('queue'),
+  COMMUNITY_BASE_URL: z.string().url().default('https://community.sera.cx'),
+  /** HMAC key for the `X-Sera-Signature` header on the partner route. */
+  COMMUNITY_HMAC_KEY: z.string().default(''),
+
   KYT_MODE: z.enum(['stub', 'live']).default('stub'),
   KYT_BASE_URL: z.string().url().default('https://kyt.sera.cx'),
   KYT_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),

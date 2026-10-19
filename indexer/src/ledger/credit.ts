@@ -2,6 +2,10 @@
  * Credit-at-once ledger (docs/PLAN.md section 6): there is no escrow and no refund,
  * so every earned entry is pushed to g.sera.cx the moment it is created.
  * grantType per reason, referenceId = LedgerEntry.id, idempotent on the gSera side.
+ *
+ * Only two reasons credit gSera (docs/PLAN.md section 7): a gift, and the stake
+ * returned when a challenge is upheld. Helper actions earn Care XP on
+ * community.sera.cx instead, see ledger/xp.ts.
  */
 import { GSERA_GRANT_TYPES } from '@sera-causes/shared';
 import type { GrantType } from '@sera-causes/gsera-client';
@@ -12,11 +16,7 @@ import { logger } from '../log.js';
 
 const GRANT_FOR_REASON: Record<string, GrantType> = {
   gift: GSERA_GRANT_TYPES.gift,
-  path: GSERA_GRANT_TYPES.path,
-  vote: GSERA_GRANT_TYPES.vote,
-  help: GSERA_GRANT_TYPES.help,
-  listing: GSERA_GRANT_TYPES.listing,
-  challenge_win: GSERA_GRANT_TYPES.challenge_win,
+  challenge_stake_return: GSERA_GRANT_TYPES.challenge_stake_return,
 };
 
 export function grantTypeFor(reason: string): GrantType {
@@ -28,7 +28,7 @@ export function grantTypeFor(reason: string): GrantType {
 export interface CreditInput {
   wallet: string;
   amount: number;
-  reason: 'gift' | 'path' | 'vote' | 'help' | 'listing' | 'challenge_win';
+  reason: 'gift' | 'challenge_stake_return';
   sourceRef: string;
   causeId?: number | null;
   multipliers?: Prisma.InputJsonValue;

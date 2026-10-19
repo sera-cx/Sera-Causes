@@ -11,8 +11,8 @@ import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, prepareCause, submitCause } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CATEGORIES, CLAIM_INFO, GSERA, STATE_NAMES } from "@/lib/constants";
-import { fmtGsera } from "@/lib/format";
+import { CATEGORIES, CLAIM_INFO, COMMUNITY_SITE, STATE_NAMES, XP } from "@/lib/constants";
+import { fmtXp } from "@/lib/format";
 import { useInvalidateAll } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
 import type { CauseDetail, NewCauseDocument, NewCauseInput, OrgKind, PreparedCause } from "@/lib/types";
@@ -118,7 +118,7 @@ export function AddPage() {
     <div className="container max-w-3xl py-8 md:py-12">
       <Eyebrow>Add a cause</Eyebrow>
       <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">List a cause you know.</h1>
-      <p className="mt-3 text-[16px] text-ink-muted max-w-[58ch]">Anyone with a wallet can add one. There is no deposit. If it later reaches Verified, you earn {fmtGsera(GSERA.helper.listingVerified)}.</p>
+      <p className="mt-3 text-[16px] text-ink-muted max-w-[58ch]">Anyone with a wallet can add one. There is no deposit. Listing it earns {fmtXp(XP.care_cause_listed.amount)} on {COMMUNITY_SITE}, and {fmtXp(XP.care_cause_verified.amount)} more if it later reaches Verified.</p>
 
       <ol className="mt-8 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em]" aria-label="Steps">
         {(["details", "documents", "review"] as const).map((s, i) => (
@@ -385,7 +385,7 @@ function Done({ cause }: { cause: CauseDetail }) {
       <ol className="mt-6 space-y-3 text-[15.5px]">
         {[
           `It shows under New${cause.showOnHomepage ? " and on the homepage feed" : ""}, with a New pill until someone checks it.`,
-          "Anyone can upload evidence and write a verification path. Helpers earn gSera when the outcome agrees with them.",
+          `Anyone can upload evidence and write a verification path. Helpers earn XP on ${COMMUNITY_SITE} when the outcome agrees with them.`,
           "Gifts go straight to the cause's address from day one. If you know the charity, invite them to claim the listing, set the payout wallet and post updates.",
         ].map((t, i) => (
           <li key={i} className="flex gap-3">

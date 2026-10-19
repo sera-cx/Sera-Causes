@@ -5,6 +5,7 @@ import { GfCard, GreenField } from "@/components/GreenField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSeo } from "@/hooks/useSeo";
+import { COMMUNITY_SITE } from "@/lib/constants";
 import { fmtInt, fmtUsd } from "@/lib/format";
 import { useLeaderboards } from "@/lib/queries";
 import { causeHref, shortAddress } from "@/lib/rules";
@@ -13,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 const BOARDS: { id: LeaderboardBoard; label: string; blurb: string }[] = [
   { id: "givers", label: "Givers", blurb: "By US$ given across every cause." },
-  { id: "helpers", label: "Helpers", blurb: "By gSera earned from paths, votes, help and listings." },
+  { id: "helpers", label: "Helpers", blurb: `By Care XP on ${COMMUNITY_SITE}, from paths, votes, evidence, help and listings.` },
   { id: "causes", label: "Causes", blurb: "By US$ received." },
 ];
 
@@ -30,7 +31,7 @@ interface Row {
 function toRows(data: Leaderboards | undefined): Row[] {
   if (!data) return [];
   if (data.board === "givers") return data.entries.map((e, i) => ({ rank: i + 1, label: shortAddress(e.wallet), value: Math.round(Number(e.usd)), unit: "US$", secondary: `${e.gifts} ${e.gifts === 1 ? "gift" : "gifts"}` }));
-  if (data.board === "helpers") return data.entries.map((e, i) => ({ rank: i + 1, label: shortAddress(e.wallet), value: e.gsera, unit: "gSera", secondary: `reputation ${e.reputation}` }));
+  if (data.board === "helpers") return data.entries.map((e, i) => ({ rank: i + 1, label: shortAddress(e.wallet), value: e.xp, unit: "XP", secondary: `reputation ${e.reputation}` }));
   return data.entries.map((e, i) => ({ rank: i + 1, label: e.cause.name, causeId: e.cause.id, causeSlug: e.cause.slug, value: Math.round(Number(e.usd)), unit: "US$", secondary: `${e.gifts} ${e.gifts === 1 ? "gift" : "gifts"}, ${fmtUsd(Number(e.cause.givenUsd))} all time` }));
 }
 

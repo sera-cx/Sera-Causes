@@ -5,8 +5,8 @@ import { Eyebrow } from "@/components/Eyebrow";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Wallet } from "@/components/Wallet";
 import { useSeo } from "@/hooks/useSeo";
-import { CHALLENGE_STAKE, GSERA, LINKS, VOTING } from "@/lib/constants";
-import { fmtDate, fmtGsera, fmtInt } from "@/lib/format";
+import { CHALLENGE_STAKE, COMMUNITY_SITE, GSERA, LINKS, VOTING, XP } from "@/lib/constants";
+import { fmtDate, fmtGsera, fmtInt, fmtXp } from "@/lib/format";
 import { useLatestEvents } from "@/lib/queries";
 import { describeRecord } from "@/lib/record";
 import { causeHref } from "@/lib/rules";
@@ -14,7 +14,7 @@ import { causeHref } from "@/lib/rules";
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
 export function TechnologyPage() {
-  useSeo("Technology", "How Care Share Donate works: one open list of causes, gifts that go straight to the cause, community verification, gSera, and the public record.");
+  useSeo("Technology", `How Care Share Donate works: one open list of causes, gifts that go straight to the cause, community verification, gSera for giving, XP on ${COMMUNITY_SITE} for helping, and the public record.`);
   return (
     <div className="container max-w-4xl py-10 md:py-14">
       <SectionHeader kicker="Technology" title="How it works, for people who want to know." lede="Everything below is open source. Anyone can read the list, check the record, or run their own front end on it." size="lg" />
@@ -34,20 +34,29 @@ export function TechnologyPage() {
         <h2 id="verification">3. How charities get verified</h2>
         <p>Verification is a trust signal, not a gate on the money. It shows what has been checked, by whom, and how. A cause is verified one claim at a time. Each claim is a single fact with a yes or no: the organisation is registered; the registration is current; the payout wallet belongs to it; the work is real and current. Children's homes and care centres also need a care licence. Tax exemption and published accounts are extra badges.</p>
         <p>Evidence goes up first. Then helpers write a verification path: the official source they used, every step, the exact search string, what they found, a dated screenshot and a conflict-of-interest line. Paths are signed by the helper's wallet and are public and permanent, so anyone can repeat the check.</p>
-        <p>Once a claim has {VOTING.minPaths} independent paths, voting opens for {VOTING.periodDays} days. Vote weight comes from reputation alone, between 1 and 5, never from gSera. A claim needs a total weight of {VOTING.quorumWeight} and {VOTING.thresholdPct}% saying Verified. Then a {VOTING.challengeWindowHours} hour challenge window lets anyone object by staking {fmtGsera(CHALLENGE_STAKE)} with counter-evidence. If nobody does, the result and a Merkle root of the inputs go on-chain, and anyone can recompute it with the published script.</p>
+        <p>Once a claim has {VOTING.minPaths} independent paths, voting opens for {VOTING.periodDays} days. Vote weight comes from reputation alone, between 1 and 5, never from gSera or XP. A claim needs a total weight of {VOTING.quorumWeight} and {VOTING.thresholdPct}% saying Verified. Then a {VOTING.challengeWindowHours} hour challenge window lets anyone object by staking {fmtGsera(CHALLENGE_STAKE)} with counter-evidence. If nobody does, the result and a Merkle root of the inputs go on-chain, and anyone can recompute it with the published script.</p>
         <p>While we launch, the site runs in advisory mode: votes and tallies are shown, and a Sera.cx steward finalises each claim. Switching to community mode, where votes decide, is one setting. Stewards also pause a cause on a credible report of fraud or harm, and remove evidence that contains personal data. Every steward action is on the record with a written reason, and the plan is for their role to shrink to legal takedowns.</p>
 
         <h2 id="gsera">4. gSera for giving</h2>
         <p>A donor is a taker whose trade goes to a cause. Same balance as g.sera.cx, same season, same base rate: {fmtInt(GSERA.perUsd)} gSera per US$1, times your volume tier and streak, and {GSERA.heat.urgent}x for an urgent appeal. gSera is credited to the sending wallet when the gift arrives and passes screening. A gift that settles through a Sera.cx swap earns once, at the donor rate. Wallets linked to a cause's owner or payout wallet earn nothing on that cause, and gifts above US${fmtInt(GSERA.giftCapUsdPerWalletPerCausePer30d)} per wallet per cause in {GSERA.giftCapWindowDays} days earn 0x.</p>
-        <p>Helping earns on the same scale: {fmtGsera(GSERA.helper.pathAgrees)} for a path the final outcome agrees with, {fmtGsera(GSERA.helper.voteAgrees)} for a vote in line with it, {fmtGsera(GSERA.helper.helpFulfilled)} for a fulfilled help request, {fmtGsera(GSERA.helper.listingVerified)} for listing a cause that reaches Verified. gSera earned from gifts and helping is tagged as charity gSera. It can be spent on g.sera.cx and staked on challenges, but it cannot buy Lucky Draw tickets. Charity gSera goes back to charity.</p>
+        <p>gSera earned from gifts is tagged as charity gSera. It can be spent on g.sera.cx and staked on challenges, but it cannot buy Lucky Draw tickets. Charity gSera goes back to charity.</p>
+        <h2 id="xp">5. Care XP for helping</h2>
+        <p>
+          Helping earns XP on{" "}
+          <a href={LINKS.community} target="_blank" rel="noopener noreferrer">
+            {COMMUNITY_SITE}
+          </a>
+          , not gSera: {fmtXp(XP.care_path_agreed.amount)} for a path the final outcome agrees with, another {fmtXp(XP.care_site_visit.amount)} when a C4 path carries a dated photo, {fmtXp(XP.care_vote_agreed.amount)} for a vote in line with the outcome, {fmtXp(XP.care_evidence_accepted.amount)} for evidence the final claim rests on, {fmtXp(XP.care_help_fulfilled.amount)} for a fulfilled help request, {fmtXp(XP.care_cause_listed.amount)} for adding a cause and {fmtXp(XP.care_cause_verified.amount)} when it reaches Verified. The full table is on <a href="/rules#xp">the rules page</a>.
+        </p>
+        <p>XP is a standing in the Care track of the Sera.cx community programme. It is not a balance, it cannot be spent and it has no cash value. Every event is recorded here as you earn it and credited on {COMMUNITY_SITE} once the link between the two sites is live.</p>
 
-        <h2 id="record">5. The record</h2>
+        <h2 id="record">6. The record</h2>
         <p>Every listing, piece of evidence, path, vote, result, gift, conversion, withdrawal and update is on the cause's record, newest first. On-chain events link to their transaction. Signed messages are stored with their hash and committed in the Merkle root when a claim is finalised. The latest events across every cause:</p>
       </div>
       <LatestRecord />
 
       <div className="prose-csd">
-        <h2 id="build">6. Build on it</h2>
+        <h2 id="build">7. Build on it</h2>
         <p>
           The code is on{" "}
           <a href={LINKS.github} target="_blank" rel="noopener noreferrer">
@@ -61,7 +70,7 @@ export function TechnologyPage() {
           <li>Recompute: <code>pnpm --filter @sera-causes/shared recompute &lt;inputs.json&gt;</code>.</li>
         </ul>
 
-        <h2 id="safety">7. Safety</h2>
+        <h2 id="safety">8. Safety</h2>
         <p>An independent security review of the contract happens before mainnet, not before Sepolia. Every gift and every voter passes KYT and KYA screening through kyt.sera.cx; flagged gifts earn no gSera. Personal data is redacted before upload and files with unredacted personal data are rejected. There is a bug bounty from launch. Report anything to security@sera.cx.</p>
         <p>
           Read the{" "}

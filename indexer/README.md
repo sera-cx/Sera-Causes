@@ -1,10 +1,11 @@
 # @sera-causes/indexer
 
 The Postgres-backed service behind causes.sera.cx: chain listener, signed-message
-store, read and write API, give flow, CSD gSera ledger, finaliser CLI and the
-public snapshot. Rules come from `@sera-causes/shared`; money moves through
-`@sera-causes/sera-settlement`; points go to g.sera.cx through
-`@sera-causes/gsera-client`.
+store, read and write API, give flow, CSD gSera ledger, Care XP queue,
+finaliser CLI and the public snapshot. Rules come from `@sera-causes/shared`;
+money moves through `@sera-causes/sera-settlement`; gift points go to g.sera.cx
+through `@sera-causes/gsera-client`; helper XP goes to community.sera.cx
+through `src/community/client.ts`.
 
 The money model is the one in [docs/PLAN.md section 6](../docs/PLAN.md): no
 escrow, no refunds. Each cause has a deposit address (`Cause.payout`, or the
@@ -103,6 +104,9 @@ Names follow the root `.env.example`. Extras added here are marked.
 | `SETTLEMENT_MODE` *(extra)* | `mock`, or `live` when `SERA_API_KEY` is set | `createMockSettlement` vs `createSettlement` |
 | `SERA_NETWORK`, `SERA_API_KEY`, `SERA_API_SECRET` | `sepolia` | Sera.cx settlement |
 | `GSERA_MODE`, `GSERA_BASE_URL`, `GSERA_HMAC_KEY` | `mock` | Mock balances live in Postgres (`MockGseraWallet`) |
+| `COMMUNITY_MODE` | `queue` | `queue` records every Care XP event in `XpEvent` and holds it. `live` is reserved for `POST /api/partner/xp` on community.sera.cx, which is not agreed yet |
+| `COMMUNITY_BASE_URL` | `https://community.sera.cx` | Where the partner route will live |
+| `COMMUNITY_HMAC_KEY` | unset | `X-Sera-Signature` HMAC key for that route |
 | `KYT_MODE`, `KYT_BASE_URL`, `KYT_API_KEY`, `KYT_FAIL_CLOSED` | `stub` | kyt.sera.cx screen on senders, voters and challengers |
 | `RESEND_API_KEY`, `EMAIL_FROM` | unset | Email outbox; without a key emails are logged and marked `logged` |
 | `VERIFICATION_MODE` | `advisory` | `advisory`: stewards finalise with the CLI. `community`: votes decide (automatic finalisation is not wired yet, see below) |
@@ -126,7 +130,7 @@ pick one of the user's linked wallets), or `X-Dev-Wallet: 0x…` when
 | GET | `/claims?tab=needs_evidence\|needs_checking\|open_for_votes\|challenged\|recently_verified` | | Verification hub |
 | GET | `/claims/:causeId/:claimType` | optional | Claim workspace: evidence, paths, votes, live tally, challenges, your eligibility |
 | GET | `/home` | | Urgent appeal, feed (`feedOrder`), new rail, categories, stats, open help requests |
-| GET | `/me` | auth | Wallet, gSera balance and multipliers, ledger, reputation, gifts, paths, votes, notifications, eligibility |
+| GET | `/me` | auth | Wallet, gSera balance and multipliers, ledger, Care XP total and recent XP events, reputation, gifts, paths, votes, notifications, eligibility |
 | GET | `/notifications` | auth | In-app notifications |
 | GET | `/leaderboards?board=givers\|helpers\|causes&period=7d\|30d\|all` | | |
 | GET | `/profiles/:hash.json` | | Cause metadata stored by `POST /causes/prepare` |
@@ -142,7 +146,7 @@ pick one of the user's linked wallets), or `X-Dev-Wallet: 0x…` when
 | POST | `/votes` | auth + Vote signature | Needs KYT clear plus one credited gift or one accepted contribution |
 | POST | `/causes/:id/homepage` | auth + HomepageToggle signature | Owner only; older or repeated toggles are rejected |
 | POST | `/challenges` | auth + Challenge signature | Spends the 5,000 gSera stake, reopens voting |
-| POST | `/needs/:id/confirm` | auth + HelpConfirm signature | Owner confirms a helper; 500 gSera |
+| POST | `/needs/:id/confirm` | auth + HelpConfirm signature | Owner confirms a helper; 250 XP, or 250 XP for a translation |
 | POST | `/stewards/urgent-appeal` | steward | Pin one cause with a public reason (or `clear`) |
 | POST | `/stewards/hide` | steward | Take a cause off the homepage with a public reason (or restore) |
 | POST | `/gifts/quote` | optional | Same currency: transfer plan `{ to, token, amountRaw, eip681 }`. Different currency: Sera.cx quote with `recipient = causeAddress` and signing payloads |
@@ -168,7 +172,7 @@ Also at the root: `GET /health`, `GET /photos/<file>` (seed photos),
 | `listener` | 15 s | Registry logs from the cursor in chunks into the mirrored tables and `RecordEvent`; then `Transfer` logs of the listed stablecoins filtered by `to` in the set of deposit addresses: USD via settlement `fxRate` (1 for USD stables), KYT screen on the sender, `Gift` with `source` site, direct or sera_swap, cause totals from gift rows, gSera credited at once through the ledger. Re-screens gifts held on an unknown KYT answer |
 | `treasury` | 60 s | Causes in auto mode with delegated signing: quote a Sera.cx conversion of unconverted balance into the target token. Signing goes through `TreasurySigner`; the stub cannot sign, so the conversion stays `quoted` for the dashboard |
 | `settlement-poll` | 30 s | Pending Sera.cx trades (gift swaps and conversions) through `getSettlement` |
-| `claims-and-credits` | 1 h | Claims whose 72 h challenge window closed: mark final, pay agreeing paths (1,000) and votes (100), reputation +1. Re-push any ledger entry whose gSera credit failed |
+| `claims-and-credits` | 1 h | Claims whose 72 h challenge window closed: mark final, queue XP for agreeing paths (400), site visits (400), votes (25) and the evidence the claim rests on (100), reputation +1. Re-push any ledger entry whose gSera credit failed |
 | `snapshot` | 5 min | `public/snapshot.json` (`sera-causes.snapshot/1`) |
 | `email` | 30 s | Resend outbox; log-only without `RESEND_API_KEY` |
 
@@ -180,15 +184,43 @@ Also at the root: `GET /health`, `GET /photos/<file>` (seed photos),
 (challenge stake) and `burned`; a row sits in `queued` only while a failed
 credit call is retried.
 
+gSera has two jobs here, and only two (docs/PLAN.md section 7): gifts, and the
+challenge stake. Every helper action earns Care XP instead.
+
 | Event | gSera | Reputation |
 | --- | --- | --- |
 | Gift (sender not owner or deposit address, KYT clear, within the US$1,000 per wallet per cause per 30 days cap) | `usd x 100 x heat x volume x streak`, max 10x; heat 2.5 under an urgent appeal | |
-| Listing reaches Verified | 2,500 to the lister | |
-| Path agreeing with the final outcome | 1,000 | +1 |
-| Vote agreeing | 100 | +1 |
-| Help confirmed | 500 | |
-| Challenge upheld | stake back + 2,000 | overturned paths and votes −3 each |
+| Challenge opened | 5,000 stake spent | |
+| Challenge upheld | stake back | overturned paths and votes −3 each |
 | Challenge rejected | stake stays burned | |
+
+## Care XP
+
+Helpers earn XP on community.sera.cx, never gSera (docs/PLAN.md section 7).
+Each event is an `XpEvent` row, unique on `(eventType, sourceRef)` so one
+listing, path, vote, piece of evidence, help request or challenge can earn its
+XP only once. States are `queued`, `sent` and `unmatched` (no community member
+for that wallet). Amounts come from `XP` in `@sera-causes/shared`.
+
+| Event key | XP | Credited | Created in |
+| --- | --- | --- | --- |
+| `care_cause_listed` | 100 | On listing, once the duplicate check has passed | `chain/listener.ts` (`CauseListed`) |
+| `care_cause_verified` | 1,500 | Last required claim final, to the lister | `ledger/rewards.ts` (`xpForListingVerified`) |
+| `care_evidence_accepted` | 100 | The claim the evidence supports is final | `ledger/rewards.ts` (`settleClaim`) |
+| `care_path_agreed` | 400 | Claim final, challenge window closed, path result agrees | `ledger/rewards.ts` (`settleClaim`) |
+| `care_site_visit` | 400 | Added, for a C4 path with a dated photo | `ledger/rewards.ts` (`settleClaim`) |
+| `care_vote_agreed` | 25 | Same timing as a path | `ledger/rewards.ts` (`settleClaim`) |
+| `care_help_fulfilled` | 250 | The cause owner's signed confirmation | `ledger/rewards.ts` (`rewardHelp`) |
+| `care_translation` | 250 | The cause owner's confirmation | `ledger/rewards.ts` (`rewardHelp`) |
+| `care_charity_claimed` | 500 | Cause ownership transfers to the charity | `chain/listener.ts` (`OwnerChanged`) |
+| `care_challenge_upheld` | 1,000 | The challenge resolves upheld | `ledger/rewards.ts` (`resolveChallenge`) |
+| `community_referral` | 500 | A referred member's first credited Care event | Not triggered here yet |
+
+Nothing is sent anywhere yet. `COMMUNITY_MODE=queue` writes the row and logs
+it; `POST /api/partner/xp` with an `X-Sera-Signature` HMAC over the raw body,
+keyed by `COMMUNITY_HMAC_KEY`, is the proposed route and is not agreed. XP is a
+standing on community.sera.cx: it is not a balance, it cannot be spent and it
+has no cash value.
 
 ## Tests
 
@@ -198,7 +230,7 @@ tables are truncated between tests). Covered: signature verification and
 replay rejection on `POST /votes`, `POST /paths` and `POST /causes/:id/homepage`;
 gift ledger maths with cap, owner and deposit-address exclusion, KYT hold and
 clawback; transfer scanning and conversion-output detection; registry event
-folding including listing rewards and notifications; advisory-mode tally that
+folding including listing XP and notifications; advisory-mode tally that
 never changes claim state; finaliser inputs, challenge window and settlement;
 `GET /home` ordering through `feedOrder` with hidden and unshown causes
 excluded; OG PNG, poster PDF, embed page; media allowlist; treasury, convert,

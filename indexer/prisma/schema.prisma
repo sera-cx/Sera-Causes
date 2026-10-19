@@ -343,6 +343,32 @@ model LedgerEntry {
   @@index([state])
 }
 
+/// A Care XP event earned on causes.sera.cx and credited on community.sera.cx
+/// (docs/PLAN.md section 7). XP is a standing, never a balance: nothing here is spendable.
+model XpEvent {
+  id        String    @id @default(cuid())
+  wallet    String
+  /// care_cause_listed | care_cause_verified | care_evidence_accepted | care_path_agreed |
+  /// care_site_visit | care_vote_agreed | care_help_fulfilled | care_translation |
+  /// care_charity_claimed | care_challenge_upheld | community_referral
+  eventType String
+  xp        Int
+  /// The row this event came from: a cause, claim, path, vote, evidence, need or challenge id.
+  sourceRef String
+  causeId   Int?
+  /// Public link a reviewer on community.sera.cx can open.
+  proofUrl  String?
+  /// queued | sent | unmatched (no community.sera.cx member for that wallet).
+  state     String    @default("queued")
+  lastError String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@unique([eventType, sourceRef])
+  @@index([wallet])
+  @@index([state])
+}
+
 model Reputation {
   wallet String @id
   score  Int    @default(0)

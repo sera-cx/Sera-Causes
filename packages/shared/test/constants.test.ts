@@ -10,11 +10,14 @@ import {
   STATUS,
   VERIFICATION_MODES,
   VOTING,
+  XP,
+  XP_EVENT_TYPES,
   claimCodeOf,
   claimDecidedBy,
   claimTypeIndex,
   findCategory,
   parseVerificationMode,
+  xpFor,
 } from '../src/constants.js';
 import { ClaimOutcome, ClaimType, claimOutcomeName, claimOutcomeValue } from '../src/types.js';
 
@@ -40,8 +43,10 @@ describe('claims', () => {
     const text = [
       ...CLAIMS.flatMap((c) => [CLAIM_INFO[c].label, CLAIM_INFO[c].proof, CLAIM_INFO[c].whereToCheck]),
       ...Object.values(STATUS).flatMap((s) => [s.label, s.hint]),
+      ...Object.values(XP).flatMap((x) => [x.label, x.when]),
     ].join('\n');
     expect(text).not.toMatch(/—/);
+    expect(text).not.toMatch(/escrow|refund|vest/i);
   });
 });
 
@@ -51,9 +56,44 @@ describe('numbers from the brief', () => {
     expect(GSERA.perUsd).toBe(100);
     expect(GSERA.compoundCap).toBe(10);
     expect(GSERA.heat).toEqual({ urgent: 2.5, normal: 1 });
-    expect(GSERA.helper).toEqual({ listingVerified: 2500, pathAgrees: 1000, voteAgrees: 100, helpFulfilled: 500, challengeWin: 2000 });
     expect(GSERA.giftCapUsdPerWalletPerCausePer30d).toBe(1000);
     expect(GSERA).not.toHaveProperty('vestDays');
+  });
+
+  it('gSera has no helper table: helpers earn XP instead', () => {
+    expect(GSERA).not.toHaveProperty('helper');
+  });
+});
+
+describe('Care XP (docs/PLAN.md section 7)', () => {
+  it('has the agreed amounts for every Care event', () => {
+    expect(Object.fromEntries(XP_EVENT_TYPES.map((t) => [t, xpFor(t)]))).toEqual({
+      care_cause_listed: 100,
+      care_cause_verified: 1500,
+      care_evidence_accepted: 100,
+      care_path_agreed: 400,
+      care_site_visit: 400,
+      care_vote_agreed: 25,
+      care_help_fulfilled: 250,
+      care_translation: 250,
+      care_charity_claimed: 500,
+      care_challenge_upheld: 1000,
+      community_referral: 500,
+    });
+  });
+
+  it('keys itself by event type and labels every event', () => {
+    for (const t of XP_EVENT_TYPES) {
+      expect(XP[t].type).toBe(t);
+      expect(XP[t].label.length).toBeGreaterThan(2);
+      expect(XP[t].when.length).toBeGreaterThan(2);
+    }
+    expect(() => xpFor('care_nothing' as never)).toThrow(RangeError);
+  });
+
+  it('never describes XP as spendable or as money', () => {
+    const text = Object.values(XP).flatMap((x) => [x.label, x.when]).join('\n');
+    expect(text).not.toMatch(/spend|cash|balance|worth|gSera per/i);
   });
 });
 

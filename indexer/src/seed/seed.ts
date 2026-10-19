@@ -14,10 +14,12 @@ import path from 'node:path';
 import { keccak256, toBytes } from 'viem';
 import type { Prisma } from '@prisma/client';
 import { CLAIMS, findCategory, type CauseProfile } from '@sera-causes/shared';
+import { awardXp } from '../ledger/xp.js';
 import { config } from '../config.js';
 import { db, disconnectDb } from '../db.js';
 import { listStablecoins } from '../chain/stablecoins.js';
 import { applyTransfer, type TransferLog } from '../chain/listener.js';
+import { rewardHelp, xpForListingVerified } from '../ledger/rewards.js';
 
 /**
  * Ganache's deterministic accounts, as used by the demo chain.
@@ -85,7 +87,7 @@ export async function readSeed(seedDir: string): Promise<{ index: SeedIndex; cau
 export async function resetDatabase(): Promise<void> {
   const tables = [
     'EmailOutbox', 'Notification', 'MockGseraWallet', 'StoredProfile', 'ChainRole', 'Token', 'RecordEvent', 'Attestation', 'Progress', 'Pledge', 'Need',
-    'Wallet', 'ReputationEntry', 'Reputation', 'LedgerEntry', 'GiftTrade', 'Media', 'Withdrawal', 'Conversion', 'CauseWallet', 'Gift', 'ShareEvent',
+    'Wallet', 'ReputationEntry', 'Reputation', 'XpEvent', 'LedgerEntry', 'GiftTrade', 'Media', 'Withdrawal', 'Conversion', 'CauseWallet', 'Gift', 'ShareEvent',
     'UrgentAppeal', 'HomepageFlag', 'Challenge', 'Vote', 'Path', 'Evidence', 'ClaimState', 'Cause', 'IndexerCursor',
   ];
   await db().$executeRawUnsafe(`TRUNCATE TABLE ${tables.map((t) => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE`);
@@ -167,6 +169,8 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
       block += 1;
     }
     await db().homepageFlag.create({ data: { causeId: id, shown: true, setBy: owner, signature: 'seed', signedAt: T0 } });
+    // Listing a cause earns Care XP on community.sera.cx, not gSera (docs/PLAN.md section 7).
+    await awardXp({ wallet: DEMO.lister, eventType: 'care_cause_listed', sourceRef: `cause:${id}`, causeId: id });
     if ((i + 1) % 10 === 0) log(`listed ${i + 1}`);
   }
 
@@ -197,13 +201,24 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
   let verified = 0;
   for (const slug of ['free-tree-society', 'make-a-wish-malaysia']) {
     for (const claim of ['C1', 'C2', 'C3', 'C4']) await finalise(slug, claim);
-    await db().cause.update({ where: { id: ids[slug]! }, data: { status: 'verified', verifiedAt: T1, listingRewarded: true } });
+    await db().cause.update({ where: { id: ids[slug]! }, data: { status: 'verified', verifiedAt: T1 } });
+    await xpForListingVerified(ids[slug]!);
     await record(ids[slug]!, 'StatusChanged', { status: 'verified', by: DEMO.finaliser, note: 'all required claims verified' }, T1, `status:${slug}`, 1);
     verified += 1;
   }
   await finalise('make-a-wish-malaysia', 'C5');
   await finalise('make-a-wish-malaysia', 'C7');
   for (const slug of ['hospis-malaysia', 'mercy-malaysia', 'turtle-conservation-society-malaysia']) await finalise(slug, 'C1');
+
+  // One help request the owner has confirmed, so the demo wallet has Care XP on /me.
+  const helped = await db().need.findFirst({ where: { causeId: ids['make-a-wish-malaysia']!, kind: 'intro' } });
+  if (helped) {
+    await db().need.update({
+      where: { id: helped.id },
+      data: { open: false, helper: DEMO.giver, closedAt: T1, confirmedHelper: DEMO.giver, confirmedAt: T1, confirmSignature: 'seed' },
+    });
+    await rewardHelp(helped.id, DEMO.giver, T1);
+  }
 
   let gifts = 0;
   if (opts.withGifts) {

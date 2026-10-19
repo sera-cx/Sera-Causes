@@ -14,6 +14,11 @@ export function fmtGsera(n: number): string {
   return `${int.format(n)} gSera`;
 }
 
+/** XP on community.sera.cx. A standing, never a balance. */
+export function fmtXp(n: number): string {
+  return `${int.format(n)} XP`;
+}
+
 export function fmtCompactUsd(n: number): string {
   if (n >= 1_000_000) return `US$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 10_000) return `US$${(n / 1000).toFixed(1)}k`;

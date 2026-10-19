@@ -6,8 +6,10 @@ import {
   CLAIM_INFO,
   GSERA,
   HOME_NEW_RAIL,
+  COMMUNITY_SITE,
   URGENT_APPEAL_LABEL,
   VOTING,
+  XP,
   feedOrder,
   newestCauses,
   votingCanOpen,
@@ -19,10 +21,11 @@ import { activeAppeal, causeView, causeViews, feedEvents, findCause, stats } fro
 import { notFound, parseQuery, wrap } from '../errors.js';
 import { optionalAuth, requireAuth } from '../auth.js';
 import { reputationMap } from '../../ledger/reputation.js';
+import { xpTotals } from '../../ledger/xp.js';
 import { tallyFor } from '../tally.js';
 import { getGsera } from '../../services/gsera.js';
 import { voterEligibility } from '../eligibility.js';
-import { causeName, serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, iso } from '../serializers.js';
+import { causeName, serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, serializeXpEvent, iso } from '../serializers.js';
 import { listStablecoins } from '../../chain/stablecoins.js';
 
 export const reads: Router = Router();
@@ -30,7 +33,7 @@ export const reads: Router = Router();
 reads.get(
   '/stats',
   wrap(async (_req, res) => {
-    res.json({ ...(await stats()), verificationMode: config().verificationMode, rules: { voting: VOTING, gsera: GSERA } });
+    res.json({ ...(await stats()), verificationMode: config().verificationMode, rules: { voting: VOTING, gsera: GSERA, xp: XP } });
   }),
 );
 
@@ -292,9 +295,11 @@ reads.get(
   requireAuth,
   wrap(async (req, res) => {
     const wallet = req.wallet!;
-    const [walletRow, ledger, reputation, gifts, paths, votes, notifications, needsHelped] = await Promise.all([
+    const [walletRow, ledger, xpEvents, xp, reputation, gifts, paths, votes, notifications, needsHelped] = await Promise.all([
       db().wallet.findUnique({ where: { address: wallet } }),
       db().ledgerEntry.findMany({ where: { wallet }, orderBy: { createdAt: 'desc' }, take: 200 }),
+      db().xpEvent.findMany({ where: { wallet }, orderBy: { createdAt: 'desc' }, take: 100 }),
+      xpTotals(wallet),
       db().reputation.findUnique({ where: { wallet } }),
       db().gift.findMany({ where: { sender: wallet }, orderBy: { createdAt: 'desc' }, take: 200 }),
       db().path.findMany({ where: { author: wallet }, orderBy: { createdAt: 'desc' }, take: 100 }),
@@ -318,6 +323,7 @@ reads.get(
     for (const v of votes) causeIds.add(v.causeId);
     for (const n of needsHelped) causeIds.add(n.causeId);
     for (const e of ledger) if (e.causeId !== null) causeIds.add(e.causeId);
+    for (const e of xpEvents) if (e.causeId !== null) causeIds.add(e.causeId);
     const causeRows = causeIds.size ? await db().cause.findMany({ where: { id: { in: [...causeIds] } }, select: { id: true, slug: true, profile: true } }) : [];
     res.json({
       wallet,
@@ -328,6 +334,8 @@ reads.get(
       kytState: walletRow?.kytState ?? 'unknown',
       gsera,
       ledger: { credited: sum('credited'), queued: sum('queued'), cancelled: sum('cancelled'), staked, entries: ledger.map(serializeLedger) },
+      // Care XP lives on community.sera.cx. It is a standing, not a balance, and it is not spendable here.
+      xp: { total: xp.total, queued: xp.queued, sent: xp.sent, unmatched: xp.unmatched, site: COMMUNITY_SITE, mode: config().COMMUNITY_MODE, events: xpEvents.map(serializeXpEvent) },
       reputation: reputation?.score ?? 0,
       gifts: gifts.map(serializeGift),
       paths: paths.map(serializePath),
@@ -362,14 +370,15 @@ reads.get(
       return;
     }
     if (q.board === 'helpers') {
-      const rows = await db().ledgerEntry.groupBy({ by: ['wallet'], where: { reason: { in: ['path', 'vote', 'help', 'listing', 'challenge_win'] }, state: 'credited', ...(since ? { createdAt: { gte: since } } : {}) }, _sum: { amount: true } });
+      // Helpers rank by Care XP on community.sera.cx, not by gSera (docs/PLAN.md section 7).
+      const rows = await db().xpEvent.groupBy({ by: ['wallet'], where: since ? { createdAt: { gte: since } } : {}, _sum: { xp: true }, _count: { _all: true } });
       const reps = await reputationMap(rows.map((r) => r.wallet));
       const board = rows
         .filter((r) => !optOut.has(r.wallet))
-        .map((r) => ({ wallet: r.wallet, gsera: r._sum.amount ?? 0, reputation: reps.get(r.wallet) ?? 0 }))
-        .sort((a, b) => b.gsera - a.gsera)
+        .map((r) => ({ wallet: r.wallet, xp: r._sum.xp ?? 0, events: r._count._all, reputation: reps.get(r.wallet) ?? 0 }))
+        .sort((a, b) => b.xp - a.xp)
         .slice(0, q.limit);
-      res.json({ board: 'helpers', period: q.period, entries: board });
+      res.json({ board: 'helpers', period: q.period, site: COMMUNITY_SITE, entries: board });
       return;
     }
     const rows = await db().gift.groupBy({ by: ['causeId'], where: since ? { createdAt: { gte: since } } : {}, _sum: { usd: true }, _count: { _all: true } });

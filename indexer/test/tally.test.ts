@@ -44,7 +44,7 @@ describe('advisory mode tally and finaliser', () => {
     expect(claim.body.tally.voters).toBe(5);
   });
 
-  it('finaliser builds recomputable inputs, opens the window, then settlement pays agreeing helpers', async () => {
+  it('finaliser builds recomputable inputs, opens the window, then settlement queues XP for agreeing helpers', async () => {
     for (const k of ['helper', 'helper2', 'giver', 'owner'] as const) await vote(accounts[k], 1);
     await vote(accounts.steward, 2);
     const inputs = await buildInputs(1, 'C1', 'verified');
@@ -69,15 +69,26 @@ describe('advisory mode tally and finaliser', () => {
     expect(paid).toEqual({ paths: 4, votes: 4 });
     cs = await db().claimState.findUniqueOrThrow({ where: { causeId_claimType: { causeId: 1, claimType: 'C1' } } });
     expect(cs.state).toBe('final');
-    expect((await db().ledgerEntry.findMany({ where: { reason: 'path' } })).every((e) => e.amount === 1000 && e.state === 'credited')).toBe(true);
-    expect((await db().ledgerEntry.findMany({ where: { reason: 'vote' } })).every((e) => e.amount === 100)).toBe(true);
+    // XP on community.sera.cx, never gSera.
+    expect((await db().xpEvent.findMany({ where: { eventType: 'care_path_agreed' } })).every((e) => e.xp === 400 && e.state === 'queued')).toBe(true);
+    expect((await db().xpEvent.findMany({ where: { eventType: 'care_vote_agreed' } })).every((e) => e.xp === 25)).toBe(true);
+    expect(await db().ledgerEntry.count()).toBe(0);
     expect((await db().reputation.findUniqueOrThrow({ where: { wallet: addr('helper') } })).score).toBe(5);
     expect((await db().reputation.findUniqueOrThrow({ where: { wallet: addr('steward') } })).score).toBe(3);
     expect((await db().path.findFirstOrThrow({ where: { author: addr('steward') } })).outcomeAgreed).toBe(false);
-    expect((await getGsera().getWallet(addr('helper'))).spendable).toBe(1100);
+    expect((await getGsera().getWallet(addr('helper'))).spendable).toBe(0);
+    const me = await request(app).get('/api/v1/me').set('X-Dev-Wallet', addr('helper'));
+    expect(me.body.xp.total).toBe(425);
+    expect(me.body.xp.site).toBe('community.sera.cx');
+    expect(me.body.xp.events.map((e: { eventType: string }) => e.eventType).sort()).toEqual(['care_path_agreed', 'care_vote_agreed']);
+    const board = await request(app).get('/api/v1/leaderboards?board=helpers');
+    expect(board.body.entries[0]).toMatchObject({ wallet: expect.any(String), xp: 425 });
+    const stats = await request(app).get('/api/v1/stats');
+    expect(stats.body.xpQueued).toBeGreaterThan(0);
+    expect(stats.body.helpers).toBe(5);
   });
 
-  it('upheld challenge returns the stake plus 2,000, reopens the epoch and costs overturned helpers 3 reputation', async () => {
+  it('upheld challenge returns the stake, queues 1,000 XP, reopens the epoch and costs overturned helpers 3 reputation', async () => {
     await vote(accounts.helper, 1);
     await setClaim(1, 'C1', { state: 'challenge_window', outcome: 'verified', challengeWindowEnd: new Date(Date.now() + 3600e3) });
     const gsera = getGsera() as unknown as { seed: (w: string, n: number) => Promise<unknown> };
@@ -87,7 +98,10 @@ describe('advisory mode tally and finaliser', () => {
     await stakeChallenge(addr('giver'), ch.id);
     expect((await getGsera().getWallet(addr('giver'))).spendable).toBe(1000);
     await resolveChallenge(ch.id, 'upheld');
-    expect((await getGsera().getWallet(addr('giver'))).spendable).toBe(8000);
+    // The stake comes back as gSera; being right earns XP.
+    expect((await getGsera().getWallet(addr('giver'))).spendable).toBe(6000);
+    const won = await db().xpEvent.findFirstOrThrow({ where: { eventType: 'care_challenge_upheld' } });
+    expect(won).toMatchObject({ wallet: addr('giver'), xp: 1000, state: 'queued' });
     const cs = await db().claimState.findUniqueOrThrow({ where: { causeId_claimType: { causeId: 1, claimType: 'C1' } } });
     expect(cs.epoch).toBe(1);
     expect(cs.state).toBe('open');

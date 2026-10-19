@@ -19,6 +19,7 @@ export {
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MIME_TYPES,
   GIFT_PRESETS_USD,
+  COMMUNITY_SITE,
   GSERA,
   HOME_NEW_RAIL,
   LAUNCH_STABLECOINS,
@@ -33,11 +34,14 @@ export {
   VERIFICATION_MODES,
   VOTE_WEIGHT,
   VOTING,
+  XP,
+  XP_EVENT_TYPES,
   claimCodeOf,
   claimTypeIndex,
   findCategory,
+  xpFor,
 } from "@sera-causes/shared";
-export type { Category, CauseStage, ClaimCode, ClaimInfo, ClaimRequirement, StatusTone, VerificationMode } from "@sera-causes/shared";
+export type { Category, CauseStage, ClaimCode, ClaimInfo, ClaimRequirement, StatusTone, VerificationMode, XpEventType, XpReward } from "@sera-causes/shared";
 
 /** Short claim names for tight spaces (select options, chips). */
 export const CLAIM_SHORT: Readonly<Record<ClaimCode, string>> = {
@@ -84,6 +88,7 @@ export function stablecoinUsd(symbol: string): number {
 export const LINKS = {
   github: "https://github.com/sera-cx/sera-causes",
   gsera: "https://g.sera.cx",
+  community: "https://community.sera.cx",
   sera: "https://sera.cx",
   brand: "https://sera.cx/brand",
   terms: "https://sera.cx/terms",

@@ -10,7 +10,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
-import { GSERA, LINKS } from "@/lib/constants";
+import { COMMUNITY_SITE, GSERA, LINKS, XP } from "@/lib/constants";
 import { fmtCompactUsd, fmtInt, fmtMultiplier } from "@/lib/format";
 import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
@@ -132,7 +132,7 @@ function NumbersStrip({ stats }: { stats?: HomeData["stats"] }) {
         <GfCard label="Causes listed" ticker="Malaysia" figure={stats ? fmtInt(stats.causes) : "…"} meta={[{ label: "verified", value: stats ? fmtInt(stats.verified) : "" }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} />
         <GfCard label="Verified" ticker="All required checks done" figure={stats ? fmtInt(stats.verified) : "…"} meta={[{ label: "of", value: stats ? fmtInt(stats.causes) : "" }]} tab="#00E676" />
         {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(givenUsd) : "…"} meta={[{ label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} tab="#59E39A" />}
-        <GfCard label="Helpers" ticker="Paths written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(GSERA.helper.pathAgrees)} gSera per path` }]} tab="#FFFFFF" />
+        <GfCard label="Helpers" ticker="Paths written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per path` }]} tab="#FFFFFF" />
       </div>
     </GreenField>
   );
@@ -208,7 +208,7 @@ function HelpWithoutMoney() {
   return (
     <section className="border-t border-rule" aria-labelledby="help-heading">
       <div className="container py-12 md:py-16">
-        <SectionHeader kicker="Help without money" title={<span id="help-heading">No wallet balance needed.</span>} lede={`Every bit of help earns gSera. A fulfilled help request earns ${fmtInt(GSERA.helper.helpFulfilled)}, an accepted check ${fmtInt(GSERA.helper.pathAgrees)}.`} />
+        <SectionHeader kicker="Help without money" title={<span id="help-heading">No wallet balance needed.</span>} lede={`Every bit of help earns XP on ${COMMUNITY_SITE}. A fulfilled help request earns ${fmtInt(XP.care_help_fulfilled.amount)} XP, an accepted check ${fmtInt(XP.care_path_agreed.amount)} XP.`} />
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {cards.map((c) => (
             <Link key={c.title} href={c.href} className="group rounded-xl border border-rule bg-card p-6 hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
@@ -230,7 +230,7 @@ function HowGseraWorks() {
   const { user } = useAuth();
   const me = useMe();
   const steps = [
-    { n: "01", title: "Give or help", body: "Give in stablecoins to any cause, or check a charity, visit, translate and fulfil help requests." },
+    { n: "01", title: "Give to a cause", body: "Give in stablecoins to any cause on the list, from the site or straight to the cause's own address." },
     { n: "02", title: "Earn gSera", body: `${fmtInt(GSERA.perUsd)} gSera per US$1, the same rate as swapping on Sera.cx. Credited to your wallet as soon as the gift arrives.` },
     { n: "03", title: "Use it, keep your rank", body: "Spend it on g.sera.cx or stake it to challenge a bad verification. Charity gSera goes back to charity, never into the Lucky Draw." },
   ];

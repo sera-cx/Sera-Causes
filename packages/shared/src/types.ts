@@ -10,7 +10,7 @@ import type { Address, Hex } from 'viem';
 import type { CauseStage, ClaimCode, FeedEventType } from './constants.js';
 
 export type { Address, Hex };
-export type { CauseStage, ClaimCode, FeedEventType, StatusTone, VerificationMode } from './constants.js';
+export type { CauseStage, ClaimCode, FeedEventType, StatusTone, VerificationMode, XpEvent, XpEventState, XpEventType, XpReward } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // Enums mirrored from CauseRegistry.sol
@@ -99,14 +99,12 @@ export type EvidenceKind = 'document' | 'link' | 'photo' | 'video' | 'signature'
 
 export type ChallengeState = 'open' | 'upheld' | 'rejected';
 
-export type LedgerReason =
-  | 'gift'
-  | 'path'
-  | 'vote'
-  | 'help'
-  | 'listing'
-  | 'challenge_win'
-  | 'challenge_stake';
+/**
+ * gSera has two jobs on causes.sera.cx (docs/PLAN.md section 7): gifts, and the
+ * challenge stake, which is spent to open a challenge and returned when the
+ * challenge is upheld. Helper actions earn XP, see `XpEventType`.
+ */
+export type LedgerReason = 'gift' | 'challenge_stake' | 'challenge_stake_return';
 
 export type LedgerState = 'credited' | 'cancelled' | 'spent' | 'burned';
 
@@ -488,7 +486,7 @@ export interface LedgerEntry {
   amount: number;
   reason: LedgerReason;
   sourceTag: LedgerSourceTag;
-  /** Gift id, path id, vote id, need id, cause id or challenge id. */
+  /** Gift id or challenge id. */
   sourceRef: string;
   multipliers: GiftMultipliers | null;
   state: LedgerState;

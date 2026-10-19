@@ -20,7 +20,7 @@ import { getSettlement, getKyt } from '../services/settlement.js';
 import { recordGiftLedger } from '../ledger/gifts.js';
 import { listStablecoins, type Stablecoin } from './stablecoins.js';
 import { refreshCauseTotals } from '../api/causes.js';
-import { rewardListing, rewardHelp } from '../ledger/rewards.js';
+import { rewardHelp, xpForCharityClaim, xpForListing, xpForListingVerified } from '../ledger/rewards.js';
 import { notifyGivers } from '../notify.js';
 
 export interface DecodedLog {
@@ -132,6 +132,8 @@ export async function applyLog(log: DecodedLog, ctx: ListenerContext): Promise<b
         update: { owner, payout: lower(a.payout), uri, profile: profile ? (profile as object) : undefined, photoUrl },
       });
       await ensureClaimStates(id);
+      // The duplicate check runs on POST /causes/prepare, before the listing is sent, so it has passed by now.
+      await xpForListing(id, owner);
       Object.assign(data, { by: owner, frontend: bytes32ToString(a.frontend as Hex), uri });
       break;
     }
@@ -170,6 +172,8 @@ export async function applyLog(log: DecodedLog, ctx: ListenerContext): Promise<b
     case 'OwnerChanged': {
       const owner = lower(a.owner);
       await db().cause.update({ where: { id: causeId! }, data: { owner } });
+      // The charity has taken over a cause a helper listed: 500 XP to the lister.
+      await xpForCharityClaim(causeId!, owner);
       data.owner = owner;
       break;
     }
@@ -187,7 +191,7 @@ export async function applyLog(log: DecodedLog, ctx: ListenerContext): Promise<b
       });
       Object.assign(data, { status, by: lower(a.by), note: String(a.note) });
       if (status === 'verified') {
-        await rewardListing(causeId!, now);
+        await xpForListingVerified(causeId!);
         await notifyGivers(causeId!, {
           kind: 'cause_verified',
           title: `${cause.slug} is now Verified`,

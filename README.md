@@ -7,8 +7,9 @@ Sera Causes is the code behind **Care Share Donate (CSD)** at **causes.sera.cx**
 Anyone can add a cause, upload the documents that prove it is real, and share
 it anywhere. Anyone can give to it in stablecoins, from the site or by sending
 straight to the cause's own address. The community checks each cause in the
-open, claim by claim, and giving and helping earn gSera points. Every gift,
-conversion and update is a public record.
+open, claim by claim. Giving earns gSera points on g.sera.cx; helping earns
+Care XP on community.sera.cx. Every gift, conversion and update is a public
+record.
 
 Start with [docs/PLAN.md](docs/PLAN.md), which records the v1 decisions, then
 the original brief in [docs/PRODUCT-BRIEF.md](docs/PRODUCT-BRIEF.md). Where

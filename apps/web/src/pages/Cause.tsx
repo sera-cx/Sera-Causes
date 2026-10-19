@@ -15,8 +15,8 @@ import { Wallet } from "@/components/Wallet";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, pledgeHelp } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CLAIM_INFO, GSERA, categoryLabel, type ClaimCode } from "@/lib/constants";
-import { fmtDate, fmtGsera, fmtInt, fmtUsd, plural, timeLeft } from "@/lib/format";
+import { CLAIM_INFO, COMMUNITY_SITE, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
+import { fmtDate, fmtInt, fmtUsd, fmtXp, plural, timeLeft } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useCause, useInvalidateAll, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
@@ -344,7 +344,7 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
     }
   };
   return (
-    <Section id="help" title="Help this cause" lede={`Open requests from the listing. A fulfilled request, confirmed by the charity, earns ${fmtGsera(GSERA.helper.helpFulfilled)}.`}>
+    <Section id="help" title="Help this cause" lede={`Open requests from the listing. A fulfilled request, confirmed by the cause owner, earns ${fmtXp(XP.care_help_fulfilled.amount)} on ${COMMUNITY_SITE}.`}>
       {cause.helpRequests.length === 0 && <Empty title="No open requests" body="Check back after the charity claims its listing." />}
       <ul className="grid gap-3 sm:grid-cols-2">
         {cause.helpRequests.map((h) => {
@@ -353,7 +353,7 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
             <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
               <div className="flex items-center justify-between gap-2">
                 <Eyebrow>{h.kind}</Eyebrow>
-                <span className="font-mono text-[11px] text-ink-muted tnum">{fmtGsera(GSERA.helper.helpFulfilled)}</span>
+                <span className="font-mono text-[11px] text-ink-muted tnum" title={`XP on ${COMMUNITY_SITE}`}>{fmtXp(h.kind === "translate" ? XP.care_translation.amount : XP.care_help_fulfilled.amount)}</span>
               </div>
               <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
               <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>
