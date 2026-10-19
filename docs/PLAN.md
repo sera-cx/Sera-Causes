@@ -89,11 +89,11 @@ appeal is an off-chain steward action recorded in the API, not on-chain.
 | --- | --- | --- | --- |
 | gSera partner endpoints (credit, spend, reverse, wallet) and the `source` tag | gSera at launch | Claude, as a PR in the gSera repo for Douglas to review | Change request in GSERA-INTEGRATION.md. Confirmed |
 | Privy app for causes.sera.cx | Sign-in | Douglas | Not created. Needs `PRIVY_APP_ID` and secret |
-| Sera.cx API key and secret | Settlement of cross-stablecoin gifts | Douglas | Not provided. Testnet host to confirm: `api-testnet.sera.cx` (sera-mcp) vs `api.testnet.sera.cx` (sera-pay) |
+| Sera.cx API key and secret | Settlement of cross-stablecoin gifts | Douglas | Not provided. Testnet host set to `api.testnet.sera.cx` (sera-pay and rotor agree; sera-mcp differs) |
 | Steward multisig members and threshold | Finaliser and steward roles | Douglas | Brief 17.2, still open. Sepolia uses a single steward key for now |
 | Accepted stablecoins at launch | Contract token list | Douglas | USDT, USDC, XSGD, MYRT. Confirmed |
 | Registry chain | Deploy target | Douglas | Sepolia now, Ethereum mainnet at launch. Confirmed |
-| KYT/KYA screening | Anti-gaming rules in 6.7, voter eligibility in 7.5, every gift | Build | **Use kyt.sera.cx** (Sera's own public KYT/KYA service in the sera-cx org), not Chainalysis |
+| KYT/KYA screening | Anti-gaming rules in 6.7, voter eligibility in 7.5, every gift | Build, then Douglas | **kyt.sera.cx**, Sera's own service. Its repo is not public yet, so v1 ships a stub behind `createKytClient` with a provisional wire format in `packages/sera-settlement/src/kyt.ts`, to be corrected when the API is shared |
 | IPFS pinning | Profiles and evidence hashes | Build | Proposed: API serves files with hashes recorded on-chain now; pin to IPFS before mainnet |
 | Email provider | Notifications in brief 14 | Build | **Resend** |
 | Malaysian counsel | Fundraising rules, PDPA, gSera not a security | Douglas | Brief 16 and 18 gate launch on this |
