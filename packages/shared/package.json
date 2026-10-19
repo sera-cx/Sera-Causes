@@ -1,0 +1,37 @@
+{
+  "name": "@sera-causes/shared",
+  "version": "0.1.0",
+  "description": "Types, constants, EIP-712 types, zod schemas and pure rule functions for Care Share Donate. No I/O.",
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./recompute": {
+      "types": "./dist/recompute.d.ts",
+      "import": "./dist/recompute.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run",
+    "recompute": "node dist/recompute.js"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

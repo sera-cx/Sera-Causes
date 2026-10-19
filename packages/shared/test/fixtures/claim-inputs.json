@@ -1,0 +1,64 @@
+{
+  "kind": "claim",
+  "causeId": 7,
+  "claimType": "C1",
+  "epoch": 0,
+  "reputations": {
+    "0x1111111111111111111111111111111111111111": 15,
+    "0x2222222222222222222222222222222222222222": 3,
+    "0x3333333333333333333333333333333333333333": 0,
+    "0x4444444444444444444444444444444444444444": 1
+  },
+  "votes": [
+    {
+      "causeId": 7,
+      "claimType": "C1",
+      "epoch": 0,
+      "voter": "0x1111111111111111111111111111111111111111",
+      "choice": "verified",
+      "reason": "ROS search shows PPM-001-11-10062011 active, name matches.",
+      "signature": "0x" ,
+      "signedAt": 1792000000
+    },
+    {
+      "causeId": 7,
+      "claimType": "C1",
+      "epoch": 0,
+      "voter": "0x2222222222222222222222222222222222222222",
+      "choice": "verified",
+      "reason": "Both paths agree with the register.",
+      "signature": "0x",
+      "signedAt": 1792000100
+    },
+    {
+      "causeId": 7,
+      "claimType": "C1",
+      "epoch": 0,
+      "voter": "0x3333333333333333333333333333333333333333",
+      "choice": "needs_more",
+      "reason": "Screenshot is cropped, cannot see the status column.",
+      "signature": "0x",
+      "signedAt": 1792000200
+    },
+    {
+      "causeId": 7,
+      "claimType": "C1",
+      "epoch": 0,
+      "voter": "0x4444444444444444444444444444444444444444",
+      "choice": "verified",
+      "reason": "Checked the register myself.",
+      "signature": "0x",
+      "signedAt": 1792000300
+    },
+    {
+      "causeId": 7,
+      "claimType": "C2",
+      "epoch": 0,
+      "voter": "0x4444444444444444444444444444444444444444",
+      "choice": "not_verified",
+      "reason": "Different claim, must be ignored by the recompute.",
+      "signature": "0x",
+      "signedAt": 1792000400
+    }
+  ]
+}
