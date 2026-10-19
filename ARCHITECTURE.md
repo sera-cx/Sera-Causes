@@ -76,13 +76,13 @@ Rules enforced on-chain:
   `"required claim overturned"`.
 - `setPayout` resets `claimOutcome[causeId][C3_Payout]` to `Open` and drops
   Verified (existing behaviour).
-- `reinstate` moves Suspended to Listed with a fresh `waitingSince`, then if
-  `requiredClaimsMet` the cause goes straight back to Verified.
+- `reinstate` moves Suspended to Listed, then if `requiredClaimsMet` the cause
+  goes straight back to Verified.
 - Remove `verify` and the verifier role entirely.
 
 Tests: port the 10 v0.1 tests to the new API and add: per-claim finalisation
-flips status automatically; overturning a required claim suspends and opens
-refunds; payout change reopens C3; reinstate re-verifies when claims still
+flips status automatically; overturning a required claim suspends; payout
+change reopens C3; reinstate re-verifies when claims still
 hold; only finaliser/steward/council can call their functions;
 C6 required only when flagged.
 

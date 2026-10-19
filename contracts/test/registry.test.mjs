@@ -7,7 +7,6 @@ import { readFileSync } from "node:fs";
 
 const art = n => JSON.parse(readFileSync(new URL(`../build/${n}.json`, import.meta.url)));
 const b32 = s => ethers.encodeBytes32String(s);
-const DAY = 86400;
 
 // Mirrors the Solidity enums.
 const Status = { None: 0n, Listed: 1n, Verified: 2n, Suspended: 3n, Closed: 4n };
@@ -22,8 +21,8 @@ class PaddedProvider extends ethers.BrowserProvider {
   async estimateGas(tx) { return (await super.estimateGas(tx)) * 12n / 10n; }
 }
 
-let raw, provider, council, finaliser, steward, owner, payout, donor, donor2, stranger;
-let reg, usdc, usdt;
+let raw, provider, council, finaliser, steward, owner, deposit, helper, stranger;
+let reg;
 
 async function deploy(name, signer, ...args) {
   const a = art(name);
@@ -31,22 +30,18 @@ async function deploy(name, signer, ...args) {
   await c.waitForDeployment();
   return c;
 }
-async function warp(seconds) {
-  await provider.send("evm_increaseTime", [seconds]);
-  await provider.send("evm_mine", []);
-}
 async function rejects(p, errName) {
   await assert.rejects(p, e => {
-    const s = JSON.stringify(e) + String(e?.message);
+    const s = JSON.stringify(e, (_, v) => typeof v === "bigint" ? v.toString() : v) + String(e?.message);
     const err = reg.interface.getError(errName);
     return err ? s.includes(err.selector) || s.includes(errName) : true;
   }, `expected ${errName}`);
 }
+const parsed = r => r.logs.map(l => { try { return reg.interface.parseLog(l); } catch { return null; } }).filter(Boolean);
 async function eventsOf(tx, name) {
-  const r = await tx.wait();
-  return r.logs.map(l => { try { return reg.interface.parseLog(l); } catch { return null; } }).filter(e => e && e.name === name);
+  return parsed(await tx.wait()).filter(e => e.name === name);
 }
-async function freshCause({ by = owner, to = payout.address, careLicence = false, category = "turtles" } = {}) {
+async function freshCause({ by = owner, to = deposit.address, careLicence = false, category = "turtles" } = {}) {
   const tx = await reg.connect(by).listCause("ipfs://cause", to, b32(category), b32("causes.sera.cx"), careLicence);
   const [ev] = await eventsOf(tx, "CauseListed");
   return ev.args.causeId;
@@ -58,24 +53,15 @@ async function finalise(id, claims, outcome = O.Verified) {
 }
 async function status(id) { return (await reg.getCause(id)).status; }
 async function count(id) { return Array.from(await reg.verifiedRequiredCount(id), Number); }
-async function give(id, who, token, amount, fe = "causes.sera.cx") {
-  await (await token.connect(who).mint(who.address, amount)).wait();
-  await (await token.connect(who).approve(await reg.getAddress(), amount)).wait();
-  return reg.connect(who).donate(id, await token.getAddress(), amount, b32(fe));
-}
 
 before(async () => {
   raw = ganache.provider({ logging: { quiet: true }, wallet: { totalAccounts: 8 }, chain: { hardfork: "merge" } });
   provider = new PaddedProvider(raw, undefined, { pollingInterval: 20, cacheTimeout: -1 });
-  [council, finaliser, steward, owner, payout, donor, donor2, stranger] =
-    await Promise.all([0, 1, 2, 3, 4, 5, 6, 7].map(i => provider.getSigner(i)));
+  [council, finaliser, steward, owner, deposit, helper, stranger] =
+    await Promise.all([0, 1, 2, 3, 4, 5, 6].map(i => provider.getSigner(i)));
   reg = await deploy("CauseRegistry", council, council.address);
-  usdc = await deploy("MockStable", council, "USD Coin", "USDC");
-  usdt = await deploy("MockUSDT", council);
   await (await reg.setFinaliser(finaliser.address, true)).wait();
   await (await reg.setSteward(steward.address, true)).wait();
-  await (await reg.setToken(await usdc.getAddress(), true)).wait();
-  await (await reg.setToken(await usdt.getAddress(), true)).wait();
 });
 
 after(async () => {
@@ -84,133 +70,90 @@ after(async () => {
   setTimeout(() => process.exit(process.exitCode ?? 0), 500).unref();
 });
 
-// ---------------------------------------------------------------- ported from v0.1
+// ---------------------------------------------------------------- listing and ownership
 
 test("anyone can list a cause and every front end sees the same event", async () => {
-  const tx = await reg.connect(stranger).listCause("ipfs://kasih-v1", payout.address, b32("turtles"), b32("youapp.ai"), false);
+  const tx = await reg.connect(stranger).listCause("ipfs://kasih-v1", deposit.address, b32("turtles"), b32("youapp.ai"), false);
   const [ev] = await eventsOf(tx, "CauseListed");
   assert.equal(ev.args.owner, stranger.address);
+  assert.equal(ev.args.payout, deposit.address);
   assert.equal(ethers.decodeBytes32String(ev.args.frontend), "youapp.ai");
   const c = await reg.getCause(ev.args.causeId);
   assert.equal(c.status, Status.Listed);
   assert.equal(c.uri, "ipfs://kasih-v1");
+  assert.equal(c.payout, deposit.address);
+  assert.ok(c.listedAt > 0n);
+  assert.equal(c.verifiedAt, 0n);
   assert.equal(await reg.requiresCareLicence(ev.args.causeId), false);
   assert.equal((await eventsOf(tx, "RequiresCareLicenceSet")).length, 0);
+  await rejects(reg.connect(stranger).listCause("", deposit.address, b32("x"), b32("x"), false), "BadInput");
+  await rejects(reg.connect(stranger).listCause("ipfs://x", ethers.ZeroAddress, b32("x"), b32("x"), false), "BadInput");
+  await rejects(reg.getCause(999999), "NoSuchCause");
 });
 
-test("gifts to a listed cause are held; it cannot claim until verified", async () => {
+test("only the owner updates the profile; ownership transfer hands over the owner powers", async () => {
   const id = await freshCause();
-  await (await give(id, donor, usdc, 50_000000n)).wait();
-  assert.equal(await reg.held(id, await usdc.getAddress()), 50_000000n);
-  await rejects(reg.connect(owner).claim(id, await usdc.getAddress()), "WrongStatus");
+  await rejects(reg.connect(stranger).updateCause(id, "ipfs://v2"), "NotOwner");
+  await (await reg.connect(owner).updateCause(id, "ipfs://v2")).wait();
+  assert.equal((await reg.getCause(id)).uri, "ipfs://v2");
+  const t = await reg.connect(owner).transferCauseOwnership(id, helper.address);
+  assert.equal((await eventsOf(t, "OwnerChanged"))[0].args.owner, helper.address);
+  await rejects(reg.connect(owner).updateCause(id, "ipfs://v3"), "NotOwner");
+  await (await reg.connect(helper).updateCause(id, "ipfs://v3")).wait();
+  assert.equal((await reg.getCause(id)).owner, helper.address);
+  await rejects(reg.connect(helper).finaliseClaim(id, C.C1, O.Verified, ROOT), "NotFinaliser");
 });
 
-test("only a finaliser can finalise claims; once verified, the payout address receives the claim", async () => {
+test("changing the deposit address drops Verified and reopens C3 only", async () => {
   const id = await freshCause();
-  await (await give(id, donor, usdc, 120_000000n)).wait();
-  await rejects(reg.connect(stranger).finaliseClaim(id, C.C1, O.Verified, ROOT), "NotFinaliser");
   await finalise(id, REQUIRED);
   assert.equal(await status(id), Status.Verified);
-  const before = await usdc.balanceOf(payout.address);
-  await (await reg.connect(owner).claim(id, await usdc.getAddress())).wait();
-  assert.equal(await usdc.balanceOf(payout.address) - before, 120_000000n);
-  assert.equal(await reg.held(id, await usdc.getAddress()), 0n);
-});
-
-test("USDT (no return value) works for donate and claim", async () => {
-  const id = await freshCause();
-  await (await give(id, donor, usdt, 7_000000n)).wait();
-  await finalise(id, REQUIRED);
-  await (await reg.connect(payout).claim(id, await usdt.getAddress())).wait();
-  assert.equal(await usdt.balanceOf(payout.address), 7_000000n);
-});
-
-test("tokens the council has not accepted are refused", async () => {
-  const id = await freshCause();
-  const meme = await deploy("MockStable", council, "Pepe", "PEPE");
-  await (await meme.mint(donor.address, 1000n)).wait();
-  await (await meme.connect(donor).approve(await reg.getAddress(), 1000n)).wait();
-  await rejects(reg.connect(donor).donate(id, await meme.getAddress(), 1000n, b32("causes.sera.cx")), "TokenNotAccepted");
-});
-
-test("givers can take gifts back after 90 days without verification, not before", async () => {
-  const id = await freshCause();
-  await (await give(id, donor2, usdc, 30_000000n)).wait();
-  await rejects(reg.connect(donor2).refund(id, await usdc.getAddress()), "NotRefundable");
-  await warp(90 * DAY);
-  const before = await usdc.balanceOf(donor2.address);
-  await (await reg.connect(donor2).refund(id, await usdc.getAddress())).wait();
-  assert.equal(await usdc.balanceOf(donor2.address) - before, 30_000000n);
-  await rejects(reg.connect(donor2).refund(id, await usdc.getAddress()), "NothingToMove");
-});
-
-test("changing the payout address drops verification so a stolen key cannot redirect funds", async () => {
-  const id = await freshCause();
-  await finalise(id, REQUIRED);
-  await (await give(id, donor, usdc, 10_000000n)).wait();
+  await rejects(reg.connect(stranger).setPayout(id, stranger.address), "NotOwner");
+  await rejects(reg.connect(owner).setPayout(id, ethers.ZeroAddress), "BadInput");
   const tx = await reg.connect(owner).setPayout(id, stranger.address);
-  const [ev] = await eventsOf(tx, "StatusChanged");
-  assert.equal(ev.args.status, Status.Listed);
-  assert.equal(await status(id), Status.Listed);
-  await rejects(reg.connect(stranger).claim(id, await usdc.getAddress()), "WrongStatus");
-  assert.equal(await reg.refundable(id), false); // fresh 90-day clock, not instantly refundable
+  const r = parsed(await tx.wait());
+  assert.equal(r.find(e => e.name === "PayoutChanged").args.payout, stranger.address);
+  const sc = r.find(e => e.name === "StatusChanged");
+  assert.equal(sc.args.status, Status.Listed);
+  assert.equal(sc.args.note, "payout changed, needs re-verification");
+  assert.equal((await reg.getCause(id)).payout, stranger.address);
+  assert.equal(await reg.claimOutcome(id, C.C3), O.Open);
+  assert.equal(await reg.claimOutcome(id, C.C1), O.Verified);
+  assert.equal(await reg.claimOutcome(id, C.C4), O.Verified);
+  assert.deepEqual(await count(id), [3, 4]);
+  // verifying C3 again is all it takes
+  await finalise(id, [C.C3]);
+  assert.equal(await status(id), Status.Verified);
+  // on a Listed cause it just resets C3, no status event
+  const b = await freshCause();
+  await finalise(b, [C.C3]);
+  const t2 = await reg.connect(owner).setPayout(b, helper.address);
+  assert.equal((await eventsOf(t2, "StatusChanged")).length, 0);
+  assert.equal(await reg.claimOutcome(b, C.C3), O.Open);
 });
 
-test("a steward suspending opens refunds right away, capped at what is still in escrow", async () => {
+// ---------------------------------------------------------------- claims and status
+
+test("only a finaliser can finalise claims", async () => {
   const id = await freshCause();
-  await (await give(id, donor, usdc, 40_000000n)).wait();
-  await (await give(id, donor2, usdc, 60_000000n)).wait();
-  await finalise(id, REQUIRED);
-  await (await reg.connect(owner).claim(id, await usdc.getAddress())).wait(); // all 100 claimed
-  await (await give(id, donor, usdc, 5_000000n)).wait();                      // 5 more arrives
-  await (await reg.connect(steward).suspend(id, "documents lapsed")).wait();
-  assert.equal(await status(id), Status.Suspended);
-  const before = await usdc.balanceOf(donor.address);
-  await (await reg.connect(donor).refund(id, await usdc.getAddress())).wait();
-  assert.equal(await usdc.balanceOf(donor.address) - before, 5_000000n);      // capped at escrow
-  await rejects(reg.connect(donor).donate(id, await usdc.getAddress(), 1n, b32("x")), "WrongStatus");
+  for (const who of [stranger, steward, council, owner]) {
+    await rejects(reg.connect(who).finaliseClaim(id, C.C1, O.Verified, ROOT), "NotFinaliser");
+  }
+  await rejects(reg.connect(finaliser).finaliseClaim(999999, C.C1, O.Verified, ROOT), "NoSuchCause");
+  const r = await finalise(id, [C.C1]);
+  const ev = parsed(r).find(e => e.name === "ClaimFinalised");
+  assert.equal(ev.args.causeId, id);
+  assert.equal(ev.args.claim, BigInt(C.C1));
+  assert.equal(ev.args.outcome, O.Verified);
+  assert.equal(ev.args.resultRoot, ROOT);
+  assert.equal(ev.args.by, finaliser.address);
 });
-
-test("anyone can attest; only the owner posts progress and needs; anyone can pledge", async () => {
-  const id = await freshCause();
-  const t1 = await reg.connect(stranger).attest(id, b32("site-visit"), "ipfs://visit-photos");
-  assert.equal((await eventsOf(t1, "Attested")).length, 1);
-  await rejects(reg.connect(stranger).postProgress(id, b32("report"), "ipfs://r"), "NotOwner");
-  const t2 = await reg.connect(owner).postProgress(id, b32("stream"), "https://youtube.com/live/abc");
-  assert.equal(ethers.decodeBytes32String((await eventsOf(t2, "ProgressPosted"))[0].args.kind), "stream");
-  const t3 = await reg.connect(owner).postNeed(id, "ipfs://need-volunteers-release-night");
-  const needId = (await eventsOf(t3, "NeedPosted"))[0].args.needId;
-  await (await reg.connect(donor).pledge(needId, "ipfs://i-can-film")).wait();
-  await rejects(reg.connect(donor).closeNeed(needId, donor.address), "NotOwner");
-  await (await reg.connect(owner).closeNeed(needId, donor.address)).wait();
-  await rejects(reg.connect(donor2).pledge(needId, "ipfs://late"), "BadInput");
-});
-
-test("only the council manages finalisers, stewards, tokens and itself", async () => {
-  await rejects(reg.connect(stranger).setFinaliser(stranger.address, true), "NotCouncil");
-  await rejects(reg.connect(stranger).setSteward(stranger.address, true), "NotCouncil");
-  await rejects(reg.connect(stranger).setToken(stranger.address, true), "NotCouncil");
-  await rejects(reg.connect(stranger).setCouncil(stranger.address), "NotCouncil");
-  await rejects(reg.connect(finaliser).setSteward(stranger.address, true), "NotCouncil");
-  await rejects(reg.connect(steward).setFinaliser(stranger.address, true), "NotCouncil");
-  const t = await reg.connect(council).setFinaliser(donor.address, true);
-  assert.equal((await eventsOf(t, "FinaliserSet"))[0].args.on, true);
-  await (await reg.connect(council).setFinaliser(donor.address, false)).wait();
-  assert.equal(await reg.isFinaliser(donor.address), false);
-});
-
-// ---------------------------------------------------------------- v1.1: per-claim verification
 
 test("per-claim finalisation flips status automatically once every required claim is verified", async () => {
   const id = await freshCause();
-  let done, total;
   for (const [i, c] of REQUIRED.entries()) {
-    const r = await finalise(id, [c]);
-    const ev = r.logs.map(l => { try { return reg.interface.parseLog(l); } catch { return null; } }).filter(Boolean);
-    assert.equal(ev.find(e => e.name === "ClaimFinalised").args.by, finaliser.address);
-    [done, total] = await count(id);
-    assert.equal(done, i + 1);
-    assert.equal(total, 4);
+    const ev = parsed(await finalise(id, [c]));
+    assert.deepEqual(await count(id), [i + 1, 4]);
     if (i < 3) {
       assert.equal(await status(id), Status.Listed);
       assert.equal(await reg.requiredClaimsMet(id), false);
@@ -219,94 +162,79 @@ test("per-claim finalisation flips status automatically once every required clai
       const sc = ev.find(e => e.name === "StatusChanged");
       assert.equal(sc.args.status, Status.Verified);
       assert.equal(sc.args.note, "all required claims verified");
+      assert.equal(sc.args.by, finaliser.address);
       assert.equal(await reg.requiredClaimsMet(id), true);
     }
   }
   const c = await reg.getCause(id);
   assert.equal(c.status, Status.Verified);
-  assert.ok(c.verifiedAt > 0n);
-  assert.equal(await reg.claimOutcome(id, C.C1), O.Verified);
+  assert.ok(c.verifiedAt >= c.listedAt && c.verifiedAt > 0n);
+  // re-finalising an already verified claim is a no-op for status
+  const again = parsed(await finalise(id, [C.C2]));
+  assert.equal(again.some(e => e.name === "StatusChanged"), false);
 });
 
-test("overturning a required claim on a verified cause suspends it and opens refunds", async () => {
+test("overturning a required claim on a verified cause suspends it", async () => {
   const id = await freshCause();
-  await (await give(id, donor, usdc, 25_000000n)).wait();
   await finalise(id, REQUIRED);
-  assert.equal(await reg.refundable(id), false);
-  const r = await finalise(id, [C.C2], O.NotVerified);
-  const sc = r.logs.map(l => reg.interface.parseLog(l)).find(e => e?.name === "StatusChanged");
+  const r = parsed(await finalise(id, [C.C2], O.NotVerified));
+  const sc = r.find(e => e.name === "StatusChanged");
   assert.equal(sc.args.status, Status.Suspended);
   assert.equal(sc.args.note, "required claim overturned");
-  assert.equal(await reg.refundable(id), true);
-  const before = await usdc.balanceOf(donor.address);
-  await (await reg.connect(donor).refund(id, await usdc.getAddress())).wait();
-  assert.equal(await usdc.balanceOf(donor.address) - before, 25_000000n);
-  await rejects(reg.connect(owner).claim(id, await usdc.getAddress()), "WrongStatus");
+  assert.equal(await status(id), Status.Suspended);
+  assert.deepEqual(await count(id), [3, 4]);
+  // a suspended cause still records outcomes but does not change status on its own
+  const r2 = parsed(await finalise(id, [C.C2]));
+  assert.equal(r2.some(e => e.name === "StatusChanged"), false);
+  assert.equal(await status(id), Status.Suspended);
+  assert.equal(await reg.requiredClaimsMet(id), true);
+  // overturning a claim on a Listed cause just records it
+  const b = await freshCause();
+  const r3 = parsed(await finalise(b, [C.C1], O.NotVerified));
+  assert.equal(r3.some(e => e.name === "StatusChanged"), false);
+  assert.equal(await status(b), Status.Listed);
 });
 
-test("a payout change reopens C3 only; verifying C3 again restores Verified", async () => {
+test("reopening a required claim (NeedsMore or Open) on a verified cause drops it to Listed without suspending", async () => {
   const id = await freshCause();
   await finalise(id, REQUIRED);
-  await (await reg.connect(owner).setPayout(id, donor2.address)).wait();
-  assert.equal(await reg.claimOutcome(id, C.C3), O.Open);
-  assert.equal(await reg.claimOutcome(id, C.C1), O.Verified);
-  assert.equal(await reg.claimOutcome(id, C.C4), O.Verified);
-  const [done, total] = await count(id);
-  assert.equal(done, 3); assert.equal(total, 4);
-  assert.equal(await status(id), Status.Listed);
-  await finalise(id, [C.C3]);
+  const sc = parsed(await finalise(id, [C.C4], O.NeedsMore)).find(e => e.name === "StatusChanged");
+  assert.equal(sc.args.status, Status.Listed);
+  assert.equal(sc.args.note, "required claim reopened");
+  await finalise(id, [C.C4]);
   assert.equal(await status(id), Status.Verified);
-  assert.equal((await reg.getCause(id)).payout, donor2.address);
+  await finalise(id, [C.C1], O.Open);
+  assert.equal(await status(id), Status.Listed);
+  assert.deepEqual(await count(id), [3, 4]);
 });
 
-test("reinstate re-verifies when claims still hold, and only re-lists when they do not", async () => {
-  // Claims still hold: steward paused for an unrelated report, then lifts it.
-  const a = await freshCause();
-  await finalise(a, REQUIRED);
-  await (await reg.connect(steward).suspend(a, "report under review")).wait();
-  const r = await reg.connect(steward).reinstate(a);
-  const evs = await eventsOf(r, "StatusChanged");
-  assert.deepEqual(evs.map(e => e.args.status), [Status.Listed, Status.Verified]);
-  assert.equal(await status(a), Status.Verified);
-  await rejects(reg.connect(steward).reinstate(a), "WrongStatus"); // not suspended any more
-
-  // Claims do not hold: overturned, so reinstate only goes back to Listed with a fresh clock.
-  const b = await freshCause();
-  await finalise(b, REQUIRED);
-  await finalise(b, [C.C4], O.NotVerified);
-  assert.equal(await status(b), Status.Suspended);
-  await warp(100 * DAY);
-  await (await reg.connect(steward).reinstate(b)).wait();
-  assert.equal(await status(b), Status.Listed);
-  assert.equal(await reg.refundable(b), false); // fresh waitingSince
-  await finalise(b, [C.C4]);
-  assert.equal(await status(b), Status.Verified);
-});
-
-test("only a finaliser finalises; only a steward pauses, reinstates, closes and flags", async () => {
+test("badge claims C5 and C7 never change status, in either direction", async () => {
   const id = await freshCause();
-  for (const who of [stranger, steward, council, owner]) {
-    await rejects(reg.connect(who).finaliseClaim(id, C.C1, O.Verified, ROOT), "NotFinaliser");
-  }
-  for (const who of [stranger, finaliser, council, owner]) {
-    await rejects(reg.connect(who).suspend(id, "x"), "NotSteward");
-    await rejects(reg.connect(who).reinstate(id), "NotSteward");
-    await rejects(reg.connect(who).closeBySteward(id, "x"), "NotSteward");
-    await rejects(reg.connect(who).setRequiresCareLicence(id, true), "NotSteward");
-  }
+  await finalise(id, [C.C5, C.C7]);
+  assert.equal(await status(id), Status.Listed);
+  assert.deepEqual(await count(id), [0, 4]);
+  await finalise(id, REQUIRED);
+  const r = parsed(await finalise(id, [C.C5, C.C7], O.NotVerified));
+  assert.equal(r.some(e => e.name === "StatusChanged"), false);
+  assert.equal(await status(id), Status.Verified);
+  assert.equal(await reg.claimOutcome(id, C.C5), O.NotVerified);
+  assert.equal(await reg.claimOutcome(id, C.C7), O.NotVerified);
 });
 
 test("C6 (care licence) is required only when the cause is flagged", async () => {
   // Flagged at listing: a children's home needs five claims.
-  const home = await freshCause({ careLicence: true, category: "children" });
+  const tx = await reg.connect(owner).listCause("ipfs://home", deposit.address, b32("children"), b32("causes.sera.cx"), true);
+  const home = (await eventsOf(tx, "CauseListed"))[0].args.causeId;
+  assert.equal((await eventsOf(tx, "RequiresCareLicenceSet"))[0].args.on, true);
   assert.equal(await reg.requiresCareLicence(home), true);
   assert.equal(await reg.isRequired(home, C.C6), true);
   await finalise(home, REQUIRED);
   assert.equal(await status(home), Status.Listed);
-  let [done, total] = await count(home);
-  assert.equal(done, 4); assert.equal(total, 5);
+  assert.deepEqual(await count(home), [4, 5]);
   await finalise(home, [C.C6]);
   assert.equal(await status(home), Status.Verified);
+  await finalise(home, [C.C6], O.NotVerified);
+  assert.equal(await status(home), Status.Suspended);
 
   // Not flagged: C6 is ignored, four claims are enough.
   const society = await freshCause();
@@ -317,72 +245,152 @@ test("C6 (care licence) is required only when the cause is flagged", async () =>
   await finalise(society, [C.C6], O.NotVerified); // irrelevant claim, no effect
   await finalise(society, REQUIRED);
   assert.equal(await status(society), Status.Verified);
-  [done, total] = await count(society);
-  assert.equal(done, 4); assert.equal(total, 4);
+  assert.deepEqual(await count(society), [4, 4]);
 });
 
 test("a steward can flag or unflag a care licence and the status follows", async () => {
   const id = await freshCause();
   await finalise(id, REQUIRED);
-  assert.equal(await status(id), Status.Verified);
   const t = await reg.connect(steward).setRequiresCareLicence(id, true);
-  assert.equal((await eventsOf(t, "RequiresCareLicenceSet"))[0].args.on, true);
-  assert.equal(await status(id), Status.Listed);          // C6 now required and not verified
-  assert.equal(await reg.refundable(id), false);          // fresh clock, as on any drop from Verified
+  const r = parsed(await t.wait());
+  assert.equal(r.find(e => e.name === "RequiresCareLicenceSet").args.on, true);
+  assert.equal(r.find(e => e.name === "StatusChanged").args.note, "care licence now required");
+  assert.equal(await status(id), Status.Listed);
+  assert.deepEqual(await count(id), [4, 5]);
   await (await reg.connect(steward).setRequiresCareLicence(id, false)).wait();
   assert.equal(await status(id), Status.Verified);        // claims met again
+  // toggling on a Listed cause with no claims changes nothing but the flag
+  const b = await freshCause();
+  const t2 = await reg.connect(steward).setRequiresCareLicence(b, true);
+  assert.equal((await eventsOf(t2, "StatusChanged")).length, 0);
+  assert.equal(await reg.requiresCareLicence(b), true);
 });
 
-test("badge claims C5 and C7 never change status, in either direction", async () => {
+// ---------------------------------------------------------------- stewards
+
+test("only a steward pauses, reinstates, closes and flags", async () => {
   const id = await freshCause();
-  await finalise(id, [C.C5, C.C7]);
-  assert.equal(await status(id), Status.Listed);
-  await finalise(id, REQUIRED);
-  await finalise(id, [C.C5, C.C7], O.NotVerified);
-  assert.equal(await status(id), Status.Verified);
-  assert.equal(await reg.claimOutcome(id, C.C5), O.NotVerified);
+  for (const who of [stranger, finaliser, council, owner]) {
+    await rejects(reg.connect(who).suspend(id, "x"), "NotSteward");
+    await rejects(reg.connect(who).reinstate(id), "NotSteward");
+    await rejects(reg.connect(who).closeBySteward(id, "x"), "NotSteward");
+    await rejects(reg.connect(who).setRequiresCareLicence(id, true), "NotSteward");
+  }
+  await rejects(reg.connect(steward).suspend(999999, "x"), "NoSuchCause");
 });
 
-test("reopening a required claim (NeedsMore) on a verified cause drops it to Listed without suspending", async () => {
+test("a steward can pause a cause with a written reason; a paused cause takes no further status changes", async () => {
   const id = await freshCause();
   await finalise(id, REQUIRED);
-  const r = await finalise(id, [C.C4], O.NeedsMore);
-  const sc = r.logs.map(l => reg.interface.parseLog(l)).find(e => e?.name === "StatusChanged");
-  assert.equal(sc.args.status, Status.Listed);
-  assert.equal(sc.args.note, "required claim reopened");
-  assert.equal(await reg.refundable(id), false);
-  await (await give(id, donor, usdc, 1_000000n)).wait(); // still accepts gifts
-  await finalise(id, [C.C4]);
-  assert.equal(await status(id), Status.Verified);
+  const t = await reg.connect(steward).suspend(id, "credible fraud report");
+  const [ev] = await eventsOf(t, "StatusChanged");
+  assert.equal(ev.args.status, Status.Suspended);
+  assert.equal(ev.args.note, "credible fraud report");
+  assert.equal(ev.args.by, steward.address);
+  await rejects(reg.connect(steward).suspend(id, "again"), "WrongStatus");
+  // the owner cannot talk their way out of it; only reinstate or close move it on
+  await (await reg.connect(owner).updateCause(id, "ipfs://v2")).wait(); // profile edits still allowed
+  assert.equal(await status(id), Status.Suspended);
 });
 
-test("closing by owner or steward opens refunds; closed causes take no more results", async () => {
+test("reinstate re-verifies when claims still hold, and only re-lists when they do not", async () => {
+  // Claims still hold: steward paused for an unrelated report, then lifts it.
   const a = await freshCause();
-  await (await give(a, donor, usdc, 3_000000n)).wait();
-  await (await reg.connect(owner).closeCause(a)).wait();
+  await finalise(a, REQUIRED);
+  await (await reg.connect(steward).suspend(a, "report under review")).wait();
+  const evs = await eventsOf(await reg.connect(steward).reinstate(a), "StatusChanged");
+  assert.deepEqual(evs.map(e => e.args.status), [Status.Listed, Status.Verified]);
+  assert.deepEqual(evs.map(e => e.args.note), ["reinstated by steward", "all required claims verified"]);
+  assert.equal(await status(a), Status.Verified);
+  await rejects(reg.connect(steward).reinstate(a), "WrongStatus"); // not suspended any more
+
+  // Claims do not hold: overturned, so reinstate only goes back to Listed.
+  const b = await freshCause();
+  await finalise(b, REQUIRED);
+  await finalise(b, [C.C4], O.NotVerified);
+  assert.equal(await status(b), Status.Suspended);
+  const evs2 = await eventsOf(await reg.connect(steward).reinstate(b), "StatusChanged");
+  assert.deepEqual(evs2.map(e => e.args.status), [Status.Listed]);
+  assert.equal(await status(b), Status.Listed);
+  await finalise(b, [C.C4]);
+  assert.equal(await status(b), Status.Verified);
+});
+
+test("closing by owner or steward is final; closed causes take no more results or status changes", async () => {
+  const a = await freshCause();
+  const t = await reg.connect(owner).closeCause(a);
+  assert.equal((await eventsOf(t, "StatusChanged"))[0].args.note, "closed by owner");
   assert.equal(await status(a), Status.Closed);
-  assert.equal(await reg.refundable(a), true);
   await rejects(reg.connect(owner).closeCause(a), "WrongStatus");
   await rejects(reg.connect(finaliser).finaliseClaim(a, C.C1, O.Verified, ROOT), "WrongStatus");
   await rejects(reg.connect(steward).suspend(a, "x"), "WrongStatus");
+  await rejects(reg.connect(steward).reinstate(a), "WrongStatus");
+  await rejects(reg.connect(steward).closeBySteward(a, "again"), "WrongStatus");
+  await rejects(reg.connect(stranger).closeCause(a), "NotOwner");
 
   const b = await freshCause();
   await finalise(b, REQUIRED);
-  const t = await reg.connect(steward).closeBySteward(b, "legal notice");
-  const [ev] = await eventsOf(t, "StatusChanged");
+  const t2 = await reg.connect(steward).closeBySteward(b, "legal notice");
+  const [ev] = await eventsOf(t2, "StatusChanged");
   assert.equal(ev.args.note, "legal notice");
   assert.equal(ev.args.by, steward.address);
   assert.equal(await status(b), Status.Closed);
-  await rejects(reg.connect(steward).closeBySteward(b, "again"), "WrongStatus");
-  await rejects(reg.connect(owner).claim(b, await usdc.getAddress()), "WrongStatus");
+  // a suspended cause can also be closed by a steward
+  const c = await freshCause();
+  await (await reg.connect(steward).suspend(c, "x")).wait();
+  await (await reg.connect(steward).closeBySteward(c, "y")).wait();
+  assert.equal(await status(c), Status.Closed);
 });
 
-test("ownership transfer hands over the owner powers and nothing else", async () => {
+// ---------------------------------------------------------------- record: attestations, progress, needs
+
+test("anyone can attest; only the owner posts progress and needs; anyone can pledge", async () => {
   const id = await freshCause();
-  await (await reg.connect(owner).transferCauseOwnership(id, donor2.address)).wait();
-  await rejects(reg.connect(owner).updateCause(id, "ipfs://v2"), "NotOwner");
-  await (await reg.connect(donor2).updateCause(id, "ipfs://v2")).wait();
-  assert.equal((await reg.getCause(id)).uri, "ipfs://v2");
-  assert.equal((await reg.getCause(id)).owner, donor2.address);
-  await rejects(reg.connect(donor2).finaliseClaim(id, C.C1, O.Verified, ROOT), "NotFinaliser");
+  const t1 = await reg.connect(stranger).attest(id, b32("site-visit"), "ipfs://visit-photos");
+  const [at] = await eventsOf(t1, "Attested");
+  assert.equal(at.args.attester, stranger.address);
+  assert.equal(ethers.decodeBytes32String(at.args.kind), "site-visit");
+  await rejects(reg.connect(stranger).attest(999999, b32("x"), "ipfs://x"), "NoSuchCause");
+  await rejects(reg.connect(stranger).postProgress(id, b32("report"), "ipfs://r"), "NotOwner");
+  await rejects(reg.connect(owner).postProgress(id, b32("report"), ""), "BadInput");
+  const t2 = await reg.connect(owner).postProgress(id, b32("stream"), "https://youtube.com/live/abc");
+  assert.equal(ethers.decodeBytes32String((await eventsOf(t2, "ProgressPosted"))[0].args.kind), "stream");
+  await rejects(reg.connect(stranger).postNeed(id, "ipfs://need"), "NotOwner");
+  const t3 = await reg.connect(owner).postNeed(id, "ipfs://need-volunteers-release-night");
+  const needId = (await eventsOf(t3, "NeedPosted"))[0].args.needId;
+  const n = await reg.needs(needId);
+  assert.equal(n.causeId, id); assert.equal(n.open, true);
+  const t4 = await reg.connect(helper).pledge(needId, "ipfs://i-can-film");
+  assert.equal((await eventsOf(t4, "Pledged"))[0].args.helper, helper.address);
+  await rejects(reg.connect(helper).pledge(999999, "ipfs://x"), "NoSuchNeed");
+  await rejects(reg.connect(helper).closeNeed(needId, helper.address), "NotOwner");
+  const t5 = await reg.connect(owner).closeNeed(needId, helper.address);
+  assert.equal((await eventsOf(t5, "NeedClosed"))[0].args.helper, helper.address);
+  assert.equal((await reg.needs(needId)).open, false);
+  await rejects(reg.connect(stranger).pledge(needId, "ipfs://late"), "BadInput");
+});
+
+// ---------------------------------------------------------------- council
+
+test("only the council manages finalisers, stewards and itself", async () => {
+  await rejects(reg.connect(stranger).setFinaliser(stranger.address, true), "NotCouncil");
+  await rejects(reg.connect(stranger).setSteward(stranger.address, true), "NotCouncil");
+  await rejects(reg.connect(stranger).setCouncil(stranger.address), "NotCouncil");
+  await rejects(reg.connect(finaliser).setSteward(stranger.address, true), "NotCouncil");
+  await rejects(reg.connect(steward).setFinaliser(stranger.address, true), "NotCouncil");
+  await rejects(reg.connect(council).setCouncil(ethers.ZeroAddress), "BadInput");
+  const t = await reg.connect(council).setFinaliser(helper.address, true);
+  assert.equal((await eventsOf(t, "FinaliserSet"))[0].args.on, true);
+  assert.equal(await reg.isFinaliser(helper.address), true);
+  await (await reg.connect(council).setFinaliser(helper.address, false)).wait();
+  assert.equal(await reg.isFinaliser(helper.address), false);
+  const t2 = await reg.connect(council).setSteward(helper.address, true);
+  assert.equal((await eventsOf(t2, "StewardSet"))[0].args.who, helper.address);
+  await (await reg.connect(council).setSteward(helper.address, false)).wait();
+  // handing over the council
+  await (await reg.connect(council).setCouncil(helper.address)).wait();
+  assert.equal(await reg.council(), helper.address);
+  await rejects(reg.connect(council).setFinaliser(stranger.address, true), "NotCouncil");
+  await (await reg.connect(helper).setCouncil(council.address)).wait();
+  assert.equal(await reg.council(), council.address);
 });

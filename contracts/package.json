@@ -1,7 +1,7 @@
 {
   "name": "@sera-causes/contracts",
   "version": "0.1.0",
-  "description": "CauseRegistry v1.1: the shared cause registry for Sera Causes. ABI, address book, tests and demo chain.",
+  "description": "CauseRegistry v1.1: the shared cause registry for Sera Causes (holds no funds). ABI, address book, tests and demo chain.",
   "type": "module",
   "license": "SEE LICENSE IN ../LICENSE",
   "files": [

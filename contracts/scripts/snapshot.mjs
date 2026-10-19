@@ -1,6 +1,7 @@
 // Rebuilds the whole cause registry from on-chain events into one JSON snapshot.
 // Anyone can run this, or read a public snapshot, or point at the same RPC. There is no
-// other source of truth to sync: the contract's event log is the list.
+// other source of truth to sync: the contract's event log is the list. Gifts are not in
+// here: they are plain transfers to each cause's deposit address, read by the indexer.
 //
 // This is the v1.1 port of the v0.1 indexer: it understands per-claim outcomes
 // (ClaimFinalised), the care licence flag and the finaliser and steward roles. The full indexer with Postgres lives in indexer/.
@@ -11,14 +12,13 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const ABI = JSON.parse(readFileSync(new URL("../build/CauseRegistry.json", import.meta.url))).abi;
-const ERC20 = ["function symbol() view returns (string)", "function decimals() view returns (uint8)"];
 
 export const STATUS = ["none", "listed", "verified", "suspended", "closed"];
 export const CLAIMS = ["C1", "C2", "C3", "C4", "C5", "C6", "C7"];
 export const OUTCOMES = ["open", "verified", "not_verified", "needs_more"];
 export const REQUIRED_CLAIMS = ["C1", "C2", "C3", "C4"];
 const s32 = b => { try { return ethers.decodeBytes32String(b); } catch { return b; } };
-const ROLE_EVENTS = new Set(["FinaliserSet", "StewardSet", "TokenSet", "CouncilChanged"]);
+const ROLE_EVENTS = new Set(["FinaliserSet", "StewardSet", "CouncilChanged"]);
 
 /// Which claims count for Verified, and how many are done. Same rule as the contract.
 export function requiredOf(cause) {
@@ -48,7 +48,7 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
   const times = new Map();
   const ts = async n => { if (!times.has(n)) times.set(n, (await provider.getBlock(n)).timestamp); return times.get(n); };
 
-  const causes = new Map(), needs = new Map(), tokens = new Map(), finalisers = new Set(), stewards = new Set();
+  const causes = new Map(), needs = new Map(), finalisers = new Set(), stewards = new Set();
   let council = null;
   const feed = [];
 
@@ -60,10 +60,10 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
     switch (ev.name) {
       case "CauseListed": {
         const c = { id: Number(a.causeId), owner: a.owner, payout: a.payout, category: s32(a.category), uri: a.uri,
-          status: "listed", stage: "listed", listedAt: at, waitingSince: at, verifiedAt: null, listedVia: s32(a.frontend),
+          status: "listed", stage: "listed", listedAt: at, verifiedAt: null, listedVia: s32(a.frontend),
           requiresCareLicence: false, claims: Object.fromEntries(CLAIMS.map(k => [k, "open"])), claimRoots: {},
           requiredDone: 0, requiredTotal: 4,
-          totals: {}, byFrontend: {}, donors: {}, attestations: [], progress: [], needs: [], timeline: [] };
+          attestations: [], progress: [], needs: [], timeline: [] };
         causes.set(c.id, c);
         c.timeline.push({ ...base, by: a.owner, frontend: c.listedVia });
         break;
@@ -76,9 +76,8 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
       }
       case "OwnerChanged": { const c = cause(a.causeId); c.owner = a.owner; c.timeline.push({ ...base, owner: a.owner }); break; }
       case "StatusChanged": {
-        const c = cause(a.causeId); const prev = c.status; c.status = STATUS[Number(a.status)];
+        const c = cause(a.causeId); c.status = STATUS[Number(a.status)];
         if (c.status === "verified") c.verifiedAt = at;
-        else if (prev === "verified" || c.status === "listed") c.waitingSince = at;
         c.timeline.push({ ...base, status: c.status, by: a.by, note: a.note }); break;
       }
       case "ClaimFinalised": {
@@ -95,15 +94,6 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
         const c = cause(a.causeId); const x = { ...base, attester: a.attester, kind: s32(a.kind), uri: a.uri };
         c.attestations.push(x); c.timeline.push(x); break;
       }
-      case "Donated": {
-        const c = cause(a.causeId), tok = a.token, fe = s32(a.frontend), amt = a.amount;
-        c.totals[tok] = (BigInt(c.totals[tok] || 0) + amt).toString();
-        c.byFrontend[fe] ??= {}; c.byFrontend[fe][tok] = (BigInt(c.byFrontend[fe][tok] || 0) + amt).toString();
-        c.donors[a.donor] = true;
-        c.timeline.push({ ...base, donor: a.donor, token: tok, amount: amt.toString(), frontend: fe }); break;
-      }
-      case "Claimed": { cause(a.causeId).timeline.push({ ...base, token: a.token, amount: a.amount.toString(), to: a.to }); break; }
-      case "Refunded": { cause(a.causeId).timeline.push({ ...base, donor: a.donor, token: a.token, amount: a.amount.toString() }); break; }
       case "ProgressPosted": {
         const c = cause(a.causeId); const x = { ...base, kind: s32(a.kind), uri: a.uri };
         c.progress.push(x); c.timeline.push(x); break;
@@ -122,7 +112,6 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
       }
       case "FinaliserSet": a.on ? finalisers.add(a.who) : finalisers.delete(a.who); break;
       case "StewardSet": a.on ? stewards.add(a.who) : stewards.delete(a.who); break;
-      case "TokenSet": if (a.on) tokens.set(a.token, null); else tokens.delete(a.token); break;
       case "CouncilChanged": council = a.council; break;
     }
     if (!ROLE_EVENTS.has(ev.name)) {
@@ -135,15 +124,11 @@ export async function indexRegistry({ provider, address, fromBlock = 0, toBlock,
     const { done, total } = requiredOf(c);
     c.requiredDone = done; c.requiredTotal = total; c.stage = stageOf(c);
   }
-  for (const t of tokens.keys()) {
-    const c = new ethers.Contract(t, ERC20, provider);
-    tokens.set(t, { symbol: await c.symbol().catch(() => "?"), decimals: Number(await c.decimals().catch(() => 18)) });
-  }
   const chainId = Number((await provider.getNetwork()).chainId);
   return {
     schema: "sera-causes.snapshot/1", chainId, registry: address, block: latest, generatedAt: new Date().toISOString(),
-    council, finalisers: [...finalisers], stewards: [...stewards], tokens: Object.fromEntries(tokens),
-    causes: [...causes.values()].map(c => ({ ...c, donors: Object.keys(c.donors).length })),
+    council, finalisers: [...finalisers], stewards: [...stewards],
+    causes: [...causes.values()],
     needs: [...needs.values()],
     feed: feed.slice(-200).reverse(),
   };

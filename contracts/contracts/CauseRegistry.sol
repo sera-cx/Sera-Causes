@@ -3,26 +3,27 @@ pragma solidity ^0.8.24;
 
 /// @title Sera Causes: shared cause registry (v1.1)
 /// @notice One list of causes for every front end that builds on Sera Causes. A cause listed
-/// from one front end shows up in all of them. Gifts sit in escrow per cause and per
-/// stablecoin. A cause can claim only once every required claim about it has been verified
-/// by the community and finalised on-chain. If it is never verified, givers take their gift back.
+/// from one front end shows up in all of them. The registry holds no funds: each cause has its
+/// own deposit address (`payout`), and gifts go straight to it. What the registry records is
+/// who listed what, where gifts should go, which claims about the cause have been verified by
+/// the community, and the public record of attestations, progress and help requests.
 ///
 /// Roles:
-///  - council:   a multisig. Manages accepted tokens, finalisers, stewards and itself.
+///  - council:   a multisig. Manages finalisers, stewards and itself.
 ///  - finaliser: submits recomputable claim outcomes.
 ///  - steward:   can pause, reinstate and close a cause during phases 0 and 1.
-///  - owner:     whoever listed the cause (or was given it). Updates the profile, payout,
-///               progress and needs. Can close the cause.
-///  - anyone:    lists causes, attests, gives, pledges help, reads everything.
+///  - owner:     whoever listed the cause (or was given it). Updates the profile, deposit
+///               address, progress and needs. Can close the cause.
+///  - anyone:    lists causes, attests, pledges help, reads everything.
 contract CauseRegistry {
     // ------------------------------------------------------------------ types
 
     enum Status {
         None,       // id not used
-        Listed,     // anyone listed it; gifts are held in escrow
-        Verified,   // every required claim is verified; it can claim
-        Suspended,  // a steward paused it or a required claim was overturned; refunds open
-        Closed      // the owner or a steward closed it; refunds open
+        Listed,     // anyone listed it; not yet verified
+        Verified,   // every required claim is verified
+        Suspended,  // a steward paused it or a required claim was overturned; no new activity
+        Closed      // the owner or a steward closed it; no new activity
     }
 
     /// @notice The facts a cause is checked on, one at a time. C1 to C4 are always required.
@@ -30,7 +31,7 @@ contract CauseRegistry {
     enum ClaimType {
         C1_Registered,   // the organisation exists and is registered
         C2_Current,      // the registration is current
-        C3_Payout,       // the payout wallet belongs to the organisation
+        C3_Payout,       // the deposit address belongs to the organisation
         C4_WorkReal,     // the work is real and current
         C5_TaxExempt,    // tax-exempt approval (badge)
         C6_CareLicence,  // care licence where the law needs one
@@ -46,10 +47,9 @@ contract CauseRegistry {
 
     struct Cause {
         address owner;         // lister: updates the profile, posts progress and needs
-        address payout;        // receives claimed funds
+        address payout;        // the cause's deposit address; gifts go here directly
         Status status;
         uint64 listedAt;
-        uint64 waitingSince;   // start of the refund clock while not verified
         uint64 verifiedAt;
         bytes32 category;      // e.g. "turtles", "children", "relief"
         string uri;            // ipfs://<cid> of the profile JSON
@@ -63,13 +63,9 @@ contract CauseRegistry {
 
     // ------------------------------------------------------------------ storage
 
-    /// @notice How long an unverified cause has before givers may take their gifts back.
-    uint64 public constant REFUND_WINDOW = 90 days;
-
     address public council;                                   // multisig
     mapping(address => bool) public isFinaliser;              // submits recomputable results
     mapping(address => bool) public isSteward;                // pause, reinstate, close (phases 0 and 1)
-    mapping(address => bool) public acceptedToken;
 
     uint256 public causeCount;
     mapping(uint256 => Cause) private _causes;
@@ -79,17 +75,8 @@ contract CauseRegistry {
     /// causeId => whether C6 (care licence) is required. Set at listing, steward can toggle.
     mapping(uint256 => bool) public requiresCareLicence;
 
-    /// causeId => token => amount in escrow now
-    mapping(uint256 => mapping(address => uint256)) public held;
-    /// causeId => giver => token => amount the giver can still take back
-    mapping(uint256 => mapping(address => mapping(address => uint256))) public givenBy;
-    /// causeId => token => lifetime total given
-    mapping(uint256 => mapping(address => uint256)) public totalGiven;
-
     uint256 public needCount;
     mapping(uint256 => Need) public needs;
-
-    uint256 private _lock = 1;
 
     // ------------------------------------------------------------------ events
     // Front ends and the indexer rebuild everything from these.
@@ -100,9 +87,6 @@ contract CauseRegistry {
     event OwnerChanged(uint256 indexed causeId, address owner);
     event StatusChanged(uint256 indexed causeId, Status status, address indexed by, string note);
     event Attested(uint256 indexed causeId, address indexed attester, bytes32 indexed kind, string uri);
-    event Donated(uint256 indexed causeId, address indexed donor, address indexed token, uint256 amount, bytes32 frontend);
-    event Claimed(uint256 indexed causeId, address indexed token, uint256 amount, address to);
-    event Refunded(uint256 indexed causeId, address indexed donor, address indexed token, uint256 amount);
     event ProgressPosted(uint256 indexed causeId, bytes32 indexed kind, string uri);
     event NeedPosted(uint256 indexed needId, uint256 indexed causeId, string uri);
     event Pledged(uint256 indexed needId, address indexed helper, string uri);
@@ -111,7 +95,6 @@ contract CauseRegistry {
     event RequiresCareLicenceSet(uint256 indexed causeId, bool on);
     event FinaliserSet(address indexed who, bool on);
     event StewardSet(address indexed who, bool on);
-    event TokenSet(address indexed token, bool on);
     event CouncilChanged(address council);
 
     // ------------------------------------------------------------------ errors
@@ -124,11 +107,6 @@ contract CauseRegistry {
     error NoSuchNeed();
     error BadInput();
     error WrongStatus(Status status);
-    error TokenNotAccepted();
-    error NothingToMove();
-    error NotRefundable();
-    error TransferFailed();
-    error Reentered();
 
     // ------------------------------------------------------------------ modifiers
 
@@ -153,13 +131,6 @@ contract CauseRegistry {
         _;
     }
 
-    modifier nonReentrant() {
-        if (_lock != 1) revert Reentered();
-        _lock = 2;
-        _;
-        _lock = 1;
-    }
-
     constructor(address council_) {
         if (council_ == address(0)) revert BadInput();
         council = council_;
@@ -168,7 +139,8 @@ contract CauseRegistry {
 
     // ------------------------------------------------------------------ causes
 
-    /// @notice List a cause. Anyone can. It starts as Listed and can take gifts into escrow.
+    /// @notice List a cause. Anyone can. It starts as Listed.
+    /// @param payout The cause's deposit address. Gifts are sent straight to it.
     /// @param frontend Which front end the listing came from, e.g. "causes.sera.cx".
     /// @param needsCareLicence True for children's homes and elderly care centres, where the law
     /// requires a care licence. Makes claim C6 required for Verified. A steward can change it later.
@@ -178,13 +150,11 @@ contract CauseRegistry {
     {
         if (bytes(uri).length == 0 || payout == address(0)) revert BadInput();
         causeId = ++causeCount;
-        uint64 nowTs = uint64(block.timestamp);
         _causes[causeId] = Cause({
             owner: msg.sender,
             payout: payout,
             status: Status.Listed,
-            listedAt: nowTs,
-            waitingSince: nowTs,
+            listedAt: uint64(block.timestamp),
             verifiedAt: 0,
             category: category,
             uri: uri
@@ -203,9 +173,9 @@ contract CauseRegistry {
         emit CauseUpdated(causeId, uri);
     }
 
-    /// @notice Change where claimed funds go. The "payout wallet belongs to the organisation"
+    /// @notice Change the deposit address. The "deposit address belongs to the organisation"
     /// claim (C3) goes back to Open, and a verified cause drops back to Listed until C3 is
-    /// verified again. So a stolen owner key cannot redirect funds.
+    /// verified again. So a stolen owner key cannot quietly redirect gifts and keep the badge.
     function setPayout(uint256 causeId, address payout) external onlyCauseOwner(causeId) {
         if (payout == address(0)) revert BadInput();
         Cause storage c = _causes[causeId];
@@ -223,7 +193,7 @@ contract CauseRegistry {
         emit OwnerChanged(causeId, newOwner);
     }
 
-    /// @notice The owner can close a cause. Remaining escrow becomes refundable.
+    /// @notice The owner can close a cause. It takes no further activity.
     function closeCause(uint256 causeId) external onlyCauseOwner(causeId) {
         Status s = _status(causeId);
         if (s == Status.Closed) revert WrongStatus(s);
@@ -236,10 +206,9 @@ contract CauseRegistry {
     /// anyone can recompute from the published votes; `resultRoot` is the Merkle root of those
     /// inputs. The cause's status follows automatically:
     ///  - Listed and every required claim is now Verified: the cause becomes Verified.
-    ///  - Verified and a required claim is set to NotVerified: the cause is Suspended and
-    ///    refunds open.
+    ///  - Verified and a required claim is set to NotVerified: the cause is Suspended.
     ///  - Verified and a required claim is reopened (Open or NeedsMore): the cause drops to
-    ///    Listed, like a payout change. It is not a fail, so gifts are still accepted.
+    ///    Listed, like a payout change. It is not a fail.
     ///  - Suspended: the outcome is recorded; a steward's `reinstate` re-evaluates it.
     ///  - Closed: refused.
     function finaliseClaim(uint256 causeId, ClaimType claimType, ClaimOutcome outcome, bytes32 resultRoot) external onlyFinaliser {
@@ -260,24 +229,23 @@ contract CauseRegistry {
         }
     }
 
-    /// @notice Pause a cause on a credible report of fraud, harm or a legal notice. Refunds open.
+    /// @notice Pause a cause on a credible report of fraud, harm or a legal notice.
     function suspend(uint256 causeId, string calldata reason) external onlySteward {
         Status s = _status(causeId);
         if (s != Status.Listed && s != Status.Verified) revert WrongStatus(s);
         _setStatus(causeId, Status.Suspended, reason);
     }
 
-    /// @notice Lift a suspension. The cause goes back to Listed with a fresh refund clock, and
-    /// straight on to Verified if every required claim still holds.
+    /// @notice Lift a suspension. The cause goes back to Listed, and straight on to Verified if
+    /// every required claim still holds.
     function reinstate(uint256 causeId) external onlySteward {
         Status s = _status(causeId);
         if (s != Status.Suspended) revert WrongStatus(s);
         _setStatus(causeId, Status.Listed, "reinstated by steward");
-        _causes[causeId].waitingSince = uint64(block.timestamp);
         if (requiredClaimsMet(causeId)) _verify(causeId);
     }
 
-    /// @notice Close a cause for good, with a written reason. Refunds open.
+    /// @notice Close a cause for good, with a written reason.
     function closeBySteward(uint256 causeId, string calldata reason) external onlySteward {
         Status s = _status(causeId);
         if (s == Status.Closed) revert WrongStatus(s);
@@ -303,59 +271,6 @@ contract CauseRegistry {
     function attest(uint256 causeId, bytes32 kind, string calldata uri) external {
         _status(causeId);
         emit Attested(causeId, msg.sender, kind, uri);
-    }
-
-    // ------------------------------------------------------------------ money
-
-    /// @notice Give an accepted stablecoin to a cause. Front ends swap other tokens first.
-    /// @param frontend Tag so each front end can show its own totals and leaderboards.
-    function donate(uint256 causeId, address token, uint256 amount, bytes32 frontend) external nonReentrant {
-        Status s = _status(causeId);
-        if (s != Status.Listed && s != Status.Verified) revert WrongStatus(s);
-        if (!acceptedToken[token]) revert TokenNotAccepted();
-        if (amount == 0) revert BadInput();
-
-        held[causeId][token] += amount;
-        givenBy[causeId][msg.sender][token] += amount;
-        totalGiven[causeId][token] += amount;
-
-        _pull(token, msg.sender, amount);
-        emit Donated(causeId, msg.sender, token, amount, frontend);
-    }
-
-    /// @notice A verified cause sends its escrow to its payout address. Owner or payout can call.
-    function claim(uint256 causeId, address token) external nonReentrant {
-        Cause storage c = _causes[causeId];
-        if (c.status != Status.Verified) revert WrongStatus(c.status);
-        if (msg.sender != c.owner && msg.sender != c.payout) revert NotOwner();
-        uint256 amount = held[causeId][token];
-        if (amount == 0) revert NothingToMove();
-
-        held[causeId][token] = 0;
-        _push(token, c.payout, amount);
-        emit Claimed(causeId, token, amount, c.payout);
-    }
-
-    /// @notice Take a gift back. Allowed when the cause is suspended or closed, or when it has
-    /// gone REFUND_WINDOW without verification. Capped at what is still in escrow.
-    function refund(uint256 causeId, address token) external nonReentrant {
-        if (!refundable(causeId)) revert NotRefundable();
-        uint256 owed = givenBy[causeId][msg.sender][token];
-        uint256 available = held[causeId][token];
-        uint256 amount = owed < available ? owed : available;
-        if (amount == 0) revert NothingToMove();
-
-        givenBy[causeId][msg.sender][token] = 0;
-        held[causeId][token] = available - amount;
-        _push(token, msg.sender, amount);
-        emit Refunded(causeId, msg.sender, token, amount);
-    }
-
-    function refundable(uint256 causeId) public view returns (bool) {
-        Cause storage c = _causes[causeId];
-        if (c.status == Status.Suspended || c.status == Status.Closed) return true;
-        if (c.status == Status.Listed) return block.timestamp >= c.waitingSince + REFUND_WINDOW;
-        return false;
     }
 
     // ------------------------------------------------------------------ tracking
@@ -401,11 +316,6 @@ contract CauseRegistry {
     function setSteward(address who, bool on) external onlyCouncil {
         isSteward[who] = on;
         emit StewardSet(who, on);
-    }
-
-    function setToken(address token, bool on) external onlyCouncil {
-        acceptedToken[token] = on;
-        emit TokenSet(token, on);
     }
 
     function setCouncil(address next) external onlyCouncil {
@@ -461,21 +371,7 @@ contract CauseRegistry {
     }
 
     function _setStatus(uint256 causeId, Status next, string memory note) private {
-        Cause storage c = _causes[causeId];
-        if (c.status == Status.Verified && next != Status.Verified) c.waitingSince = uint64(block.timestamp);
-        c.status = next;
+        _causes[causeId].status = next;
         emit StatusChanged(causeId, next, msg.sender, note);
-    }
-
-    // USDT returns nothing from transfer; treat empty return data as success.
-    function _pull(address token, address from, uint256 amount) private {
-        (bool ok, bytes memory data) =
-            token.call(abi.encodeWithSelector(0x23b872dd, from, address(this), amount));
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
-    }
-
-    function _push(address token, address to, uint256 amount) private {
-        (bool ok, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, amount));
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
     }
 }

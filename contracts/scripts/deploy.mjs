@@ -5,11 +5,10 @@
 // Optional, applied only when the deployer is the council:
 //   FINALISER=0x...   address to set as finaliser
 //   STEWARD=0x...     address to set as steward
-//   TOKENS=0x..,0x..  accepted stablecoins
 import { ethers } from "ethers";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
-const { RPC_URL, DEPLOYER_KEY, COUNCIL, FINALISER, STEWARD, TOKENS } = process.env;
+const { RPC_URL, DEPLOYER_KEY, COUNCIL, FINALISER, STEWARD } = process.env;
 if (!RPC_URL || !DEPLOYER_KEY || !COUNCIL) {
   console.error("Set RPC_URL, DEPLOYER_KEY and COUNCIL");
   process.exit(1);
@@ -31,11 +30,8 @@ console.error(`CauseRegistry at ${address}, block ${receipt.blockNumber}`);
 if (deployer.address.toLowerCase() === COUNCIL.toLowerCase()) {
   if (FINALISER) { await (await reg.setFinaliser(FINALISER, true)).wait(); console.error(`finaliser ${FINALISER}`); }
   if (STEWARD) { await (await reg.setSteward(STEWARD, true)).wait(); console.error(`steward ${STEWARD}`); }
-  for (const t of (TOKENS || "").split(",").map(s => s.trim()).filter(Boolean)) {
-    await (await reg.setToken(t, true)).wait(); console.error(`token ${t}`);
-  }
-} else if (FINALISER || STEWARD || TOKENS) {
-  console.error("deployer is not the council; set roles and tokens from the council multisig");
+} else if (FINALISER || STEWARD) {
+  console.error("deployer is not the council; set roles from the council multisig");
 }
 
 const record = {

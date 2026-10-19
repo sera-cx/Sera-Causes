@@ -1,9 +1,10 @@
 // Lists the researched Malaysian causes on a registry, adds Sera research's profile checks and
 // concerns as attestations, and posts the help each listing needs before it can be verified.
 //
-// The lister (a Sera onboarding multisig) owns each listing until the charity claims it:
-// ownership moves to the charity, the charity sets its own payout, then the community verifies
-// each claim and a finaliser records the outcomes.
+// The lister (a Sera onboarding multisig) owns each listing until the charity claims it. For
+// now the lister's own address is the deposit address (`payout`); on claiming, ownership moves
+// to the charity, the charity sets its own deposit address, the community verifies each claim
+// and a finaliser records the outcomes.
 //
 // Causes in the Children or Elderly categories are listed with needsCareLicence = true, so
 // claim C6 (care licence) is required for them. A steward can unflag a cause that turns out

@@ -25,16 +25,13 @@ async function deploy(name, ...args) {
   return c;
 }
 
-// Registry, roles and two accepted stables (USDT returns nothing from transfer, like the real one).
+// Registry and roles. The registry holds no funds, so there is nothing else to deploy.
 const reg = await deploy("CauseRegistry", council.address);
 await (await reg.setFinaliser(finaliser.address, true)).wait();
 await (await reg.setSteward(steward.address, true)).wait();
-const usdt = await deploy("MockUSDT");
-const usdc = await deploy("MockStable", "USD Coin", "USDC");
-await (await reg.setToken(await usdt.getAddress(), true)).wait();
-await (await reg.setToken(await usdc.getAddress(), true)).wait();
 
-// Seed the 44 causes. Children and Elderly causes are listed with needsCareLicence = true.
+// Seed the 44 causes. The lister is the deposit address for now (the charity sets its own on
+// claiming the listing). Children and Elderly causes are listed with needsCareLicence = true.
 let n = 0;
 const ids = await seedRegistry({ reg, lister, research, onEach: () => { if (++n % 10 === 0) console.error(`listed ${n}`); } });
 
@@ -67,7 +64,6 @@ for (const slug of ["hospis-malaysia", "mercy-malaysia", "turtle-conservation-so
 }
 
 const snap = await indexRegistry({ provider, address: await reg.getAddress() });
-for (const v of Object.values(snap.tokens)) if (v.symbol === "?") v.symbol = "USDT"; // MockUSDT has no symbol()
 snap.labels = {
   [council.address]: "Sera Causes council (demo)",
   [finaliser.address]: "Finaliser (demo)",
