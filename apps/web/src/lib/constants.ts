@@ -107,8 +107,15 @@ export const SITE_ORIGIN = "https://causes.sera.cx";
 export const TRIAL = {
   /** One line, for the footer. */
   footer: "First run: Malaysian causes, giving in MYRT, XSGD and US dollar stablecoins. More countries in 2027.",
-  /** One sentence, for the home page. */
+  /** One sentence, for anywhere that needs the whole scope in a line. */
   home: "This is the first run. Every cause on the list is in Malaysia, and you can give in MYRT, XSGD or a US dollar stablecoin. We open more countries in 2027.",
+  /**
+   * The home hero says the same thing in two parts, so the YouApp mark can sit
+   * beside MYRT where it means something. Split here rather than in the page,
+   * so the scope is still stated once.
+   */
+  heroWhy: "This is our first run, so the list is small and every cause is in Malaysia, where we can check a charity against a public register ourselves. More countries follow in 2027.",
+  heroCurrenciesAfterMyrt: "for ringgit, XSGD for Singapore dollars, or a US dollar stablecoin.",
   /** For the give sheet, next to the stablecoin picker. */
   give: "These are the currencies the first run covers: MYRT for ringgit, XSGD for Singapore dollars, and USDT or USDC for US dollars.",
   /** The fuller note for /rules. */

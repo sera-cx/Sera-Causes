@@ -127,7 +127,7 @@ function Hero({ empty }: { empty: boolean }) {
               </>
             )}
           </div>
-          <p className="mt-6 measure text-[13.5px] leading-[1.5] text-ink-subtle">{TRIAL.home}</p>
+          <FirstRunNote />
         </div>
         <figure className="relative">
           <div className="overflow-hidden rounded-2xl aspect-[4/3] bg-paper-warm">
@@ -381,10 +381,17 @@ function HelpWithoutMoney() {
 function HowGseraWorks() {
   const { user } = useAuth();
   const me = useMe();
-  const steps = [
-    { n: "01", title: "Give to a cause", body: "Give in stablecoins to any cause on the list, either from this site or straight to the cause's own address." },
-    { n: "02", title: "Earn gSera", body: `${fmtInt(GSERA.perUsd)} gSera for every US$1, the same rate as a swap on Sera.cx. It reaches your wallet as soon as the gift arrives.` },
-    { n: "03", title: "Use it to keep us honest", body: "On this site gSera does one job: stake it to object to a check you think is wrong. Get it right and you earn it back with more. Giving never costs you your standing." },
+  // Two facts, not three steps. Giving and earning are the same moment, and
+  // padding them into separate cards said the same thing twice.
+  const facts = [
+    {
+      title: "What you earn",
+      body: `${fmtInt(GSERA.perUsd)} gSera for every US$1, the same rate as a swap on Sera.cx, credited as soon as your gift arrives. An urgent appeal pays ${GSERA.heat.urgent} times that.`,
+    },
+    {
+      title: "What it is for",
+      body: "Stake it to object to a check you think is wrong. Get it right and the stake comes back with more on top.",
+    },
   ];
   return (
     <section className="border-t border-rule bg-paper-warm" aria-labelledby="gsera-heading">
@@ -407,18 +414,17 @@ function HowGseraWorks() {
           }
         />
         <GiveEarnUse className="mx-auto mt-8 h-auto w-full max-w-[560px]" />
-        <ol className="mt-8 grid gap-4 md:grid-cols-3">
-          {steps.map((s) => (
-            <li key={s.n} className="rounded-xl border border-rule bg-card p-6">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[12px] text-ink-subtle">{s.n}</span>
+        <dl className="mt-8 grid gap-4 sm:grid-cols-2">
+          {facts.map((f) => (
+            <div key={f.title} className="rounded-xl border border-rule bg-card p-6">
+              <dt className="flex items-center gap-3">
                 <HandHeart className="h-5 w-5 text-sera-text" aria-hidden />
-              </div>
-              <h3 className="mt-3 font-display text-[19px] font-semibold tracking-tight">{s.title}</h3>
-              <p className="mt-2 text-[15px] leading-[1.5] text-ink-muted">{s.body}</p>
-            </li>
+                <span className="font-display text-[19px] font-semibold tracking-tight">{f.title}</span>
+              </dt>
+              <dd className="mt-2 text-[15px] leading-[1.5] text-ink-muted">{f.body}</dd>
+            </div>
           ))}
-        </ol>
+        </dl>
         {user && me.data?.gsera?.multipliers && (
           <p className="mt-5 font-mono text-[12.5px] text-ink-muted tnum">
             Your multipliers this week: volume tier {fmtMultiplier(me.data.gsera.multipliers.volumeTier)}, streak {fmtMultiplier(me.data.gsera.multipliers.streak)}.
@@ -426,5 +432,30 @@ function HowGseraWorks() {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The hero's scope note. It says plainly that the site is new and what the
+ * first run covers, and carries the YouApp mark where it belongs: beside MYRT,
+ * the ringgit stablecoin YouApp issues, rather than floating in a strip of its
+ * own with nothing to explain it.
+ */
+function FirstRunNote() {
+  return (
+    <div className="mt-7 rounded-xl border border-rule bg-paper-warm p-4">
+      <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-subtle">We are new</p>
+      <p className="mt-2 text-[14.5px] leading-[1.55] text-ink-muted">
+        {TRIAL.heroWhy}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] leading-[1.55] text-ink-muted">
+        <span>You can give in</span>
+        <a href="https://youapp.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-sera-text">
+          MYRT
+          <img src="/brand/youapp-logo.svg" alt="from YouApp" className="h-[15px] w-auto" width={118} height={30} />
+        </a>
+        <span>{TRIAL.heroCurrenciesAfterMyrt}</span>
+      </div>
+    </div>
   );
 }

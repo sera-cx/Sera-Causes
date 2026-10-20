@@ -157,7 +157,11 @@ describe("the trial scope", () => {
     expect(constants).toMatch(/TRIAL = \{/);
     for (const token of ["MYRT", "XSGD", "Malaysia", "2027"]) expect(constants, token).toContain(token);
     expect(readFileSync(join(__dirname, "..", "components", "Footer.tsx"), "utf8")).toContain("TRIAL.footer");
-    expect(readFileSync(join(__dirname, "..", "pages", "Home.tsx"), "utf8")).toContain("TRIAL.home");
+    // The hero splits the scope in two so the YouApp mark can sit beside MYRT.
+    // It still has to come from TRIAL, not be retyped into the page.
+    const home = readFileSync(join(__dirname, "..", "pages", "Home.tsx"), "utf8");
+    expect(home).toMatch(/TRIAL\.(home|heroWhy)/);
+    expect(home).toContain("TRIAL.heroCurrenciesAfterMyrt");
     expect(readFileSync(join(__dirname, "..", "pages", "Give.tsx"), "utf8")).toContain("TRIAL.give");
     expect(readFileSync(join(__dirname, "..", "pages", "Rules.tsx"), "utf8")).toContain("TRIAL.rules");
   });
