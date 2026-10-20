@@ -834,7 +834,7 @@ function Payout({ dc: cause }: { dc: DashboardCause }) {
       {msg && <Notice tone="good" className="mt-2">{msg}</Notice>}
       <p className="mt-2 font-mono text-[11.5px] text-ink-muted">
         Current: {cause.payout ? <Wallet address={cause.payout} you={false} /> : "not set"}.{" "}
-        <Link href={`/verify/${cause.id}/C3`} className="text-sera-text underline underline-offset-2">
+        <Link href={`/helpers/${cause.id}/C3`} className="text-sera-text underline underline-offset-2">
           C3 claim <ExternalLink className="inline h-3 w-3" aria-hidden />
         </Link>
       </p>

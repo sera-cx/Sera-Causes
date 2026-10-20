@@ -26,7 +26,7 @@
  * Facebook, X) do not, so they only see the static shell in index.html. Until
  * the SSR entry lands, per-route titles, per-cause descriptions and the
  * NonprofitOrganization and FAQPage blocks are invisible to them. Prerender
- * at least /, /causes, /rules, /technology, /verify and every /c/:idSlug.
+ * at least /, /causes, /rules, /technology, /helpers and every /c/:idSlug.
  */
 
 export const SITE = "https://causes.sera.cx";
@@ -97,11 +97,11 @@ export const ROUTE_SEO = {
     keywords: "list a charity, register charity for donations, charity fundraising Malaysia, accept stablecoin donations",
   },
   verify: {
-    title: withSuffix("Help check a charity"),
+    title: withSuffix("Be a helper: check a charity"),
     description:
-      "Anyone can check a charity here. Pick a claim, look it up on the official register, write down exactly what you did, and earn Care XP when the result agrees with you.",
-    path: "/verify",
-    keywords: "verify a charity, charity due diligence Malaysia, ROS check, SSM check, LHDN 44(6)",
+      "Helpers check the charities on Care Share Donate. Pick one fact, look it up on the official register, write down exactly what you did, and earn Care XP when the result agrees with you. No wallet balance needed.",
+    path: "/helpers",
+    keywords: "volunteer charity checking Malaysia, verify a charity, charity due diligence, ROS check, SSM check, LHDN 44(6)",
   },
   rules: {
     title: withSuffix("Rules and how we check charities"),
@@ -192,7 +192,7 @@ export function claimSeo(cause: { id: number; name: string }, claim: string, lab
   return {
     title: withSuffix(`${claim}: ${label}, ${cause.name}`),
     description: `How people checked "${label}" for ${cause.name}: the evidence, how each person checked it, the votes, and the result.`,
-    path: `/verify/${cause.id}/${claim}`,
+    path: `/helpers/${cause.id}/${claim}`,
   };
 }
 
@@ -245,4 +245,4 @@ export const RULES_FAQS: readonly Faq[] = [
 ];
 
 /** Static routes for sitemap.xml and for a future prerender list. */
-export const STATIC_ROUTES: readonly string[] = ["/", "/causes", "/add", "/verify", "/rules", "/technology", "/leaderboards"];
+export const STATIC_ROUTES: readonly string[] = ["/", "/causes", "/add", "/helpers", "/rules", "/technology", "/leaderboards"];

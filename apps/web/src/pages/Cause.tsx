@@ -238,7 +238,7 @@ function TrustCard({ cause }: { cause: CauseDetail }) {
                   {CLAIM_INFO[code].label}
                 </div>
                 <p className={cn("mt-0.5 text-[13px]", r.tone)}>{r.label}</p>
-                <Link href={`/verify/${cause.id}/${code}`} className="mt-1 inline-flex min-h-11 items-center text-[13px] text-sera-text underline-offset-2 hover:underline rounded-sm focus-visible:outline-2 focus-visible:outline-ring lg:min-h-0">
+                <Link href={`/helpers/${cause.id}/${code}`} className="mt-1 inline-flex min-h-11 items-center text-[13px] text-sera-text underline-offset-2 hover:underline rounded-sm focus-visible:outline-2 focus-visible:outline-ring lg:min-h-0">
                   {s.pathCount > 0 ? "See how it was checked" : "Help check this"}
                 </Link>
               </div>
@@ -282,7 +282,7 @@ function TrustCard({ cause }: { cause: CauseDetail }) {
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {badges.map((b) => (
-          <Link key={b.code} href={`/verify/${cause.id}/${b.code}`} className={cn("inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium lg:min-h-7", b.on ? "bg-[var(--pill-green-bg)] text-[var(--pill-green-fg)]" : "bg-[var(--pill-grey-bg)] text-[var(--pill-grey-fg)]")}>
+          <Link key={b.code} href={`/helpers/${cause.id}/${b.code}`} className={cn("inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium lg:min-h-7", b.on ? "bg-[var(--pill-green-bg)] text-[var(--pill-green-fg)]" : "bg-[var(--pill-grey-bg)] text-[var(--pill-grey-fg)]")}>
             {b.on ? <Check className="h-3.5 w-3.5" aria-hidden /> : <CircleDashed className="h-3.5 w-3.5" aria-hidden />}
             {b.label}
             {!b.on && <span className="sr-only">, not yet</span>}
@@ -444,7 +444,7 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
       {cause.helpRequests.length === 0 ? (
         <Empty title="No open requests" body="This organisation has not asked for anything yet. You can still help by checking one of its claims." >
           <Button asChild variant="outline" size="sm">
-            <Link href={`/verify/${cause.id}/C1`}>Help check this cause</Link>
+            <Link href={`/helpers/${cause.id}/C1`}>Help check this cause</Link>
           </Button>
         </Empty>
       ) : (

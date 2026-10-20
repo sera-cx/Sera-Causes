@@ -40,7 +40,7 @@ export function ClaimPage() {
             node: breadcrumbSchema([
               { name: "Causes", path: "/causes" },
               { name: data.cause.name, path: `/c/${data.cause.id}-${data.cause.slug}` },
-              { name: `${code}: ${CLAIM_INFO[code].label}`, path: `/verify/${data.cause.id}/${code}` },
+              { name: `${code}: ${CLAIM_INFO[code].label}`, path: `/helpers/${data.cause.id}/${code}` },
             ]),
           },
         ]
@@ -54,7 +54,7 @@ export function ClaimPage() {
         <div className="mx-auto max-w-[36rem]">
           <ErrorState title="We could not load this claim" error={q.error} onRetry={() => void q.refetch()}>
             <Button asChild size="sm" variant="ghost">
-              <Link href="/verify">Back to the hub</Link>
+              <Link href="/helpers">Back to the hub</Link>
             </Button>
           </ErrorState>
         </div>

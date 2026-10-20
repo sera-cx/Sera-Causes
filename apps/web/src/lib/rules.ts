@@ -39,7 +39,7 @@ export function causeHref(id: number, slug: string): string {
 }
 
 export function claimHref(causeId: number, claim: ClaimCode): string {
-  return `/verify/${causeId}/${claim}`;
+  return `/helpers/${causeId}/${claim}`;
 }
 
 /** The claim summary for a code on a cause view. */

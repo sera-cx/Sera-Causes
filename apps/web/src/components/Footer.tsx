@@ -5,7 +5,7 @@ import { LINKS, TRIAL } from "@/lib/constants";
 import { SeraLogo } from "./SeraLogo";
 
 const COLS = [
-  { head: "Care Share Donate", links: [["Causes", "/causes"], ["Verify a charity", "/verify"], ["Add a cause", "/add"], ["Leaderboards", "/leaderboards"], ["My gSera", "/me"]] },
+  { head: "Care Share Donate", links: [["Causes", "/causes"], ["Verify a charity", "/helpers"], ["Add a cause", "/add"], ["Leaderboards", "/leaderboards"], ["My gSera", "/me"]] },
   { head: "How it works", links: [["Technology", "/technology"], ["Rules and points", "/rules"], ["Verification", "/rules#verification"], ["gSera", "/rules#gsera"]] },
   { head: "Sera.cx", links: [["GitHub", LINKS.github], ["g.sera.cx", LINKS.gsera], ["Terms", LINKS.terms], ["Privacy", LINKS.privacy], ["Brand", LINKS.brand]] },
 ];

@@ -1,5 +1,5 @@
 /* Top navigation, restrained and left-anchored, after sera.cx's Nav.tsx.
-   Links: Causes, Verify, Add a cause, Technology. Signed in: Dashboard.
+   Links: Causes, Helpers, Add a cause, Technology. Signed in: Dashboard.
    Right: the gSera chip, which opens /me, and Sign in.
    With no sign-in configured there is no Sign in button at all. Mobile:
    hamburger. */
@@ -15,7 +15,7 @@ import { Button } from "./ui/button";
 
 const LINKS = [
   { to: "/causes", label: "Causes" },
-  { to: "/verify", label: "Verify" },
+  { to: "/helpers", label: "Helpers" },
   { to: "/add", label: "Add a cause" },
   { to: "/technology", label: "Technology" },
 ];

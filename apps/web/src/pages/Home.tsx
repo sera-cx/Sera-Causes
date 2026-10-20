@@ -346,8 +346,8 @@ function BrowseBy({ data }: { data?: HomeData }) {
 
 function HelpWithoutMoney() {
   const cards = [
-    { icon: Search, title: "Check a charity", body: "Pick a claim, follow the official source we point you at, write down what you did, and earn XP when the result agrees with you.", href: "/verify", cta: "Open the hub" },
-    { icon: MapPin, title: "Visit one near you", body: "Dated photos from a visit are one of the two sources the 'the work is real' check needs.", href: "/verify?tab=needs_evidence", cta: "See who needs a visit" },
+    { icon: Search, title: "Check a charity", body: "Pick a claim, follow the official source we point you at, write down what you did, and earn XP when the result agrees with you.", href: "/helpers", cta: "Open the hub" },
+    { icon: MapPin, title: "Visit one near you", body: "Dated photos from a visit are one of the two sources the 'the work is real' check needs.", href: "/helpers?tab=needs_evidence", cta: "See who needs a visit" },
     { icon: Languages, title: "Translate a profile", body: "Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are.", href: "/causes", cta: "Find a profile" },
   ];
   return (

@@ -1,4 +1,4 @@
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation, useSearch } from "wouter";
 import { Layout } from "./components/Layout";
 import { AddPage } from "./pages/Add";
 import { CausePage } from "./pages/Cause";
@@ -32,8 +32,12 @@ export default function App() {
       <Route path="/give/:id" component={GivePage} />
       <Route path="/add" component={AddPage} />
       <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/verify" component={VerifyPage} />
-      <Route path="/verify/:causeId/:claim" component={ClaimPage} />
+      <Route path="/helpers" component={VerifyPage} />
+      <Route path="/helpers/:causeId/:claim" component={ClaimPage} />
+      {/* The hub used to live at /verify. Anything already shared keeps
+          working, and lands on the same page under its new name. */}
+      <Route path="/verify" component={LegacyVerifyRedirect} />
+      <Route path="/verify/:causeId/:claim" component={LegacyClaimRedirect} />
       <Route path="/me" component={MePage} />
       <Route path="/leaderboards" component={LeaderboardsPage} />
       <Route path="/technology" component={TechnologyPage} />
@@ -51,4 +55,13 @@ export default function App() {
 export function parseIdSlug(idSlug: string): number {
   const id = Number.parseInt(idSlug.split("-")[0] ?? "", 10);
   return Number.isFinite(id) ? id : 0;
+}
+
+function LegacyVerifyRedirect() {
+  const search = useSearch();
+  return <Redirect to={`/helpers${search ? `?${search}` : ""}`} replace />;
+}
+
+function LegacyClaimRedirect({ params }: { params: { causeId: string; claim: string } }) {
+  return <Redirect to={`/helpers/${params.causeId}/${params.claim}`} replace />;
 }

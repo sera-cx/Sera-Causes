@@ -9,8 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label, Select } from "@/components/ui/input";
 import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
-import { CATEGORIES, CLAIMS, CLAIM_INFO, CLAIM_SHORT, COMMUNITY_SITE, STATE_NAMES, VOTING, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
-import { fmtInt, fmtXp, timeAgo } from "@/lib/format";
+import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, CLAIM_SHORT, COMMUNITY_SITE, STATE_NAMES, VOTING, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
+import { fmtGsera, fmtInt, fmtXp, timeAgo } from "@/lib/format";
 import { useClaims, useLeaderboards } from "@/lib/queries";
 import { shortAddress } from "@/lib/rules";
 import { ROUTE_SEO } from "@/lib/seo";
@@ -32,7 +32,7 @@ const TABS: { id: ClaimTab; label: string; blurb: string; empty: string }[] = [
 
 export function VerifyPage() {
   useSeo(ROUTE_SEO.verify);
-  useJsonLdMany([{ id: "breadcrumb", node: breadcrumbSchema([{ name: "Help check a charity", path: "/verify" }]) }]);
+  useJsonLdMany([{ id: "breadcrumb", node: breadcrumbSchema([{ name: "Helpers", path: "/helpers" }]) }]);
   const search = useSearch();
   const [, navigate] = useLocation();
   const tab = (new URLSearchParams(search).get("tab") as ClaimTab | null) ?? "needs_checking";
@@ -47,11 +47,12 @@ export function VerifyPage() {
       <div className="container pt-10 md:pt-14">
         <SectionHeader
           level={1}
-          kicker="Verification hub"
-          title="Help check a charity."
-          lede="An organisation lists itself. Checking it is open to everyone. Evidence goes up, helpers write down exactly how they checked it, the community votes, and a short window lets anyone object. While we launch, Sera.cx stewards settle every claim."
+          kicker="Helpers"
+          title="Be a helper."
+          lede="An organisation lists its own cause. Checking whether it is what it says is open to everyone, and the people who do that are helpers. You do not need a wallet balance, and you do not need to give anything."
           size="lg"
         />
+        <WhatHelpersDo />
       </div>
       <GreenField className="mt-8" kicker="Top helpers this month" footer={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -64,7 +65,7 @@ export function VerifyPage() {
       </GreenField>
       <div className="container grid gap-10 py-10 lg:grid-cols-[1fr_340px] lg:py-14">
         <div className="min-w-0">
-          <Tabs value={tab} onValueChange={(v) => navigate(`/verify?tab=${v}`, { replace: true })}>
+          <Tabs value={tab} onValueChange={(v) => navigate(`/helpers?tab=${v}`, { replace: true })}>
             <TabsList aria-label="Claim queues">
               {TABS.map((t) => (
                 <TabsTrigger key={t.id} value={t.id}>
@@ -191,7 +192,7 @@ function ClaimRowItem({ item, tab }: { item: ClaimListItem; tab: ClaimTab }) {
   const since = sinceFor(tab, item);
   return (
     <li>
-      <Link href={`/verify/${item.cause.id}/${k.claimType}`} className="group grid gap-1 py-3.5 sm:grid-cols-[1fr_auto] sm:items-center hover:bg-paper-warm/60 -mx-2 px-2 rounded-md focus-visible:outline-2 focus-visible:outline-ring">
+      <Link href={`/helpers/${item.cause.id}/${k.claimType}`} className="group grid gap-1 py-3.5 sm:grid-cols-[1fr_auto] sm:items-center hover:bg-paper-warm/60 -mx-2 px-2 rounded-md focus-visible:outline-2 focus-visible:outline-ring">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2">
             <span className="font-mono text-[11px] text-ink-subtle">{k.claimType}</span>
@@ -271,5 +272,49 @@ function SidePanel() {
         </dl>
       </div>
     </aside>
+  );
+}
+
+/** What the job actually is, for someone who has never done it. */
+function WhatHelpersDo() {
+  const steps = [
+    {
+      n: "01",
+      title: "Pick a claim",
+      body: "A cause is checked one fact at a time. Is the charity registered? Is the registration current? Is the money address really theirs? Is the work real? Pick one from the queues below.",
+    },
+    {
+      n: "02",
+      title: "Check it at the source",
+      body: "Go to the official register we point you at, not the charity's own website. Each claim says exactly where to look.",
+    },
+    {
+      n: "03",
+      title: "Write down what you did",
+      body: "The source you used, the search you typed, what you found, and a dated screenshot. Anyone should be able to repeat your steps and get the same answer.",
+    },
+    {
+      n: "04",
+      title: "Vote, or object",
+      body: `Once two people have checked a claim, voting opens. If a result looks wrong you can object within ${VOTING.challengeWindowHours} hours by staking ${fmtGsera(CHALLENGE_STAKE)}.`,
+    },
+  ];
+  return (
+    <div className="mt-8">
+      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((s) => (
+          <li key={s.n} className="rounded-xl border border-rule bg-card p-5">
+            <span className="font-mono text-[12px] text-ink-subtle">{s.n}</span>
+            <h2 className="mt-2 font-display text-[18px] font-semibold tracking-tight">{s.title}</h2>
+            <p className="mt-2 text-[14.5px] leading-[1.5] text-ink-muted">{s.body}</p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-5 measure-lede text-[15px] leading-[1.55] text-ink-muted">
+        A check that agrees with the final result earns {fmtInt(XP.care_path_agreed.amount)} XP on {COMMUNITY_SITE}, and a vote that agrees earns {fmtInt(XP.care_vote_agreed.amount)} XP. Nothing you do here
+        moves anyone's money: a cause can receive gifts whether or not it has been checked. What you are building is the record a giver reads before deciding.
+      </p>
+      <p className="mt-3 measure-lede text-[15px] leading-[1.55] text-ink-muted">While we are new, a Sera.cx steward settles every claim. Votes are shown and counted, and they decide once the programme opens up.</p>
+    </div>
   );
 }

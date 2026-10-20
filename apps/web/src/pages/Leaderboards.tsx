@@ -124,7 +124,7 @@ export function LeaderboardsPage() {
             body={board === "causes" ? "Once a cause receives its first gift it appears here." : board === "helpers" ? "Check a charity and you will be the first name on this list." : "Give to a cause and you will be the first name on this list."}
           >
             <Button asChild variant="outline">
-              <Link href={board === "helpers" ? "/verify" : "/causes"}>{board === "helpers" ? "Help check a charity" : "Find a cause"}</Link>
+              <Link href={board === "helpers" ? "/helpers" : "/causes"}>{board === "helpers" ? "Help check a charity" : "Find a cause"}</Link>
             </Button>
           </Empty>
         )}
