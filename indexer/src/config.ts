@@ -57,6 +57,15 @@ const schema = z.object({
   PUBLIC_API_URL: z.string().url().default('http://localhost:3001'),
   PUBLIC_WEB_URL: z.string().url().default('http://localhost:3000'),
   UPLOAD_DIR: z.string().default('./uploads'),
+
+  // IPFS. Nothing is hardcoded: a local node is preferred when set, and the
+  // gateway list is tried in order when it is not. See src/chain/ipfs.ts.
+  IPFS_API_URL: z.string().url().optional(),
+  IPFS_GATEWAYS: z
+    .string()
+    .default('https://ipfs.io/ipfs,https://dweb.link/ipfs,https://4everland.io/ipfs'),
+  IPFS_VERIFY: z.enum(['strict', 'warn', 'off']).default('warn'),
+  IPFS_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   PUBLIC_DIR: z.string().default('./public'),
   /** Where seed/causes and seed/photos live (relative uris like seed/causes/x.json resolve here). */
   SEED_DIR: z.string().default(path.resolve(INDEXER_ROOT, '..', 'seed')),
@@ -112,6 +121,10 @@ export interface Config extends RawConfig {
   verificationMode: ReturnType<typeof parseVerificationMode>;
   settlementMode: 'mock' | 'live';
   uploadDir: string;
+  ipfsApiUrl?: string;
+  ipfsGateways: string[];
+  ipfsVerify: 'strict' | 'warn' | 'off';
+  ipfsTimeoutMs: number;
   publicDir: string;
   seedDir: string;
   hasChain: boolean;
@@ -131,6 +144,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     verificationMode: parseVerificationMode(c.VERIFICATION_MODE),
     settlementMode: c.SETTLEMENT_MODE ?? (c.SERA_API_KEY ? 'live' : 'mock'),
     uploadDir: path.resolve(INDEXER_ROOT, c.UPLOAD_DIR),
+    ipfsApiUrl: c.IPFS_API_URL,
+    ipfsGateways: c.IPFS_GATEWAYS.split(',')
+      .map((g) => g.trim())
+      .filter(Boolean),
+    ipfsVerify: c.IPFS_VERIFY,
+    ipfsTimeoutMs: c.IPFS_TIMEOUT_MS,
     publicDir: path.resolve(INDEXER_ROOT, c.PUBLIC_DIR),
     seedDir: path.resolve(INDEXER_ROOT, c.SEED_DIR),
     hasChain: !!c.RPC_URL && c.REGISTRY_ADDRESS !== zero,

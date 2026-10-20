@@ -6,8 +6,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { causeProfileSchema, type CauseProfile } from '@sera-causes/shared';
 import { config } from '../config.js';
+import { fetchIpfs } from './ipfs.js';
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
 
 export function decodeDataUri(uri: string): unknown {
   const m = /^data:([^,]*?)(;base64)?,(.*)$/s.exec(uri);
@@ -40,8 +40,13 @@ export async function fetchUriText(uri: string, opts: { fetchImpl?: typeof fetch
     const v = decodeDataUri(uri);
     return typeof v === 'string' ? v : JSON.stringify(v);
   }
-  let url = uri;
-  if (uri.startsWith('ipfs://')) url = IPFS_GATEWAY + uri.slice('ipfs://'.length);
+  // Content-addressed: a node if there is one, else the configured gateways,
+  // with the bytes checked against the CID wherever that is possible.
+  if (uri.startsWith('ipfs://')) {
+    const { bytes } = await fetchIpfs(uri, { fetchImpl: opts.fetchImpl, timeoutMs: opts.timeoutMs });
+    return bytes.toString('utf8');
+  }
+  const url = uri;
   if (/^https?:\/\//.test(url)) {
     const f = opts.fetchImpl ?? fetch;
     const ctrl = new AbortController();
@@ -72,8 +77,14 @@ export function photoUrlFor(profile: CauseProfile | null, uri: string): string |
   const src = profile?.image?.src;
   if (!src) return null;
   if (/^https?:\/\//.test(src)) return src;
-  if (src.startsWith('ipfs://')) return IPFS_GATEWAY + src.slice('ipfs://'.length);
   const c = config();
+  // A browser cannot speak ipfs://, so a photo needs a gateway URL. The first
+  // configured gateway is the public one; a local node is not reachable from
+  // someone else's browser, so it is deliberately not used here.
+  if (src.startsWith('ipfs://')) {
+    const gateway = c.ipfsGateways[0];
+    return gateway ? `${gateway.replace(/\/$/, '')}/${src.slice('ipfs://'.length)}` : null;
+  }
   const file = src.replace(/^\.?\/?(seed\/)?photos\//, '');
   if (/^https?:\/\//.test(uri)) {
     // Relative to the profile's own location.
