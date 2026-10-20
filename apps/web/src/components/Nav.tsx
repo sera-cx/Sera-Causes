@@ -36,6 +36,23 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-rule backdrop-blur-sm no-print" style={{ background: "color-mix(in srgb, var(--paper) 90%, transparent)" }}>
+      {/* Ringgit on this site is MYRT, the ringgit stablecoin YouApp issues.
+          It sits in a strip of its own because the nav row below is already
+          full, and it is a partner mark, not a claim about who moves the
+          money: settlement runs through Sera.cx. */}
+      <div className="hidden border-b border-rule/60 sm:block">
+        <div className="container flex h-8 items-center justify-end">
+          <a
+            href="https://youapp.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-ink-subtle transition-colors hover:text-ink-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <span className="whitespace-nowrap font-mono text-[10.5px] uppercase tracking-[0.1em]">Ringgit gifts use MYRT from</span>
+            <img src="/brand/youapp-logo.svg" alt="YouApp" className="h-[15px] w-auto" width={118} height={30} />
+          </a>
+        </div>
+      </div>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-paper">
         Skip to content
       </a>
