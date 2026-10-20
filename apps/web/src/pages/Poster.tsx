@@ -6,6 +6,7 @@ import { QrCode } from "@/components/QrCode";
 import { shareUrlFor } from "@/components/ShareButtons";
 import { useSeo } from "@/hooks/useSeo";
 import { categoryLabel } from "@/lib/constants";
+import { withSuffix } from "@/lib/seo";
 import { causeImage } from "@/lib/images";
 import { useCause } from "@/lib/queries";
 import { profileOf } from "@/lib/rules";
@@ -15,7 +16,12 @@ export function PosterPage() {
   const { id = "" } = useParams<{ id: string }>();
   const q = useCause(Number.parseInt(id, 10));
   const cause = q.data;
-  useSeo(cause ? `${cause.name} poster` : "Poster");
+  useSeo({
+    title: withSuffix(cause ? `${cause.name} poster` : "Poster"),
+    description: cause ? `A printable A4 poster for ${cause.name}, with a QR code to its page and its address.` : "A printable A4 poster with a QR code.",
+    path: `/c/${id}/poster`,
+    noIndex: true,
+  });
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.style.colorScheme = "light";
@@ -31,11 +37,14 @@ export function PosterPage() {
   return (
     <div className="min-h-screen bg-[#E5E7E0] print:bg-white" style={{ color: "#0B1426" }}>
       <div className="no-print mx-auto flex max-w-[210mm] items-center justify-between px-4 py-3 text-[13px]">
-        <span>Print, or choose "Save as PDF" in the print dialog.</span>
-        <button type="button" onClick={() => window.print()} className="rounded-full bg-[#0B1426] px-4 py-2 text-[13px] font-semibold text-white">
+        <span>Print it, or choose "Save as PDF" in the print window.</span>
+        <button type="button" onClick={() => window.print()} className="min-h-11 shrink-0 rounded-full bg-[#0B1426] px-4 text-[13px] font-semibold text-white">
           Print
         </button>
       </div>
+      {/* The sheet is a fixed A4 so printing is exact. On a phone it scrolls
+          inside this box rather than pushing the page sideways. */}
+      <div className="overflow-x-auto print:overflow-visible">
       <div className="mx-auto bg-white shadow-lg print:shadow-none" style={{ width: "210mm", minHeight: "297mm", padding: "16mm", display: "flex", flexDirection: "column", gap: "8mm", fontFamily: "var(--font-sans)" }}>
         <div className="flex items-center justify-between">
           <img src="/brand/wordmark/sera-wordmark-black.svg" alt="Sera.cx" style={{ height: "7mm" }} />
@@ -60,6 +69,7 @@ export function PosterPage() {
           </div>
         </div>
         {p.image?.credit && <div style={{ fontFamily: "var(--font-mono)", fontSize: "7.5pt", color: "#6B7384" }}>Photo: {p.image.credit}{p.image.licence ? `, ${p.image.licence}` : ""}</div>}
+      </div>
       </div>
     </div>
   );

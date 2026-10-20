@@ -2,39 +2,49 @@ import { ArrowRight, Flame, HandHeart, Languages, MapPin, Search } from "lucide-
 import { Link } from "wouter";
 import { CauseCard, CauseCardSkeleton } from "@/components/CauseCard";
 import { ChecksBar } from "@/components/ChecksBar";
+import { Empty, ErrorState } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { PhotoCredit } from "@/components/PhotoCredit";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
+import { CategoryMark, CheckACharity, CloseToHome, GiveEarnUse } from "@/components/illustrations";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
-import { COMMUNITY_SITE, GSERA, LINKS, XP } from "@/lib/constants";
-import { fmtCompactUsd, fmtInt, fmtMultiplier } from "@/lib/format";
+import { COMMUNITY_SITE, GSERA, LINKS, TRIAL, XP } from "@/lib/constants";
+import { fmtCompactUsd, fmtInt, fmtMultiplier, fmtRm } from "@/lib/format";
 import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
+import { causeListSchema, organizationSchema, websiteSchema } from "@/lib/seoSchemas";
 import type { HomeData } from "@/lib/types";
 
 const HERO_IMAGE = {
   src: imageUrl(HERO_IMAGE_SRC),
-  alt: "Green turtle hatchling resting in a coconut shell on the sand at Pantai Chendor",
+  alt: "A green turtle hatchling resting in a coconut shell on the sand at Pantai Chendor, Pahang",
   credit: "Kasih Turtle Conservation Project, Pantai Chendor",
   licence: "Supplied",
 };
 
 export function HomePage() {
-  useSeo("", "Give to the causes you care about. Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia.");
+  useSeo(ROUTE_SEO.home);
   const home = useHome();
   const data = home.data;
+  useJsonLdMany([
+    { id: "organization", node: organizationSchema() },
+    { id: "website", node: websiteSchema() },
+    { id: "feed", node: data?.feed.length ? causeListSchema(data.feed, "Causes on Care Share Donate", "/causes") : null },
+  ]);
 
   return (
     <>
       <Hero />
       {data?.urgent && <UrgentAppeal urgent={data.urgent} />}
       <NumbersStrip stats={data?.stats} />
-      <Feed data={data} loading={home.isLoading} />
+      <Feed query={home} />
       <NewRail data={data} />
       <BrowseBy data={data} />
       <HelpWithoutMoney />
@@ -53,9 +63,11 @@ function Hero() {
           <h1 className="mt-4 font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
             Give to the causes <em>you</em> care about.
           </h1>
-          <p className="mt-5 max-w-[52ch] text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
-            Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. Give in stablecoins, help check the charities, and see where every gift goes.
+          <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
+            Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. You give in stablecoins, which are digital money that holds a steady value, and the gift goes
+            straight to the charity.
           </p>
+          <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">You can also help check a charity, and anyone can see where every gift went.</p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
               <Link href="/causes">
@@ -66,14 +78,15 @@ function Hero() {
               <Link href="/rules#verification">How we check charities</Link>
             </Button>
           </div>
+          <p className="mt-6 measure text-[13.5px] leading-[1.5] text-ink-subtle">{TRIAL.home}</p>
         </div>
         <figure className="relative">
           <div className="overflow-hidden rounded-2xl aspect-[4/3] bg-paper-warm">
             <img src={HERO_IMAGE.src} alt={HERO_IMAGE.alt} className="h-full w-full object-cover" fetchPriority="high" decoding="async" width={1200} height={900} />
           </div>
-          <figcaption className="mt-2 flex items-center justify-between gap-3">
+          <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <PhotoCredit image={HERO_IMAGE} />
-            <Link href={causeHref(1, "kasih-turtle-conservation-project")} className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle hover:text-ink">
+            <Link href={causeHref(1, "kasih-turtle-conservation-project")} className="inline-flex min-h-11 items-center font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle hover:text-ink sm:min-h-0">
               Kasih, Cherating
             </Link>
           </figcaption>
@@ -94,20 +107,20 @@ function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
             <img src={img.src} alt={img.alt} className="h-full w-full object-cover" loading="lazy" />
           </Link>
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#0B1426] px-3 h-7 font-mono text-[11px] uppercase tracking-[0.12em] text-[#00E676]">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#0B1426] px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-[#00E676]">
               <Flame className="h-3.5 w-3.5" aria-hidden /> Urgent appeal, chosen by Sera.cx
             </div>
             <h2 id="urgent-heading" className="mt-3 font-display text-[28px] sm:text-[34px] font-semibold leading-[1.08] tracking-[-0.025em]">
               {urgent.reason}
             </h2>
-            <p className="mt-2 text-[16px] text-ink-muted">
+            <p className="mt-2 measure text-[16px] text-ink-muted">
               <span className="font-medium text-ink">{c.name}</span>. {c.profile?.summary}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <StatusPill stage={c.stage} checksDone={c.checksDone} checksTotal={c.checksTotal} size="md" />
               <ChecksBar done={c.checksDone} total={c.checksTotal} />
             </div>
-            <p className="mt-2 font-mono text-[12px] text-ink-muted">Gifts to an urgent appeal earn {fmtMultiplier(GSERA.heat.urgent)} gSera.</p>
+            <p className="mt-2 font-mono text-[12px] text-ink-muted">A gift to an urgent appeal earns {fmtMultiplier(GSERA.heat.urgent)} gSera.</p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button asChild variant="give" size="lg">
                 <Link href={`/give/${c.id}`}>Give to {c.name}</Link>
@@ -131,20 +144,21 @@ function NumbersStrip({ stats }: { stats?: HomeData["stats"] }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy={!stats}>
         <GfCard label="Causes listed" ticker="Malaysia" figure={stats ? fmtInt(stats.causes) : "…"} meta={[{ label: "verified", value: stats ? fmtInt(stats.verified) : "" }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} />
         <GfCard label="Verified" ticker="All required checks done" figure={stats ? fmtInt(stats.verified) : "…"} meta={[{ label: "of", value: stats ? fmtInt(stats.causes) : "" }]} tab="#00E676" />
-        {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(givenUsd) : "…"} meta={[{ label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} tab="#59E39A" />}
-        <GfCard label="Helpers" ticker="Paths written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per path` }]} tab="#FFFFFF" />
+        {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(givenUsd) : "…"} meta={[{ label: "about", value: fmtRm(givenUsd) }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} tab="#59E39A" />}
+        <GfCard label="Helpers" ticker="Checks written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per check` }]} tab="#FFFFFF" />
       </div>
     </GreenField>
   );
 }
 
-function Feed({ data, loading }: { data?: HomeData; loading: boolean }) {
+function Feed({ query }: { query: ReturnType<typeof useHome> }) {
+  const data = query.data;
   return (
     <section className="container py-12 md:py-16" aria-labelledby="feed-heading">
       <SectionHeader
-        kicker="On the homepage"
-        title={<span id="feed-heading">Causes, as their creators chose to show them.</span>}
-        lede="Ordered by what happened last: gifts, evidence, updates and checks. Every card shows how far the checks have got, so a new cause is never mistaken for a verified one."
+        kicker="On the home page"
+        title={<span id="feed-heading">Causes, as each organisation chose to show them.</span>}
+        lede="Ordered by what happened last: gifts, proof, updates and checks. Every card shows how far the checks have got, so a new cause is never mistaken for a verified one."
         action={
           <Button asChild variant="outline">
             <Link href="/causes">
@@ -153,22 +167,37 @@ function Feed({ data, loading }: { data?: HomeData; loading: boolean }) {
           </Button>
         }
       />
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {loading && Array.from({ length: 6 }, (_, i) => <CauseCardSkeleton key={i} />)}
-        {data?.feed.map((c) => (
-          <CauseCard key={c.id} cause={c} />
-        ))}
-      </div>
+      {query.isError ? (
+        <ErrorState className="mt-8" title="We could not load the causes" error={query.error} onRetry={() => void query.refetch()} />
+      ) : query.isLoading ? (
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <CauseCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : data && data.feed.length === 0 ? (
+        <Empty className="mt-8" title="No causes on the list yet" body="This is a new site, so the list starts empty. If you run a charity in Malaysia, yours could be the first on it.">
+          <Button asChild>
+            <Link href="/add">List your cause</Link>
+          </Button>
+        </Empty>
+      ) : (
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {data?.feed.map((c) => (
+            <CauseCard key={c.id} cause={c} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
 function NewRail({ data }: { data?: HomeData }) {
-  if (!data) return null;
+  if (!data || data.new.length === 0) return null;
   return (
     <section className="border-t border-rule bg-paper-warm" aria-labelledby="new-heading">
       <div className="container py-12 md:py-14">
-        <SectionHeader kicker="New" title={<span id="new-heading">Just added. Some are still being checked.</span>} size="sm" />
+        <SectionHeader kicker="New" title={<span id="new-heading">Just listed. Some are still being checked.</span>} lede="An organisation lists itself here, then anyone can help check it. New means nobody has checked it yet." size="sm" />
         <div className="mt-6 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 snap-x" role="list">
           {data.new.map((c) => (
             <div key={c.id} role="listitem" className="w-[260px] shrink-0 snap-start">
@@ -182,13 +211,19 @@ function NewRail({ data }: { data?: HomeData }) {
 }
 
 function BrowseBy({ data }: { data?: HomeData }) {
+  const categories = data?.categories ?? [];
+  if (data && categories.length === 0) return null;
   return (
     <section className="container py-12 md:py-14" aria-labelledby="browse-heading">
-      <SectionHeader kicker="Browse by cause" title={<span id="browse-heading">What do you care about?</span>} size="sm" />
+      <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+        <SectionHeader kicker="Browse by cause" title={<span id="browse-heading">What do you care about?</span>} size="sm" />
+        <CloseToHome className="hidden h-auto w-full max-w-[340px] justify-self-end lg:block" />
+      </div>
       <ul className="mt-6 flex flex-wrap gap-2">
-        {(data?.categories ?? []).map((cat) => (
+        {categories.map((cat) => (
           <li key={cat.slug}>
-            <Link href={`/causes?cat=${cat.slug}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-rule bg-card px-4 text-[14.5px] font-medium text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+            <Link href={`/causes?cat=${cat.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-rule bg-card px-4 text-[14.5px] font-medium text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <CategoryMark slug={cat.slug} decorative className="h-5 w-5 text-ink-subtle" />
               {cat.label}
               <span className="font-mono text-[11.5px] text-ink-subtle tnum">{cat.count}</span>
             </Link>
@@ -201,14 +236,21 @@ function BrowseBy({ data }: { data?: HomeData }) {
 
 function HelpWithoutMoney() {
   const cards = [
-    { icon: Search, title: "Check a charity", body: "Follow the paths library, write down how you checked, and earn when the outcome agrees.", href: "/verify", cta: "Open the hub" },
-    { icon: MapPin, title: "Visit one near you", body: "Dated photos from a visit are one of the two sources a 'work is real' check needs.", href: "/verify?tab=needs_evidence", cta: "See who needs a visit" },
-    { icon: Languages, title: "Translate a profile", body: "Bahasa Malaysia, Chinese or Tamil. Keep names and numbers as they are.", href: "/causes", cta: "Find a profile" },
+    { icon: Search, title: "Check a charity", body: "Pick a claim, follow the official source we point you at, write down what you did, and earn XP when the result agrees with you.", href: "/verify", cta: "Open the hub" },
+    { icon: MapPin, title: "Visit one near you", body: "Dated photos from a visit are one of the two sources the 'the work is real' check needs.", href: "/verify?tab=needs_evidence", cta: "See who needs a visit" },
+    { icon: Languages, title: "Translate a profile", body: "Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are.", href: "/causes", cta: "Find a profile" },
   ];
   return (
     <section className="border-t border-rule" aria-labelledby="help-heading">
       <div className="container py-12 md:py-16">
-        <SectionHeader kicker="Help without money" title={<span id="help-heading">No wallet balance needed.</span>} lede={`Every bit of help earns XP on ${COMMUNITY_SITE}. A fulfilled help request earns ${fmtInt(XP.care_help_fulfilled.amount)} XP, an accepted check ${fmtInt(XP.care_path_agreed.amount)} XP.`} />
+        <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
+          <SectionHeader
+            kicker="Help without money"
+            title={<span id="help-heading">No wallet balance needed.</span>}
+            lede={`Organisations list themselves here. Checking them is open to everyone, and every bit of help earns XP on ${COMMUNITY_SITE}. A help request you finish earns ${fmtInt(XP.care_help_fulfilled.amount)} XP, an accepted check ${fmtInt(XP.care_path_agreed.amount)} XP.`}
+          />
+          <CheckACharity className="hidden h-auto w-full max-w-[340px] justify-self-end lg:block" />
+        </div>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {cards.map((c) => (
             <Link key={c.title} href={c.href} className="group rounded-xl border border-rule bg-card p-6 hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
@@ -230,9 +272,9 @@ function HowGseraWorks() {
   const { user } = useAuth();
   const me = useMe();
   const steps = [
-    { n: "01", title: "Give to a cause", body: "Give in stablecoins to any cause on the list, from the site or straight to the cause's own address." },
-    { n: "02", title: "Earn gSera", body: `${fmtInt(GSERA.perUsd)} gSera per US$1, the same rate as swapping on Sera.cx. Credited to your wallet as soon as the gift arrives.` },
-    { n: "03", title: "Use it, keep your rank", body: "Spend it on g.sera.cx or stake it to challenge a bad verification. Charity gSera goes back to charity, never into the Lucky Draw." },
+    { n: "01", title: "Give to a cause", body: "Give in stablecoins to any cause on the list, either from this site or straight to the cause's own address." },
+    { n: "02", title: "Earn gSera", body: `${fmtInt(GSERA.perUsd)} gSera for every US$1, the same rate as a swap on Sera.cx. It reaches your wallet as soon as the gift arrives.` },
+    { n: "03", title: "Use it, keep your rank", body: "Spend it on g.sera.cx, or stake it to challenge a check you think is wrong. gSera earned from giving goes back to charity and never into the Lucky Draw." },
   ];
   return (
     <section className="border-t border-rule bg-paper-warm" aria-labelledby="gsera-heading">
@@ -240,6 +282,7 @@ function HowGseraWorks() {
         <SectionHeader
           kicker="How gSera works"
           title={<span id="gsera-heading">One balance with g.sera.cx.</span>}
+          lede="gSera is the reward points balance you share with the rest of Sera.cx. Giving earns it."
           action={
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
@@ -253,6 +296,7 @@ function HowGseraWorks() {
             </div>
           }
         />
+        <GiveEarnUse className="mx-auto mt-8 h-auto w-full max-w-[560px]" />
         <ol className="mt-8 grid gap-4 md:grid-cols-3">
           {steps.map((s) => (
             <li key={s.n} className="rounded-xl border border-rule bg-card p-6">

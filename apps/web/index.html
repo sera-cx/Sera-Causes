@@ -1,12 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-MY">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!--
+      TODO(prerender): this is a single-page app with no server rendering, so
+      the tags below are the only ones a crawler that does not execute
+      JavaScript will ever see. Googlebot and Bingbot run JavaScript and pick
+      up the per-route tags that src/hooks/useSeo.ts writes. Answer engines
+      and link unfurlers (GPTBot, ClaudeBot, PerplexityBot, WhatsApp, Slack,
+      Facebook, X) generally do not, so every one of them reads this shell for
+      every URL: a cause page unfurls with the site title, not the charity's.
+      Fix by adding the SSR entry noted in vite.config.ts, or by prerendering
+      at least /, /causes, /rules, /technology, /verify and each /c/:idSlug at
+      build time, feeding both from src/lib/seo.ts so the copy cannot drift.
+      Keep the site-level title, description and Organization block here
+      either way: they are the floor for anything that is not prerendered.
+    -->
     <title>Care Share Donate on Sera.cx</title>
-    <meta name="description" content="Give to the causes you care about. Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. Give in stablecoins, help check the charities, and see where every gift goes." />
+    <meta name="description" content="Give to charities in Malaysia in stablecoins. Turtle hatcheries, animal shelters, children's homes, food banks and flood relief. Every gift goes straight to the charity's own address, and you can help check each one." />
+    <link rel="canonical" href="https://causes.sera.cx/" />
+    <meta name="keywords" content="donate Malaysia, charity Malaysia, stablecoin donation, verified charity Malaysia, MYRT, XSGD, USDC donation" />
     <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#141A26" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/brand/mark/sera-mark-tile-color.svg" type="image/svg+xml" />
@@ -14,11 +31,53 @@
     <link rel="icon" href="/favicon/favicon-32x32.png" sizes="32x32" type="image/png" />
     <link rel="icon" href="/favicon/favicon-96x96.png" sizes="96x96" type="image/png" />
     <link rel="apple-touch-icon" href="/favicon/apple-icon-180x180.png" sizes="180x180" />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Care Share Donate on Sera.cx" />
+    <meta property="og:locale" content="en_MY" />
     <meta property="og:title" content="Give to the causes you care about" />
-    <meta property="og:description" content="Give in stablecoins, help check the charities, and see where every gift goes." />
+    <meta property="og:description" content="Give to charities in Malaysia in stablecoins. Every gift goes straight to the charity's own address, and you can help check each one." />
+    <meta property="og:url" content="https://causes.sera.cx/" />
     <meta property="og:image" content="https://causes.sera.cx/photos/hero.jpg" />
+    <meta property="og:image:alt" content="A green turtle hatchling in a coconut shell on the sand at Pantai Chendor, Pahang" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@sera_cx" />
+    <meta name="twitter:title" content="Give to the causes you care about" />
+    <meta name="twitter:description" content="Give to charities in Malaysia in stablecoins. Every gift goes straight to the charity's own address, and you can help check each one." />
+    <meta name="twitter:image" content="https://causes.sera.cx/photos/hero.jpg" />
+
+    <!-- Site-level structured data. Kept in step with src/lib/seoSchemas.ts. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Care Share Donate on Sera.cx",
+        "alternateName": "Care Share Donate",
+        "url": "https://causes.sera.cx",
+        "logo": "https://causes.sera.cx/brand/mark/sera-mark-tile-color.svg",
+        "description": "An open list of charities in Malaysia that take gifts in stablecoins. Every gift goes straight to the charity's own address, the record is public, and anyone can help check a charity.",
+        "parentOrganization": { "@type": "Organization", "name": "Sera.cx", "url": "https://sera.cx" },
+        "areaServed": { "@type": "Country", "name": "Malaysia" },
+        "sameAs": ["https://sera.cx", "https://g.sera.cx", "https://community.sera.cx", "https://github.com/sera-cx/sera-causes"],
+        "contactPoint": [{ "@type": "ContactPoint", "contactType": "Report a problem", "email": "security@sera.cx", "url": "https://causes.sera.cx/rules#reports" }]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Care Share Donate on Sera.cx",
+        "url": "https://causes.sera.cx",
+        "inLanguage": "en-MY",
+        "publisher": { "@type": "Organization", "name": "Care Share Donate on Sera.cx", "url": "https://causes.sera.cx" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://causes.sera.cx/causes?q={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Type system from sera.cx/brand: IBM Plex Sans (display, body, UI), IBM Plex Mono (eyebrows, numerics, labels), Instrument Serif (italic emphasis only). -->

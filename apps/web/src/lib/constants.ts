@@ -98,5 +98,23 @@ export const LINKS = {
 
 export const SITE_ORIGIN = "https://causes.sera.cx";
 
+/**
+ * What the first run covers. A deliberate scope, written once here and shown
+ * in the footer, on the home page, by the stablecoin picker and in full on
+ * /rules, so a giver always knows which currencies work and where the causes
+ * are. Keep these plain: short sentences, no apology.
+ */
+export const TRIAL = {
+  /** One line, for the footer. */
+  footer: "First run: Malaysian causes, giving in MYRT, XSGD and US dollar stablecoins. More countries in 2027.",
+  /** One sentence, for the home page. */
+  home: "This is the first run. Every cause on the list is in Malaysia, and you can give in MYRT, XSGD or a US dollar stablecoin. We open more countries in 2027.",
+  /** For the give sheet, next to the stablecoin picker. */
+  give: "These are the currencies the first run covers: MYRT for ringgit, XSGD for Singapore dollars, and USDT or USDC for US dollars.",
+  /** The fuller note for /rules. */
+  rules:
+    "Care Share Donate starts small on purpose. Giving works in four stablecoins at launch: MYRT, XSGD, USDT and USDC. Every cause on the list is in Malaysia, because that is where we can check a charity against a public register ourselves. Other countries follow in 2027, one at a time, each with its own registers written into the paths library first.",
+} as const;
+
 /** Sanity check that the shared claim list is the one this app was written against. */
 export const CLAIM_COUNT = CLAIMS.length;

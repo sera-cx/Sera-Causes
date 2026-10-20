@@ -1,7 +1,7 @@
 import { ArrowRightLeft, Check, ExternalLink, Image as ImageIcon, Link2, Share2, Trash2, TriangleAlert, Video } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
-import { Empty, Notice, Spinner } from "@/components/Empty";
+import { Empty, ErrorState, Notice, Spinner, SkeletonRows } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { MediaGallery, providerLabel } from "@/components/MediaGallery";
@@ -19,32 +19,43 @@ import { useSeo } from "@/hooks/useSeo";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { COMMUNITY_SITE, stablecoinUsd } from "@/lib/constants";
-import { fmtDate, fmtInt, fmtUsd, timeAgo } from "@/lib/format";
+import { fmtDate, fmtInt, fmtRm, fmtUsd, timeAgo } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useDashboard, useInvalidateAll, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
 import { causeHref, fromRaw, pledgedBy, profileOf, toRaw } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
 import type { ConvertQuote, DashboardCause, Stablecoin, WithdrawResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function DashboardPage() {
-  useSeo("Creator dashboard");
+  useSeo(ROUTE_SEO.dashboard);
   const { user, ready } = useAuth();
   const dash = useDashboard();
 
   if (!ready) return <div className="container"><Spinner /></div>;
   if (!user) {
     return (
-      <div className="container max-w-xl py-16 text-center">
+      <div className="container container-tight py-16 text-center">
         <Eyebrow>Dashboard</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to manage your causes.</h1>
-        <p className="mt-2 text-ink-muted">Your causes, gifts received, treasury, sharing tools, updates and help requests.</p>
+        <p className="mt-2 measure mx-auto text-ink-muted">Your causes, what has arrived, your money, your sharing tools, your updates and your help requests.</p>
         <SignInButton size="lg" className="mt-6" label="Sign in" />
       </div>
     );
   }
-  if (dash.isError) return <div className="container py-10"><Notice tone="bad">Could not load your causes: {dash.error instanceof Error ? dash.error.message : "unknown error"}</Notice></div>;
-  if (dash.isLoading || !dash.data) return <div className="container"><Spinner label="Loading your causes" /></div>;
+  if (dash.isError)
+    return (
+      <div className="container py-10">
+        <ErrorState title="We could not load your causes" error={dash.error} onRetry={() => void dash.refetch()} />
+      </div>
+    );
+  if (dash.isLoading || !dash.data)
+    return (
+      <div className="container py-10">
+        <SkeletonRows rows={4} />
+      </div>
+    );
 
   const d = dash.data;
   const totalTreasury = d.causes.reduce((s, c) => s + treasuryUsd(c, d.tokens), 0);
@@ -54,22 +65,23 @@ export function DashboardPage() {
       <div className="container pt-8 md:pt-12">
         <Eyebrow>Creator dashboard</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">Your causes.</h1>
-        <p className="mt-2 text-[15.5px] text-ink-muted">
-          Signed in as <Wallet address={user.wallet} you={false} />. {d.causes.length === 1 ? "One cause" : `${d.causes.length} causes`}.
+        <p className="mt-2 measure text-[15.5px] text-ink-muted">
+          Signed in as <Wallet address={user.wallet} you={false} />. {d.causes.length === 1 ? "One cause" : `${d.causes.length} causes`}. You own these listings, so you set the payout wallet, post the updates
+          and ask for help here.
         </p>
       </div>
       <GreenField className="mt-8" kicker="Totals" footer={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <GfCard label="Given to your causes" ticker="All time" figure={fmtUsd(Number(d.totals.givenUsd))} meta={[{ label: "givers", value: fmtInt(d.totals.givers) }, { label: "causes", value: fmtInt(d.totals.causes) }]} />
-          <GfCard label="Received, net of withdrawals" ticker="Stablecoins" figure={fmtUsd(totalTreasury)} meta={[{ label: "withdrawable", value: "100%" }]} tab="#00E676" />
-          <GfCard label="On the homepage" ticker="Creator switch" figure={fmtInt(d.causes.filter((c) => c.showOnHomepage).length)} meta={[{ label: "of", value: fmtInt(d.causes.length) }]} tab="#59E39A" />
+          <GfCard label="Given to your causes" ticker="All time" figure={fmtUsd(Number(d.totals.givenUsd))} meta={[{ label: "about", value: fmtRm(Number(d.totals.givenUsd)) }, { label: "givers", value: fmtInt(d.totals.givers) }]} />
+          <GfCard label="Still held, after withdrawals" ticker="Stablecoins" figure={fmtUsd(totalTreasury)} meta={[{ label: "about", value: fmtRm(totalTreasury) }, { label: "you can withdraw", value: "all of it" }]} tab="#00E676" />
+          <GfCard label="On the home page" ticker="Your switch" figure={fmtInt(d.causes.filter((c) => c.showOnHomepage).length)} meta={[{ label: "of", value: fmtInt(d.causes.length) }]} tab="#59E39A" />
         </div>
       </GreenField>
       <div className="container space-y-14 py-10 md:py-14">
         {d.causes.length === 0 && (
-          <Empty title="You have not listed a cause yet" body="Add one and it appears here with its treasury, sharing tools and updates.">
+          <Empty title="You have not listed a cause yet" body="List your organisation and it appears here, with its own address, its sharing tools and a place to post updates.">
             <Button asChild>
-              <Link href="/add">Add a cause</Link>
+              <Link href="/add">List your cause</Link>
             </Button>
           </Empty>
         )}
@@ -141,10 +153,10 @@ function CausePanel({ dc, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-rule bg-paper-warm px-4 py-3">
           <div>
-            <p className="text-[14px] font-medium">Show on homepage</p>
-            <p className="text-[12px] text-ink-muted">{c.homepageHiddenReason ? `Hidden by a steward: ${c.homepageHiddenReason}` : "Signed by your wallet, off-chain"}</p>
+            <p className="text-[14px] font-medium">Show on the home page</p>
+            <p className="text-[12px] text-ink-muted">{c.homepageHiddenReason ? `Hidden by a steward: ${c.homepageHiddenReason}` : "Signed by your wallet"}</p>
           </div>
-          <Switch label={`Show ${c.name} on homepage`} checked={c.showOnHomepage} onCheckedChange={(v) => void toggleHomepage(v)} disabled={homepageBusy || !!c.homepageHiddenReason} />
+          <Switch label={`Show ${c.name} on the home page`} checked={c.showOnHomepage} onCheckedChange={(v) => void toggleHomepage(v)} disabled={homepageBusy || !!c.homepageHiddenReason} />
         </div>
       </header>
 
@@ -182,7 +194,7 @@ function Panel({ title, lede, children, icon: Icon }: { title: string; lede?: st
 function OnChainNotice({ action }: { action: string }) {
   return (
     <Notice tone="info">
-      {action} is a registry transaction from the charity's wallet, not an API call. It appears here once the signed-in wallet can send it.
+      {action} is a registry transaction sent from the organisation's own wallet, not something we do for you. It appears here once the signed-in wallet can send it.
     </Notice>
   );
 }
@@ -214,7 +226,7 @@ function Treasury({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
   };
 
   return (
-    <Panel title="Treasury" lede="Balances at the cause's own address. Gifts land here directly; nothing is held back." icon={ArrowRightLeft}>
+    <Panel title="Money held" lede="What is sitting at the cause's own address. Gifts land here directly, and nothing is held back on the way." icon={ArrowRightLeft}>
       <div className="rounded-xl border border-rule bg-paper-warm p-3">
         <Eyebrow>Cause address</Eyebrow>
         <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -224,38 +236,42 @@ function Treasury({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
           </Button>
         </div>
       </div>
-      <table className="mt-3 w-full text-[14px]">
-        <thead>
-          <tr className="text-left">
-            <th className="eyebrow pb-1.5 font-medium">Token</th>
-            <th className="eyebrow pb-1.5 font-medium text-right">Received, net</th>
-            <th className="eyebrow pb-1.5 font-medium text-right">US$</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-rule border-y border-rule">
-          {list.length === 0 && (
-            <tr>
-              <td colSpan={3} className="py-2 text-ink-muted">Nothing received yet.</td>
+      <div className="table-scroll mt-3">
+        <table className="w-full text-[14px]">
+          <thead>
+            <tr className="text-left">
+              <th className="eyebrow pb-1.5 font-medium">Stablecoin</th>
+              <th className="eyebrow pb-1.5 font-medium text-right">Held now</th>
+              <th className="eyebrow pb-1.5 font-medium text-right">US$</th>
+              <th className="eyebrow pb-1.5 font-medium text-right">About</th>
             </tr>
-          )}
-          {list.map((b) => (
-            <tr key={b.token.address}>
-              <td className="py-2 font-mono">{b.token.symbol}</td>
-              <td className="py-2 text-right font-mono tnum">{b.units.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
-              <td className="py-2 text-right font-mono tnum text-ink-muted">{fmtUsd(b.usd, { cents: true })}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-rule border-y border-rule">
+            {list.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-2 text-ink-muted">Nothing has arrived yet. Share the page to get the first gift.</td>
+              </tr>
+            )}
+            {list.map((b) => (
+              <tr key={b.token.address}>
+                <td className="py-2 font-mono">{b.token.symbol}</td>
+                <td className="py-2 text-right font-mono tnum">{b.units.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right font-mono tnum text-ink-muted">{fmtUsd(b.usd, { cents: true })}</td>
+                <td className="py-2 text-right font-mono tnum text-ink-muted">{fmtRm(b.usd)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <fieldset className="mt-5">
-        <legend className="text-[14px] font-medium">Currency</legend>
+        <legend className="text-[14px] font-medium">Which currency do you want to keep?</legend>
         <div className="mt-2 space-y-2">
           <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", mode === "auto" ? "border-ink bg-paper-warm" : "border-rule")}>
             <input type="radio" name={`policy-${cause.id}`} checked={mode === "auto"} onChange={() => setMode("auto")} className="mt-1 accent-[#1B7A3F]" />
             <span className="flex-1">
               <span className="block text-[14.5px] font-medium">Keep everything in one currency</span>
-              <span className="block text-[13px] text-ink-muted">Each arrival is converted through Sera.cx straight away.</span>
+              <span className="block text-[13px] text-ink-muted">Everything that arrives is swapped through Sera.cx straight away.</span>
               {mode === "auto" && (
                 <Select aria-label="Stablecoin to keep" value={target} onChange={(e) => setTarget(e.target.value)} className="mt-2 h-9 max-w-[240px] text-[13.5px]">
                   {tokens.map((t) => (
@@ -270,8 +286,8 @@ function Treasury({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
           <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-3", mode === "manual" ? "border-ink bg-paper-warm" : "border-rule")}>
             <input type="radio" name={`policy-${cause.id}`} checked={mode === "manual"} onChange={() => setMode("manual")} className="mt-1 accent-[#1B7A3F]" />
             <span>
-              <span className="block text-[14.5px] font-medium">Hold what arrives and convert when I choose</span>
-              <span className="block text-[13px] text-ink-muted">Balances stay in the token they came in.</span>
+              <span className="block text-[14.5px] font-medium">Keep what arrives and swap it when I choose</span>
+              <span className="block text-[13px] text-ink-muted">The money stays in whatever stablecoin it came in.</span>
             </span>
           </label>
         </div>
@@ -289,7 +305,7 @@ function Treasury({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
 
       {(cause.conversions.length > 0 || cause.withdrawals.length > 0) && (
         <details className="mt-4">
-          <summary className="cursor-pointer text-[13.5px] font-medium">Conversions and withdrawals</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center text-[13.5px] font-medium">Swaps and withdrawals</summary>
           <ul className="mt-2 space-y-1.5 text-[13px] text-ink-muted">
             {cause.conversions.map((cv) => (
               <li key={`c${cv.id}`} className="font-mono tnum">
@@ -354,8 +370,8 @@ function Convert({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoin
   if (held.length === 0 || tokens.length < 2) return null;
   return (
     <div className="mt-5 rounded-xl border border-rule p-4">
-      <p className="text-[14.5px] font-medium">Convert now</p>
-      <p className="text-[13px] text-ink-muted">A Sera.cx quote is shown before anything moves.</p>
+      <p className="text-[14.5px] font-medium">Swap now</p>
+      <p className="measure text-[13px] text-ink-muted">You see a Sera.cx quote before anything moves.</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <Field label="From" htmlFor={`from-${cause.id}`}>
           <Select id={`from-${cause.id}`} value={from} onChange={(e) => { setFrom(e.target.value); setQuote(null); }} className="h-10">
@@ -429,7 +445,7 @@ function Withdraw({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
   return (
     <div className="mt-4 rounded-xl border border-rule p-4">
       <p className="text-[14.5px] font-medium">Withdraw</p>
-      <p className="text-[13px] text-ink-muted">To any Ethereum address. The API records it and hands back the transfer for the cause wallet to send.</p>
+      <p className="measure text-[13px] text-ink-muted">To any Ethereum address. We record it and hand back the transfer for the cause wallet to send.</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_2fr]">
         <Field label="Token" htmlFor={`wtoken-${cause.id}`}>
           <Select id={`wtoken-${cause.id}`} value={token} onChange={(e) => setToken(e.target.value)} className="h-10">
@@ -463,7 +479,7 @@ function Withdraw({ dc: cause, tokens }: { dc: DashboardCause; tokens: Stablecoi
 
 function GiftsReceived({ dc, tokens }: { dc: DashboardCause; tokens: Stablecoin[] }) {
   return (
-    <Panel title="Gifts received" lede="Newest first. Each one is on the public record with its transaction.">
+    <Panel title="Gifts received" lede="Newest first. Each one is on the public record, with its transaction.">
       {dc.gifts.length === 0 ? (
         <p className="text-[14px] text-ink-muted">No gifts yet. Share the page to get the first one.</p>
       ) : (
@@ -487,10 +503,10 @@ function ShareTools({ dc }: { dc: DashboardCause }) {
   const entries = Object.entries(dc.shares);
   const total = entries.reduce((s, [, n]) => s + n, 0);
   return (
-    <Panel title="Share tools" icon={Share2} lede={total > 0 ? `${fmtInt(total)} shares so far: ${entries.map(([ch, n]) => `${ch} ${n}`).join(", ")}.` : "No shares counted yet."}>
+    <Panel title="Sharing tools" icon={Share2} lede={total > 0 ? `${fmtInt(total)} shares so far: ${entries.map(([ch, n]) => `${ch} ${n}`).join(", ")}.` : "Nobody has shared this yet."}>
       <ShareButtons causeId={dc.id} slug={dc.slug} name={dc.name} />
       <Button asChild variant="link" className="mt-2">
-        <Link href={`/c/${dc.id}/share`}>Embed button, preview card and QR poster</Link>
+        <Link href={`/c/${dc.id}/share`}>Website button, preview card and QR poster</Link>
       </Button>
     </Panel>
   );
@@ -523,7 +539,7 @@ function PostUpdate({ dc: cause }: { dc: DashboardCause }) {
     }
   };
   return (
-    <Panel title="Post an update or a live link" lede="Reports, receipts, photos and streams. A stream link turns the Live block on.">
+    <Panel title="Post an update or a live link" lede="Reports, receipts, photos and live streams. A stream link switches the Live block on your page.">
       {api.ONCHAIN_ONLY ? (
         <OnChainNotice action="Posting an update (postProgress)" />
       ) : (
@@ -593,7 +609,7 @@ function Media({ dc: cause }: { dc: DashboardCause }) {
     }
   };
   return (
-    <Panel title="Photos and video" icon={ImageIcon} lede="Upload a photo, paste a direct image link, or link a video from YouTube, TikTok, Instagram, X, Vimeo or Twitch. Videos are click-to-load embeds.">
+    <Panel title="Photos and video" icon={ImageIcon} lede="Upload a photo, paste a link to an image, or link a video from YouTube, TikTok, Instagram, X, Vimeo or Twitch. A video only loads when a visitor asks for it.">
       <form onSubmit={(e) => void add(e)} className="grid gap-3 sm:grid-cols-[130px_1fr_1fr_auto] sm:items-end">
         <Field label="Kind" htmlFor={`mkind-${cause.id}`}>
           <Select id={`mkind-${cause.id}`} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className="h-10">
@@ -604,7 +620,7 @@ function Media({ dc: cause }: { dc: DashboardCause }) {
         </Field>
         {kind === "upload" ? (
           <Field label="File (png, jpg, webp)" htmlFor={`mfile-${cause.id}`}>
-            <input id={`mfile-${cause.id}`} type="file" accept="image/png,image/jpeg,image/webp" required className="block w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-ink" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <input id={`mfile-${cause.id}`} type="file" accept="image/png,image/jpeg,image/webp" required className="block min-h-11 w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-3 file:py-2.5 file:text-[13px] file:font-medium file:text-ink" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </Field>
         ) : (
           <Field label="URL" htmlFor={`murl-${cause.id}`}>
@@ -636,7 +652,7 @@ function Media({ dc: cause }: { dc: DashboardCause }) {
       )}
       {cause.media.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-[13.5px] font-medium">Preview the gallery</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center text-[13.5px] font-medium">Preview the gallery</summary>
           <MediaGallery items={cause.media} className="mt-3" />
         </details>
       )}
@@ -674,7 +690,7 @@ function Socials({ dc: cause }: { dc: DashboardCause }) {
     ["tiktok", "TikTok"],
   ];
   return (
-    <Panel title="Links" icon={Link2} lede="The organisation's own channels. Shown in the Live block and the organisation section.">
+    <Panel title="Links" icon={Link2} lede="Your organisation's own pages. They show in the Live block and in the Organisation section.">
       {api.ONCHAIN_ONLY ? (
         <OnChainNotice action="Changing the profile (setURI with new metadata)" />
       ) : (
@@ -710,7 +726,7 @@ function HelpRequests({ dc: cause }: { dc: DashboardCause }) {
     }
   };
   return (
-    <Panel title="Help requests" lede={`Confirm a request once it is done. The helper earns XP on ${COMMUNITY_SITE} from your confirmation, signed by your wallet.`}>
+    <Panel title="Help requests" lede={`Confirm a request once it is done. Your confirmation, signed by your wallet, is what earns the helper XP on ${COMMUNITY_SITE}.`}>
       {cause.helpRequests.length === 0 ? (
         <p className="text-[14px] text-ink-muted">None open.</p>
       ) : (
@@ -753,7 +769,7 @@ function InviteCharity({ dc }: { dc: DashboardCause }) {
   const { copied, copy } = useCopy();
   const invite = `${dc.share.url}?claim=invite`;
   return (
-    <Panel title="Invite the charity to claim the listing" lede="Send this link to the organisation. When they claim it, they control the profile, the payout wallet and updates.">
+    <Panel title="Hand this listing over" lede="Only needed if you listed this cause for someone else. Send them this link. Once they claim it, they control the profile, the payout wallet and the updates.">
       <div className="flex flex-col gap-2 sm:flex-row">
         <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-paper-warm px-3 py-2 font-mono text-[12.5px]">{invite}</code>
         <Button variant="outline" size="sm" className="h-10" onClick={() => void copy(invite)}>
@@ -791,11 +807,11 @@ function Payout({ dc: cause }: { dc: DashboardCause }) {
     }
   };
   return (
-    <Panel title="Payout wallet" lede="The organisation's own wallet, named in the C3 claim. Withdrawals default to it.">
+    <Panel title="Payout wallet" lede="Your organisation's own wallet, named in the C3 claim. Withdrawals go here unless you change them.">
       <Notice tone="warn">
         <div className="flex gap-2">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <span>Changing the payout wallet removes Verified. The claim "the payout wallet belongs to the organisation" (C3) must be checked again, with a new signed message.</span>
+          <span>Changing the payout wallet removes Verified. The claim "the payout wallet belongs to the organisation" (C3) has to be checked again, with a new signed message.</span>
         </div>
       </Notice>
       {api.ONCHAIN_ONLY ? (
@@ -826,8 +842,14 @@ function PanelRecord({ dc: cause }: { dc: DashboardCause }) {
   const rec = useRecord(cause.id);
   return (
     <div className="border-t border-rule p-5 sm:p-6">
-      <Panel title="Recent record" lede="The same public record visitors see on the cause page: gifts, conversions, withdrawals, updates and checks.">
-        {rec.data ? <RecordList events={recordLines(rec.data)} limit={6} /> : <Spinner />}
+      <Panel title="Recent record" lede="The same public record a visitor sees on the cause page: gifts, swaps, withdrawals, updates and checks.">
+        {rec.isError ? (
+          <ErrorState title="We could not load the record" error={rec.error} onRetry={() => void rec.refetch()} />
+        ) : rec.isLoading ? (
+          <Spinner label="Loading the record" />
+        ) : (
+          <RecordList events={recordLines(rec.data ?? [])} limit={6} />
+        )}
         <Button asChild variant="link" className="mt-2">
           <Link href={`${causeHref(cause.id, cause.slug)}#record`}>Full record on the cause page</Link>
         </Button>

@@ -1,7 +1,7 @@
 import { ArrowLeft, CircleAlert, CircleCheck, CircleDashed, CircleX, ExternalLink, Lock, Shield, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
-import { Empty, Notice, Spinner } from "@/components/Empty";
+import { Empty, ErrorState, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { SignInButton } from "@/components/SignInButton";
 import { Pill, StatusPill } from "@/components/StatusPill";
@@ -17,6 +17,9 @@ import { fmtDate, fmtGsera, fmtInt, fmtXp, timeLeft } from "@/lib/format";
 import { useClaim, useInvalidateAll, useMe, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
 import { causeHref, voteWeight } from "@/lib/rules";
+import { ROUTE_SEO, claimSeo } from "@/lib/seo";
+import { breadcrumbSchema } from "@/lib/seoSchemas";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import type { ClaimWorkspace, EvidenceKind, PathResult, PathView, VoteChoice } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotFoundPage } from "./NotFound";
@@ -28,9 +31,33 @@ export function ClaimPage() {
   const valid = (CLAIMS as readonly string[]).includes(code);
   const q = useClaim(id, valid ? code : "C1");
   const data = q.data;
-  useSeo(data ? `${code} on ${data.cause.name}` : "Claim");
+  useSeo(data ? claimSeo(data.cause, code, CLAIM_INFO[code].label) : ROUTE_SEO.verify);
+  useJsonLdMany(
+    data
+      ? [
+          {
+            id: "breadcrumb",
+            node: breadcrumbSchema([
+              { name: "Causes", path: "/causes" },
+              { name: data.cause.name, path: `/c/${data.cause.id}-${data.cause.slug}` },
+              { name: `${code}: ${CLAIM_INFO[code].label}`, path: `/verify/${data.cause.id}/${code}` },
+            ]),
+          },
+        ]
+      : [],
+  );
   if (!valid) return <NotFoundPage />;
-  if (q.isLoading) return <div className="container"><Spinner label="Loading claim" /></div>;
+  if (q.isLoading) return <div className="container"><Spinner label="Loading the claim" /></div>;
+  if (q.isError)
+    return (
+      <div className="container container-tight py-14">
+        <ErrorState title="We could not load this claim" error={q.error} onRetry={() => void q.refetch()}>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/verify">Back to the hub</Link>
+          </Button>
+        </ErrorState>
+      </div>
+    );
   if (!data) return <NotFoundPage />;
   return <Workspace ws={data} />;
 }
@@ -66,8 +93,8 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
   const offer = xpOnOffer(ws);
 
   return (
-    <div className="container max-w-5xl py-8 md:py-12">
-      <Link href={causeHref(ws.cause.id, ws.cause.slug)} className="inline-flex items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink">
+    <div className="container container-wide py-8 md:py-12">
+      <Link href={causeHref(ws.cause.id, ws.cause.slug)} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink sm:min-h-0">
         <ArrowLeft className="h-4 w-4" aria-hidden /> {ws.cause.name}
       </Link>
       <header className="mt-4">
@@ -110,7 +137,7 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
         {ws.decidedBy === "stewards" && (
           <Notice tone="info" className="mt-3">
             <span className="inline-flex items-center gap-2">
-              <Shield className="h-4 w-4" aria-hidden /> Advisory mode. Votes and tallies are shown. Stewards finalise this claim.
+              <Shield className="h-4 w-4" aria-hidden /> Advisory mode. The votes and the tally are shown, and Sera.cx stewards settle this claim.
             </span>
           </Notice>
         )}
@@ -141,7 +168,7 @@ function Block({ title, lede, action, children }: { title: string; lede?: string
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-[22px] font-semibold tracking-tight">{title}</h2>
-          {lede && <p className="mt-1 text-[14px] text-ink-muted max-w-[56ch]">{lede}</p>}
+          {lede && <p className="mt-1 measure text-[14px] text-ink-muted">{lede}</p>}
         </div>
         {action}
       </div>
@@ -150,13 +177,13 @@ function Block({ title, lede, action, children }: { title: string; lede?: string
   );
 }
 
-const fileInputCls = "block w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2 file:text-[13px] file:font-medium file:text-ink";
+const fileInputCls = "block min-h-11 w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2.5 file:text-[13px] file:font-medium file:text-ink";
 
 function EvidenceList({ ws }: { ws: ClaimWorkspace }) {
   return (
-    <Block title="Evidence" lede="Anyone can upload. Files are hashed and the hash is recorded, so nobody can swap a file later." action={<UploadEvidence ws={ws} />}>
+    <Block title="Evidence" lede="Anyone can upload. We take a fingerprint of every file and record it, so nobody can swap a file later." action={<UploadEvidence ws={ws} />}>
       {ws.evidence.length === 0 ? (
-        <Empty title="No evidence yet" body="A document, link, dated photo, video or signed wallet message." />
+        <Empty title="No evidence yet" body="Upload a document, a link, a dated photo, a video or a message signed by a wallet." />
       ) : (
         <ul className="divide-y divide-rule border-y border-rule">
           {ws.evidence.map((e) => (
@@ -226,7 +253,7 @@ function UploadEvidence({ ws }: { ws: ClaimWorkspace }) {
       </DialogTrigger>
       <DialogContent title="Upload evidence" description={`For ${ws.claim.claimType}: ${CLAIM_INFO[ws.claim.claimType].label}`}>
         <form onSubmit={(e) => void submit(e)} className="space-y-4">
-          <Notice tone="warn">Redact personal data first: IC numbers, home addresses, personal phone numbers and signatures. Files with unredacted personal data are rejected by moderation.</Notice>
+          <Notice tone="warn">Black out personal details first: IC numbers, home addresses, personal phone numbers and signatures. We reject files that still show them.</Notice>
           <Field label="Type" htmlFor="ev-kind">
             <Select id="ev-kind" value={kind} onChange={(e) => setKind(e.target.value as EvidenceKind)}>
               <option value="document">Document (PDF or image)</option>
@@ -252,7 +279,7 @@ function UploadEvidence({ ws }: { ws: ClaimWorkspace }) {
           <Field label="Note" htmlFor="ev-note" hint="What it shows, in one or two sentences.">
             <Textarea id="ev-note" value={note} onChange={(e) => setNote(e.target.value)} className="min-h-[72px]" />
           </Field>
-          <Checkbox id="ev-redacted" checked={redacted} onChange={(e) => setRedacted(e.target.checked)} label="I have removed personal data from this file" />
+          <Checkbox id="ev-redacted" checked={redacted} onChange={(e) => setRedacted(e.target.checked)} label="I have blacked out the personal details in this file" />
           {err && <Notice tone="bad">{err}</Notice>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
@@ -281,9 +308,9 @@ function Paths({ ws, onOpened }: { ws: ClaimWorkspace; onOpened: () => void }) {
   };
   const n = ws.claim.independentChecks;
   return (
-    <Block title="Verification paths" lede={`How each helper checked this claim, in the fixed template. ${n} independent ${n === 1 ? "check agrees" : "checks agree"}. Open a path to unlock the vote.`} action={<AddPath ws={ws} />}>
+    <Block title="Verification paths" lede={`A path is a written note of exactly how one person checked this claim. ${n} independent ${n === 1 ? "check agrees" : "checks agree"} so far. Open a path to unlock the vote.`} action={<AddPath ws={ws} />}>
       {ws.paths.length === 0 ? (
-        <Empty title="No paths yet" body={`Be the first. Write down how you checked it and earn ${fmtXp(XP.care_path_agreed.amount)} on ${COMMUNITY_SITE} when the final outcome agrees.`} />
+        <Empty title="Nobody has checked this yet" body={`Be the first. Write down how you checked it and earn ${fmtXp(XP.care_path_agreed.amount)} on ${COMMUNITY_SITE} when the final result agrees with you.`} />
       ) : (
         <ul className="space-y-3">
           {[...ws.paths].reverse().map((p) => (
@@ -304,12 +331,12 @@ function PathCard({ path, onToggle }: { path: PathView; onToggle: () => void }) 
     ["Exact search used", <code className="font-mono text-[13px] tnum">{b.exactQuery}</code>],
     ["What I found", b.findings],
     ["Matches the profile?", b.matches ? "Yes" : "No"],
-    ["Screenshot", <span className="font-mono text-[12px] break-all">Uploaded, hash {b.screenshotHash.slice(0, 22)}…</span>],
+    ["Screenshot", <span className="font-mono text-[12px] break-all">Uploaded, fingerprint {b.screenshotHash.slice(0, 22)}…</span>],
     ["Checked on", `${fmtDate(b.checkedAt, true)} MYT`],
     ["Result", <Pill tone={r.tone} icon={r.icon}>{r.label}</Pill>],
     ["Caveats", b.caveats || "None"],
-    ["Conflict of interest", b.conflictOfInterest],
-    ["Signature", <span className="font-mono text-[11px] break-all text-ink-subtle">{path.signature.slice(0, 26)}… (EIP-712, content hash {path.contentHash.slice(0, 12)}…)</span>],
+    ["Do they know the organisation?", b.conflictOfInterest],
+    ["Signature", <span className="font-mono text-[11px] break-all text-ink-subtle">{path.signature.slice(0, 26)}… (EIP-712, content fingerprint {path.contentHash.slice(0, 12)}…)</span>],
   ];
   return (
     <li>
@@ -360,7 +387,7 @@ const localNow = () => {
   return d.toISOString().slice(0, 16);
 };
 
-const emptyPathForm = (): PathForm => ({ source: "", steps: "", exactQuery: "", findings: "", matches: "yes", checkedAt: localNow(), result: "verified", caveats: "", conflictOfInterest: "None. I have no relationship with this organisation." });
+const emptyPathForm = (): PathForm => ({ source: "", steps: "", exactQuery: "", findings: "", matches: "yes", checkedAt: localNow(), result: "verified", caveats: "", conflictOfInterest: "None. I do not know anyone at this organisation." });
 
 function toPathBody(f: PathForm) {
   return {
@@ -380,7 +407,7 @@ function PathFields({ f, setF, idPrefix, ws }: { f: PathForm; setF: (f: PathForm
   const field = (k: keyof PathForm) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value }) });
   return (
     <>
-      <Field label="Source (name of the official tool)" htmlFor={`${idPrefix}-source`} hint={CLAIM_INFO[ws.claim.claimType].whereToCheck}>
+      <Field label="Source: the name of the official tool you used" htmlFor={`${idPrefix}-source`} hint={CLAIM_INFO[ws.claim.claimType].whereToCheck}>
         <Input id={`${idPrefix}-source`} required {...field("source")} />
       </Field>
       <Field label="Steps, one per line" htmlFor={`${idPrefix}-steps`}>
@@ -415,7 +442,7 @@ function PathFields({ f, setF, idPrefix, ws }: { f: PathForm; setF: (f: PathForm
           <Input id={`${idPrefix}-caveats`} {...field("caveats")} />
         </Field>
       </div>
-      <Field label="Conflict of interest" htmlFor={`${idPrefix}-conflict`}>
+      <Field label="Do you know this organisation?" htmlFor={`${idPrefix}-conflict`}>
         <Input id={`${idPrefix}-conflict`} required {...field("conflictOfInterest")} />
       </Field>
     </>
@@ -437,7 +464,7 @@ function AddPath({ ws }: { ws: ClaimWorkspace }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) {
-      setErr("A path needs a source, steps, a search, findings and a dated screenshot.");
+      setErr("A path needs a source, the steps you took, the exact search, what you found, and a screenshot with the date on it.");
       return;
     }
     setBusy(true);
@@ -463,10 +490,10 @@ function AddPath({ ws }: { ws: ClaimWorkspace }) {
       <DialogContent title="Add your check" description={`${ws.claim.claimType}: ${CLAIM_INFO[ws.claim.claimType].label}. One claim per path. Signed by your wallet, public and permanent.`} className="max-w-2xl">
         <form onSubmit={(e) => void submit(e)} className="space-y-3">
           <PathFields f={f} setF={setF} idPrefix="p" ws={ws} />
-          <Field label="Screenshot (dated)" htmlFor="p-shot" hint="Uploaded as evidence on this claim; its hash goes into the signed path.">
+          <Field label="Screenshot, with the date showing" htmlFor="p-shot" hint="It is uploaded as evidence on this claim, and its fingerprint goes into the path you sign.">
             <input id="p-shot" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required className={fileInputCls} onChange={(e) => setScreenshot(e.target.files?.[0] ?? null)} />
           </Field>
-          <Checkbox id="p-redacted" checked={redacted} onChange={(e) => setRedacted(e.target.checked)} label="I have removed personal data from the screenshot" />
+          <Checkbox id="p-redacted" checked={redacted} onChange={(e) => setRedacted(e.target.checked)} label="I have blacked out the personal details in the screenshot" />
           {err && <Notice tone="bad">{err}</Notice>}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
@@ -499,7 +526,7 @@ function Tally({ ws }: { ws: ClaimWorkspace }) {
         <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-subtle">{ws.decidedBy === "stewards" ? "Advisory" : "Community"}</span>
       </div>
       <p className="mt-1 text-[13px] text-ink-muted">
-        {fmtInt(ws.votes.length)} votes, weight {round(t.total)}. {ws.decidedBy === "stewards" ? "Stewards finalise this claim." : "Votes decide this claim."}
+        {fmtInt(ws.votes.length)} votes, weight {round(t.total)}. {ws.decidedBy === "stewards" ? "Stewards settle this claim." : "The votes decide this claim."}
       </p>
       <ul className="mt-4 space-y-2.5">
         {bars.map(([label, w, cls]) => (
@@ -581,7 +608,7 @@ function VotePanel({ ws, unlocked }: { ws: ClaimWorkspace; unlocked: boolean }) 
       <h2 className="font-display text-[18px] font-semibold">Vote</h2>
       {!user ? (
         <div className="mt-2">
-          <p className="text-[13.5px] text-ink-muted">Voting needs a wallet that has passed screening and has one gift or one accepted contribution.</p>
+          <p className="text-[13.5px] text-ink-muted">To vote you need a wallet that has passed screening and has made one gift, or had one contribution accepted.</p>
           <SignInButton size="sm" className="mt-3" label="Sign in" />
         </div>
       ) : already || done ? (
@@ -593,7 +620,7 @@ function VotePanel({ ws, unlocked }: { ws: ClaimWorkspace; unlocked: boolean }) 
           <p className="inline-flex items-center gap-2 font-medium text-ink">
             <Lock className="h-4 w-4" aria-hidden /> Locked
           </p>
-          <p className="mt-1">Open at least one verification path above. The vote unlocks once you have read how the claim was checked.</p>
+          <p className="mt-1">Open at least one verification path above. The vote unlocks once you have read how somebody checked this claim.</p>
         </div>
       ) : (
         <form onSubmit={(e) => void submit(e)} className="mt-3 space-y-3">
@@ -637,7 +664,7 @@ function ChallengeCard({ ws, challenge: ch }: { ws: ClaimWorkspace; challenge: C
             {ch.body.evidenceIds.length > 0 ? ` ${ch.body.evidenceIds.length} piece${ch.body.evidenceIds.length === 1 ? "" : "s"} of counter-evidence uploaded.` : ""}
           </p>
           <p className="mt-1 font-mono text-[11.5px] opacity-80">
-            Voting reopened{ws.claim.votingEnd ? `, ${timeLeft(ws.claim.votingEnd)}` : ""}. If upheld, the challenger gets the stake back plus {fmtXp(XP.care_challenge_upheld.amount)} on {COMMUNITY_SITE}. If not, the stake is burned.
+            Voting is open again{ws.claim.votingEnd ? `, ${timeLeft(ws.claim.votingEnd)}` : ""}. If the challenge wins, the challenger gets the stake back plus {fmtXp(XP.care_challenge_upheld.amount)} on {COMMUNITY_SITE}. If it loses, the stake is burned.
           </p>
         </div>
       </div>
@@ -675,7 +702,7 @@ function ChallengePanel({ ws }: { ws: ClaimWorkspace }) {
     <div className="rounded-2xl border border-rule bg-card p-5">
       <h2 className="font-display text-[18px] font-semibold">Challenge</h2>
       <p className="mt-1 text-[13.5px] text-ink-muted">
-        Think this is wrong? Stake {fmtGsera(CHALLENGE_STAKE)}, upload counter-evidence and your own path. Voting reopens for {VOTING.periodDays} days.
+        Think this result is wrong? Stake {fmtGsera(CHALLENGE_STAKE)}, upload evidence against it, and write your own path. Voting then reopens for {VOTING.periodDays} days.
         {ws.claim.state === "challenge_window" && ws.claim.challengeWindowEnd ? ` Window: ${timeLeft(ws.claim.challengeWindowEnd)}.` : ""}
       </p>
       {!user ? (
@@ -691,12 +718,12 @@ function ChallengePanel({ ws }: { ws: ClaimWorkspace }) {
             <form onSubmit={(e) => void submit(e)} className="space-y-3">
               <p className="font-mono text-[12.5px] tnum text-ink-muted">Your spendable gSera: {fmtInt(spendable)}</p>
               {spendable < CHALLENGE_STAKE && <Notice tone="warn">You need {fmtGsera(CHALLENGE_STAKE)} spendable to stake.</Notice>}
-              <Field label="What is wrong, in one or two sentences" htmlFor="ch-summary">
+              <Field label="What is wrong? One or two sentences." htmlFor="ch-summary">
                 <Textarea id="ch-summary" required value={statement} onChange={(e) => setStatement(e.target.value)} className="min-h-[72px]" />
               </Field>
               <p className="font-display text-[15px] font-semibold pt-1">Your own path</p>
               <PathFields f={f} setF={setF} idPrefix="ch" ws={ws} />
-              <Field label="Counter-evidence (pdf or image)" htmlFor="ch-file" hint="Uploaded as evidence on this claim and listed on the challenge.">
+              <Field label="Evidence against it (PDF or image)" htmlFor="ch-file" hint="It is uploaded as evidence on this claim and shown on the challenge.">
                 <input id="ch-file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" className={fileInputCls} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               </Field>
               {err && <Notice tone="bad">{err}</Notice>}
@@ -721,7 +748,9 @@ function History({ ws }: { ws: ClaimWorkspace }) {
   const lines = useMemo(() => recordLines(rec.data ?? []).filter((l) => l.claim === ws.claim.claimType || l.tag === "listed"), [rec.data, ws.claim.claimType]);
   return (
     <Block title="History of this claim">
-      {rec.isLoading ? (
+      {rec.isError ? (
+        <ErrorState title="We could not load the history" error={rec.error} onRetry={() => void rec.refetch()} />
+      ) : rec.isLoading ? (
         <Spinner label="Loading the record" />
       ) : lines.length === 0 ? (
         <p className="text-[14.5px] text-ink-muted">Nothing on the record for this claim yet.</p>

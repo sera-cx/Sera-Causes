@@ -50,7 +50,7 @@ export function CauseCard({ cause, className, compact }: { cause: CauseView; cla
               Not taking gifts
             </Button>
           )}
-          <Link href={href} className="inline-flex items-center gap-1 text-[13.5px] font-medium text-ink hover:text-sera-text rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
+          <Link href={href} className="inline-flex min-h-11 items-center gap-1 rounded-sm text-[13.5px] font-medium text-ink hover:text-sera-text focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0">
             Read more <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         </div>

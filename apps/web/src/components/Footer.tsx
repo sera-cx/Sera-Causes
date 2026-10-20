@@ -1,7 +1,7 @@
 /* Footer after sera.cx's FooterStack Footer: ink background, white wordmark. */
 import { Link } from "wouter";
 import { useSignInNote } from "@/lib/auth";
-import { LINKS } from "@/lib/constants";
+import { LINKS, TRIAL } from "@/lib/constants";
 import { SeraLogo } from "./SeraLogo";
 
 const COLS = [
@@ -18,25 +18,32 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-8">
           <div>
             <SeraLogo variant="white" className="h-5" />
-            <p className="mt-5 text-[15px] leading-[1.55] text-white/60 max-w-sm">Care Share Donate is open source. Give in stablecoins, help check the charities, and see where every gift goes.</p>
+            <p className="mt-5 measure text-[15px] leading-[1.55] text-white/60">Care Share Donate is open source. Give in stablecoins, help check the charities, and see where every gift went.</p>
+            <p className="mt-3 measure text-[13.5px] leading-[1.5] text-white/50">{TRIAL.footer}</p>
           </div>
           {COLS.map((col) => (
             <div key={col.head}>
               <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.18em] text-white/50">{col.head}</div>
-              <ul className="space-y-2.5 text-[14px]">
-                {col.links.map(([label, href]) => (
-                  <li key={label}>
-                    {href.startsWith("http") ? (
-                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-white rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00D26A]">
-                        {label}
-                      </a>
-                    ) : (
-                      <Link href={href} className="text-white/80 hover:text-white rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00D26A]">
-                        {label}
-                      </Link>
-                    )}
-                  </li>
-                ))}
+              {/* A footer link is a navigation control, not prose, so on a
+                  phone each one is a 44px row. On a wide screen the list
+                  goes back to its tighter rhythm. */}
+              <ul className="text-[14px] md:space-y-2.5">
+                {col.links.map(([label, href]) => {
+                  const cls = "inline-flex min-h-11 items-center rounded-sm text-white/80 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00D26A] md:min-h-0";
+                  return (
+                    <li key={label}>
+                      {href.startsWith("http") ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+                          {label}
+                        </a>
+                      ) : (
+                        <Link href={href} className={cls}>
+                          {label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

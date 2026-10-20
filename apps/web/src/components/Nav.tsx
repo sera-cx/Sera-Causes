@@ -39,10 +39,14 @@ export function Nav() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-paper">
         Skip to content
       </a>
-      <nav className="container flex h-[64px] items-center justify-between gap-3" aria-label="Main">
-        <div className="flex items-center gap-8">
-          <Link href="/" aria-label="Care Share Donate home" className="flex items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
-            <SeraLogoAuto />
+      <nav className="container flex h-[64px] items-center justify-between gap-2" aria-label="Main">
+        <div className="flex min-w-0 items-center gap-8">
+          <Link href="/" aria-label="Care Share Donate home" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
+            {/* The wordmark is 186px wide at its usual 18px height, which on a
+                360px screen runs straight into the gSera pill. It steps down
+                to 16px there, and the pill drops its label, so the two never
+                meet. */}
+            <SeraLogoAuto className="h-4 sm:h-[18px]" />
             <span className="hidden sm:inline font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-subtle border-l border-rule pl-2.5">Causes</span>
           </Link>
           <div className="hidden lg:flex items-center gap-6">
@@ -55,16 +59,17 @@ export function Nav() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {user && (
-            <span className="hidden sm:inline-flex h-9 items-center rounded-full border border-rule px-3 font-mono text-[12.5px] text-ink-muted" title={user.displayName}>
+            <span className="hidden sm:inline-flex h-9 min-h-11 items-center rounded-full border border-rule px-3 font-mono text-[12.5px] text-ink-muted lg:min-h-9" title={user.displayName}>
               {shortAddress(user.wallet)}
             </span>
           )}
           {user && (
-            <Link href="/me" className="inline-flex h-9 items-center gap-2 rounded-full border border-rule bg-paper-warm px-3 font-mono text-[12.5px] tnum text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={gsera !== null ? `${fmtInt(gsera)} gSera, open My gSera` : "My gSera"}>
+            <Link href="/me" className="inline-flex h-9 min-h-11 items-center gap-2 rounded-full border border-rule bg-paper-warm px-3 font-mono text-[12.5px] tnum text-ink hover:border-ink/40 lg:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={gsera !== null ? `${fmtInt(gsera)} gSera, open My gSera` : "My gSera"}>
               <span className="h-1.5 w-1.5 rounded-full bg-sera" aria-hidden />
-              {gsera !== null ? `${fmtInt(gsera)} gSera` : "gSera"}
+              {gsera !== null ? fmtInt(gsera) : ""}
+              <span className={gsera !== null ? "hidden sm:inline" : undefined}>gSera</span>
             </Link>
           )}
           {ready && !user && canSignIn && (
@@ -77,7 +82,7 @@ export function Nav() {
               <LogOut className="h-4 w-4" aria-hidden /> <span className="hidden xl:inline">Sign out</span>
             </Button>
           )}
-          <button type="button" onClick={() => setOpen(!open)} className="lg:hidden rounded-full p-2 hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-ring" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-menu">
+          <button type="button" onClick={() => setOpen(!open)} className="lg:hidden inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-ink/5 focus-visible:outline-2 focus-visible:outline-ring" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="mobile-menu">
             {open ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
           </button>
         </div>
@@ -87,19 +92,24 @@ export function Nav() {
         <div id="mobile-menu" className="lg:hidden border-t border-rule bg-paper">
           <div className="container flex flex-col gap-1 py-3">
             {links.map((l) => (
-              <Link key={l.to} href={l.to} onClick={() => setOpen(false)} className={cn("flex items-center gap-2 rounded-md px-2 py-2.5 text-[16px] font-medium", isActive(l.to) ? "text-sera-text" : "text-ink-muted")}>
+              <Link key={l.to} href={l.to} onClick={() => setOpen(false)} className={cn("flex min-h-11 items-center gap-2 rounded-md px-2 text-[16px] font-medium", isActive(l.to) ? "text-sera-text" : "text-ink-muted")}>
                 {isActive(l.to) && <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-sera" />}
                 {l.label}
               </Link>
             ))}
             {user && (
               <>
-                <Link href="/me" onClick={() => setOpen(false)} className="px-2 py-2.5 text-[16px] font-medium text-ink-muted">My gSera</Link>
-                <Link href="/leaderboards" onClick={() => setOpen(false)} className="px-2 py-2.5 text-[16px] font-medium text-ink-muted">Leaderboards</Link>
-                <button type="button" onClick={() => { setOpen(false); void signOut(); }} className="text-left px-2 py-2.5 text-[16px] font-medium text-ink-muted">Sign out</button>
+                <Link href="/me" onClick={() => setOpen(false)} className="flex min-h-11 items-center px-2 text-[16px] font-medium text-ink-muted">My gSera</Link>
+                <Link href="/leaderboards" onClick={() => setOpen(false)} className="flex min-h-11 items-center px-2 text-[16px] font-medium text-ink-muted">Leaderboards</Link>
+                <button type="button" onClick={() => { setOpen(false); void signOut(); }} className="flex min-h-11 items-center justify-start px-2 text-left text-[16px] font-medium text-ink-muted">Sign out</button>
               </>
             )}
-            {!user && <Link href="/leaderboards" onClick={() => setOpen(false)} className="px-2 py-2.5 text-[16px] font-medium text-ink-muted">Leaderboards</Link>}
+            {!user && (
+              <>
+                <Link href="/leaderboards" onClick={() => setOpen(false)} className="flex min-h-11 items-center px-2 text-[16px] font-medium text-ink-muted">Leaderboards</Link>
+                <Link href="/rules" onClick={() => setOpen(false)} className="flex min-h-11 items-center px-2 text-[16px] font-medium text-ink-muted">Rules and points</Link>
+              </>
+            )}
           </div>
         </div>
       )}

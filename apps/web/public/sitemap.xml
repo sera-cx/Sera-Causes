@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static routes only. The cause pages (/c/:id-:slug) are generated from the
+  registry, so they belong in a sitemap the API serves.
+
+  TODO(sitemap): have the API serve /sitemap-causes.xml from the indexed
+  causes and add it to a sitemap index here, so every cause page is
+  discoverable without a crawl of /causes. Until then a crawler that runs
+  JavaScript finds them through the links on /causes, and one that does not
+  finds nothing: see the prerender TODO in src/lib/seo.ts.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://causes.sera.cx/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/causes</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/add</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/verify</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/rules</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/technology</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://causes.sera.cx/leaderboards</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

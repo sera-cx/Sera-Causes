@@ -1,29 +1,38 @@
 import { ArrowRight, BookOpen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
-import { Empty, Spinner } from "@/components/Empty";
+import { Empty, ErrorState, SkeletonRows } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label, Select } from "@/components/ui/input";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { CATEGORIES, CLAIMS, CLAIM_INFO, CLAIM_SHORT, COMMUNITY_SITE, STATE_NAMES, VOTING, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
 import { fmtInt, fmtXp, timeAgo } from "@/lib/format";
 import { useClaims, useLeaderboards } from "@/lib/queries";
 import { shortAddress } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
+import { breadcrumbSchema } from "@/lib/seoSchemas";
 import type { ClaimListItem, ClaimTab } from "@/lib/types";
 
-const TABS: { id: ClaimTab; label: string; blurb: string }[] = [
-  { id: "needs_evidence", label: "Needs evidence", blurb: "No evidence yet. Upload a document, a link, dated photos or a signed message." },
-  { id: "needs_checking", label: "Needs checking", blurb: `Evidence is in. Write a verification path. Voting opens at ${VOTING.minPaths} independent paths.` },
-  { id: "open_for_votes", label: "Open for votes", blurb: "Read the paths, then vote with a one-line reason." },
-  { id: "challenged", label: "Challenged", blurb: "A challenge is open with counter-evidence. Voting reopened." },
-  { id: "recently_verified", label: "Recently verified", blurb: "Finalised claims, newest first." },
+const TABS: { id: ClaimTab; label: string; blurb: string; empty: string }[] = [
+  { id: "needs_evidence", label: "Needs evidence", blurb: "Nothing has been uploaded yet. Add a document, a link, dated photos or a signed message.", empty: "Every claim has some evidence on it. Try another queue." },
+  {
+    id: "needs_checking",
+    label: "Needs checking",
+    blurb: `The evidence is in. Now write a verification path, which is a short note of exactly how you checked it. Voting opens once ${VOTING.minPaths} people have checked it on their own.`,
+    empty: "Nothing is waiting to be checked. Try another queue.",
+  },
+  { id: "open_for_votes", label: "Open for votes", blurb: "Read how other people checked it, then vote and give one line of reasoning.", empty: "No claim is open for votes right now." },
+  { id: "challenged", label: "Challenged", blurb: "Somebody says a result is wrong and has uploaded evidence against it. Voting is open again.", empty: "No claim is being challenged. That is a good sign." },
+  { id: "recently_verified", label: "Recently verified", blurb: "Claims that are settled, newest first.", empty: "Nothing has been settled yet." },
 ];
 
 export function VerifyPage() {
-  useSeo("Verification hub", `Claims that need evidence, checking or votes. Help check a charity and earn XP on ${COMMUNITY_SITE}.`);
+  useSeo(ROUTE_SEO.verify);
+  useJsonLdMany([{ id: "breadcrumb", node: breadcrumbSchema([{ name: "Help check a charity", path: "/verify" }]) }]);
   const search = useSearch();
   const [, navigate] = useLocation();
   const tab = (new URLSearchParams(search).get("tab") as ClaimTab | null) ?? "needs_checking";
@@ -36,14 +45,21 @@ export function VerifyPage() {
   return (
     <div>
       <div className="container pt-10 md:pt-14">
-        <SectionHeader kicker="Verification hub" title="Help check a charity." lede="Evidence goes up, helpers write down exactly how they checked it, the community votes, and a short challenge window lets anyone object. Stewards finalise every claim while we launch." size="lg" />
+        <SectionHeader
+          level={1}
+          kicker="Verification hub"
+          title="Help check a charity."
+          lede="An organisation lists itself. Checking it is open to everyone. Evidence goes up, helpers write down exactly how they checked it, the community votes, and a short window lets anyone object. While we launch, Sera.cx stewards settle every claim."
+          size="lg"
+        />
       </div>
       <GreenField className="mt-8" kicker="Top helpers this month" footer={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {topHelpers.map((r, i) => (
             <GfCard key={r.wallet} label={`#${i + 1} helper`} ticker={shortAddress(r.wallet)} figure={fmtInt(r.xp)} meta={[{ label: `XP on ${COMMUNITY_SITE}`, value: `reputation ${r.reputation}` }]} tab={["#00D26A", "#00E676", "#59E39A"][i]} />
           ))}
-          {!helpers.isLoading && topHelpers.length === 0 && <p className="text-[14px] text-white/70">No helper XP recorded in the last 30 days yet.</p>}
+          {helpers.isError && <p className="text-[14px] font-medium text-[#06120C]">We could not load the helper board. The rest of the page still works.</p>}
+          {!helpers.isLoading && !helpers.isError && topHelpers.length === 0 && <p className="text-[14px] text-[#06120C]">Nobody has earned helper XP in the last 30 days yet. The first check could be yours.</p>}
         </div>
       </GreenField>
       <div className="container grid gap-10 py-10 lg:grid-cols-[1fr_340px] lg:py-14">
@@ -93,8 +109,8 @@ export function VerifyPage() {
             </div>
             {TABS.map((t) => (
               <TabsContent key={t.id} value={t.id}>
-                <p className="text-[14.5px] text-ink-muted">{t.blurb}</p>
-                {tab === t.id && <ClaimTable tab={t.id} claim={claim} state={state} cat={cat} />}
+                <p className="measure text-[14.5px] text-ink-muted">{t.blurb}</p>
+                {tab === t.id && <ClaimTable tab={t.id} claim={claim} state={state} cat={cat} emptyBody={t.empty} filtered={!!(claim || state || cat)} />}
               </TabsContent>
             ))}
           </Tabs>
@@ -144,7 +160,7 @@ function sinceFor(tab: ClaimTab, item: ClaimListItem): string {
   return item.cause.listedAt;
 }
 
-function ClaimTable({ tab, claim, state, cat }: { tab: ClaimTab; claim: ClaimCode | ""; state: string; cat: string }) {
+function ClaimTable({ tab, claim, state, cat, emptyBody, filtered }: { tab: ClaimTab; claim: ClaimCode | ""; state: string; cat: string; emptyBody: string; filtered: boolean }) {
   const q = useClaims(tab);
   const rows = useMemo(
     () =>
@@ -156,8 +172,10 @@ function ClaimTable({ tab, claim, state, cat }: { tab: ClaimTab; claim: ClaimCod
         .sort((a, b) => sinceFor(tab, b).localeCompare(sinceFor(tab, a))),
     [q.data, claim, state, cat, tab],
   );
-  if (q.isLoading) return <Spinner label="Loading claims" />;
-  if (rows.length === 0) return <Empty className="mt-4" title="Nothing here right now" body="Try another queue or fewer filters." />;
+  if (q.isError) return <ErrorState className="mt-4" title="We could not load this queue" error={q.error} onRetry={() => void q.refetch()} />;
+  if (q.isPending || q.isLoading) return <SkeletonRows className="mt-4" rows={5} />;
+  if (rows.length === 0 && filtered) return <Empty className="mt-4" title="Nothing matches those filters" body="No claim in this queue fits what you asked for. Try fewer filters." />;
+  if (rows.length === 0) return <Empty className="mt-4" title="Nothing here right now" body={emptyBody} />;
   return (
     <ul className="mt-4 divide-y divide-rule border-y border-rule">
       {rows.map((r) => (
@@ -204,11 +222,11 @@ function SidePanel() {
           <h2 className="font-display text-[18px] font-semibold">How to check a charity</h2>
         </div>
         <ol className="mt-3 space-y-2 text-[14px] text-ink-muted">
-          <li>1. Pick a claim. Each one is a single fact with a yes or no.</li>
-          <li>2. Go to the official source in the library below. Not the charity's own site, unless the claim is about it.</li>
-          <li>3. Write down every step, the exact search you used, and what you found. Take a dated screenshot.</li>
-          <li>4. Say whether it matches the profile, and declare any conflict of interest.</li>
-          <li>5. "Not verified" and "Could not check" are useful results and earn the same {fmtXp(XP.care_path_agreed.amount)} on {COMMUNITY_SITE} when the outcome agrees.</li>
+          <li>1. Pick a claim. Each one is a single fact with a yes or no answer.</li>
+          <li>2. Go to the official source in the library below. Not the charity's own site, unless the claim is about that site.</li>
+          <li>3. Write down every step, the exact words you searched for, and what you found. Take a screenshot with the date on it.</li>
+          <li>4. Say whether it matches the profile, and say if you know the organisation.</li>
+          <li>5. "Not verified" and "Could not check" are useful answers too. They earn the same {fmtXp(XP.care_path_agreed.amount)} on {COMMUNITY_SITE} when the final result agrees with you.</li>
         </ol>
       </div>
       <div className="rounded-2xl border border-rule bg-card p-5">

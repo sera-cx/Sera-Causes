@@ -1,0 +1,38 @@
+# Care Share Donate on Sera.cx
+# Everything public is open to search engines and to answer engines. Only the
+# signed-in pages and the machine-readable surfaces are kept out of the index.
+
+User-agent: *
+Allow: /
+Disallow: /me
+Disallow: /dashboard
+Disallow: /embed/
+Disallow: /c/*/poster
+
+# Answer engines are welcome. The content here is public and we want it quoted
+# accurately rather than guessed at.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://causes.sera.cx/sitemap.xml

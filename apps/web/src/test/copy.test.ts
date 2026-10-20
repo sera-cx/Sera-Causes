@@ -33,4 +33,99 @@ describe("copy rules", () => {
     }
     expect(bad).toEqual([]);
   });
+  it("uses British spelling for the words we use most", () => {
+    const bad: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      // "Organization" is allowed only where schema.org or an HTTP header
+      // fixes the spelling for us.
+      for (const m of src.matchAll(/\b\w*(organiz|recogniz|apolog(?:ize|ized)|summariz)\w*\b/g)) {
+        const line = src.slice(Math.max(0, m.index - 80), m.index + 80);
+        if (/schema\.org|Organization|organizationSchema/.test(line)) continue;
+        bad.push(`${f}: ${m[0]}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
+
+/**
+ * Organisations list themselves. The old flow assumed a third party listing a
+ * charity they knew, and that framing is wrong, so the phrases it used are
+ * banned outright: a regression here would quietly put it back.
+ */
+describe("the add-a-cause framing", () => {
+  const add = readFileSync(join(__dirname, "..", "pages", "Add.tsx"), "utf8");
+  const all = files.map((f) => readFileSync(f, "utf8")).join("\n");
+
+  it("asks the organisation to list itself", () => {
+    expect(add).toContain("List your cause.");
+    expect(add).toContain("Add your organisation");
+    expect(add).not.toContain("List a cause you know");
+  });
+
+  it("defaults the relationship to running the organisation, and keeps a path for listing on their behalf", () => {
+    expect(add).toMatch(/relationship: "runs"/);
+    expect(add).toContain("I run this organisation");
+    expect(add).toContain("I am listing it for the organisation");
+  });
+
+  it("says plainly that whoever lists a cause sets the receiving wallet", () => {
+    expect(add).toContain("Whoever lists a cause sets the wallet that receives the gifts");
+  });
+
+  it("drops the phrases that assumed a stranger was listing somebody else's charity", () => {
+    for (const phrase of ["Anyone with a wallet can add", "cause you know", "Introduce us to whoever runs", "Leave blank if you do not run the cause"]) {
+      expect(all, phrase).not.toContain(phrase);
+    }
+  });
+
+  it("tells a giver the deposit wallet belongs to the organisation", () => {
+    const cause = readFileSync(join(__dirname, "..", "pages", "Cause.tsx"), "utf8");
+    expect(cause).toContain("The organisation listed itself and set that address");
+  });
+});
+
+/** Line length is set in one place and used through a shared class. */
+describe("the measure", () => {
+  const css = readFileSync(join(__dirname, "..", "index.css"), "utf8");
+
+  it("defines the measure once as a custom property", () => {
+    expect(css).toMatch(/--measure:\s*\d+ch/);
+    expect(css).toMatch(/--measure-lede:\s*\d+ch/);
+  });
+
+  it("exposes it as utilities rather than a per-page max-width", () => {
+    expect(css).toContain("@utility measure");
+    expect(css).toContain("@utility measure-lede");
+    expect(css).toContain("max-width: var(--measure)");
+  });
+
+  it("leaves no ad-hoc character-width cap on prose in a page", () => {
+    const bad: string[] = [];
+    for (const f of files) {
+      if (!f.includes("/pages/")) continue;
+      const src = readFileSync(f, "utf8");
+      for (const m of src.matchAll(/max-w-\[(\d+)ch\]/g)) {
+        // A cap of 36ch or less narrows display type on purpose. Anything
+        // wider is running prose, and belongs to the shared utility.
+        if (Number(m[1]) <= 36) continue;
+        bad.push(`${f}: ${m[0]}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
+
+/** The scope of the first run is written once and shown in the right places. */
+describe("the trial scope", () => {
+  it("names the stablecoins and the country in the footer, the home page, the give sheet and the rules", () => {
+    const constants = readFileSync(join(__dirname, "..", "lib", "constants.ts"), "utf8");
+    expect(constants).toMatch(/TRIAL = \{/);
+    for (const token of ["MYRT", "XSGD", "Malaysia", "2027"]) expect(constants, token).toContain(token);
+    expect(readFileSync(join(__dirname, "..", "components", "Footer.tsx"), "utf8")).toContain("TRIAL.footer");
+    expect(readFileSync(join(__dirname, "..", "pages", "Home.tsx"), "utf8")).toContain("TRIAL.home");
+    expect(readFileSync(join(__dirname, "..", "pages", "Give.tsx"), "utf8")).toContain("TRIAL.give");
+    expect(readFileSync(join(__dirname, "..", "pages", "Rules.tsx"), "utf8")).toContain("TRIAL.rules");
+  });
 });

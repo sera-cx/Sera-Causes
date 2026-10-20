@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { parseIdSlug } from "@/App";
 import { ChecksBar } from "@/components/ChecksBar";
-import { Empty, Notice, Spinner } from "@/components/Empty";
+import { Empty, ErrorState, Notice, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { MediaGallery } from "@/components/MediaGallery";
 import { PhotoCredit } from "@/components/PhotoCredit";
@@ -12,15 +12,19 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Wallet } from "@/components/Wallet";
+import { useIsMobile } from "@/hooks/useMobile";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, pledgeHelp } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { CLAIM_INFO, COMMUNITY_SITE, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
-import { fmtDate, fmtInt, fmtUsd, fmtXp, plural, timeLeft } from "@/lib/format";
+import { fmtDate, fmtInt, fmtRm, fmtUsd, fmtXp, plural, timeLeft } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useCause, useInvalidateAll, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
 import { claimHref, claimOf, pledgedBy, profileOf } from "@/lib/rules";
+import { ROUTE_SEO, causeSeo } from "@/lib/seo";
+import { breadcrumbSchema, donateActionSchema, nonprofitOrganizationSchema } from "@/lib/seoSchemas";
 import type { CauseDetail, ClaimSummary, HelpRequestView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotFoundPage } from "./NotFound";
@@ -30,13 +34,64 @@ export function CausePage() {
   const id = parseIdSlug(idSlug);
   const q = useCause(id);
   const cause = q.data;
-  useSeo(cause?.name ?? "Cause", cause?.profile?.summary);
+  const p = cause ? profileOf(cause) : null;
 
-  if (q.isLoading) return <div className="container"><Spinner label="Loading cause" /></div>;
-  if (!cause) return <NotFoundPage />;
+  useSeo(
+    cause && p
+      ? causeSeo({ id: cause.id, slug: cause.slug, name: cause.name, summary: p.summary, town: p.location.town, state: p.location.state, category: categoryLabel(p.category), photoUrl: cause.photoUrl })
+      : ROUTE_SEO.causes,
+  );
+  useJsonLdMany(
+    cause && p
+      ? [
+          {
+            id: "nonprofit",
+            node: nonprofitOrganizationSchema({
+              id: cause.id,
+              slug: cause.slug,
+              name: cause.name,
+              legalName: p.legalName,
+              summary: p.summary,
+              background: p.background,
+              registration: p.organisation.registration,
+              founded: p.organisation.founded,
+              town: p.location.town,
+              state: p.location.state,
+              website: p.contact.website,
+              email: p.contact.email,
+              phone: p.contact.phone,
+              photoUrl: causeImage(cause).src,
+              sameAs: Object.values(p.contact.socials ?? {}).filter((v): v is string => !!v),
+              verified: cause.stage === "verified",
+              taxExempt: cause.badges.taxExempt,
+            }),
+          },
+          { id: "donate", node: donateActionSchema(cause, cause.acceptedTokens.map((t) => t.currency)) },
+          {
+            id: "breadcrumb",
+            node: breadcrumbSchema([
+              { name: "Causes", path: "/causes" },
+              { name: cause.name, path: `/c/${cause.id}-${cause.slug}` },
+            ]),
+          },
+        ]
+      : [],
+  );
+
+  if (q.isLoading) return <div className="container"><Spinner label="Loading the cause" /></div>;
+  if (q.isError)
+    return (
+      <div className="container py-10 md:py-14">
+        <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()}>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/causes">Back to all causes</Link>
+          </Button>
+        </ErrorState>
+      </div>
+    );
+  if (!cause || !p) return <NotFoundPage />;
 
   const canGive = cause.stage !== "paused" && cause.stage !== "closed";
-  const p = profileOf(cause);
   const img = causeImage(cause);
 
   return (
@@ -50,16 +105,16 @@ export function CausePage() {
               <span className="text-ink-subtle" aria-hidden>·</span>
               <Eyebrow>{[p.location.town, p.location.state].filter(Boolean).join(", ") || "Malaysia"}</Eyebrow>
             </div>
-            <h1 className="mt-3 font-display text-[34px] leading-[1.04] font-semibold tracking-[-0.03em] sm:text-[44px] md:text-[50px]">{cause.name}</h1>
+            <h1 className="mt-3 font-display text-[32px] leading-[1.04] font-semibold tracking-[-0.03em] sm:text-[44px] md:text-[50px]">{cause.name}</h1>
             {p.legalName && p.legalName !== cause.name && <p className="mt-1.5 font-mono text-[12.5px] text-ink-muted">{p.legalName}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <StatusPill stage={cause.stage} checksDone={cause.checksDone} checksTotal={cause.checksTotal} size="md" />
-              {cause.urgent && <span className="rounded-full bg-[#0B1426] px-3 h-8 inline-flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-[#00E676]">Urgent appeal, chosen by Sera.cx</span>}
+              {cause.urgent && <span className="rounded-full bg-[#0B1426] px-3 py-1.5 inline-flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-[#00E676]">Urgent appeal, chosen by Sera.cx</span>}
             </div>
-            <p className="mt-5 max-w-[56ch] text-[17px] leading-[1.55] text-ink-muted sm:text-[18px]">{p.summary}</p>
+            <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[18px]">{p.summary}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               {canGive ? (
-                <Button asChild variant="give" size="lg">
+                <Button asChild variant="give" size="lg" className="w-full sm:w-auto">
                   <Link href={`/give/${cause.id}`}>Give to {cause.name.split(" ")[0]}</Link>
                 </Button>
               ) : (
@@ -89,30 +144,35 @@ export function CausePage() {
       </section>
 
       <div className="container grid gap-10 py-10 lg:grid-cols-[1fr_380px] lg:gap-14 lg:py-14">
-        {/* Trust card: first on mobile, sticky right on desktop */}
-        <aside className="order-first lg:order-none">
+        {/* Trust card: straight under the hero on a phone, sticky in the
+            narrow right-hand column on a wide screen. It is first in the
+            source so a phone and a screen reader meet it before the story,
+            and the explicit grid placement puts it back on the right at lg.
+            On a phone the headline numbers stay open and the claim rows fold
+            away, so it does not bury the page. */}
+        <aside className="min-w-0 lg:col-start-2 lg:row-start-1">
           <div className="lg:sticky lg:top-20">
             <TrustCard cause={cause} />
           </div>
         </aside>
 
-        <div className="min-w-0 space-y-12">
+        <div className="min-w-0 space-y-12 lg:col-start-1 lg:row-start-1">
           <LiveBlock cause={cause} />
           <WhatTheyDo cause={cause} />
           <HelpSection cause={cause} />
           <Organisation cause={cause} />
           {cause.media.length > 0 && (
-            <Section id="media" title="Photos and video" lede="Posted by the organisation. Videos load only when you ask.">
+            <Section id="media" title="Photos and video" lede="Posted by the organisation. A video only loads when you ask for it.">
               <MediaGallery items={cause.media} />
             </Section>
           )}
           <Updates cause={cause} />
           <Record cause={cause} />
           <Sources cause={cause} />
-          <Section id="share" title="Share this cause" lede="A share link with a preview card, buttons for a website, and a poster with a QR code.">
+          <Section id="share" title="Share this cause" lede="A link with a preview card, a button for any website, and a printable poster with a QR code.">
             <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} size="md" />
             <Button asChild variant="link" className="mt-3">
-              <Link href={`/c/${cause.id}/share`}>All sharing tools, embed button and poster</Link>
+              <Link href={`/c/${cause.id}/share`}>All the sharing tools, the website button and the poster</Link>
             </Button>
           </Section>
         </div>
@@ -127,7 +187,7 @@ function Section({ id, title, lede, children, className }: { id: string; title: 
       <h2 id={`${id}-h`} className="font-display text-[24px] font-semibold tracking-tight sm:text-[28px]">
         {title}
       </h2>
-      {lede && <p className="mt-1.5 text-[15px] text-ink-muted max-w-[60ch]">{lede}</p>}
+      {lede && <p className="mt-1.5 measure text-[15px] text-ink-muted">{lede}</p>}
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -144,62 +204,85 @@ function rowState(s: ClaimSummary): { icon: React.ReactNode; label: string; tone
 }
 
 function TrustCard({ cause }: { cause: CauseDetail }) {
+  const isMobile = useIsMobile();
   const required = cause.requiredClaims;
   const challenged = cause.claims.filter((k) => k.challenged);
+  const givenUsd = Number(cause.givenUsd);
   const badges: { code: ClaimCode; on: boolean; label: string }[] = [
     { code: "C5", on: cause.badges.taxExempt, label: "Tax-exempt (s44(6))" },
     { code: "C7", on: cause.badges.accountsPublished, label: "Accounts published" },
   ];
+  const claimRows = (
+    <ul className="divide-y divide-rule">
+      {required.map((code) => {
+        const s = claimOf(cause, code);
+        if (!s) return null;
+        const r = rowState(s);
+        return (
+          <li key={code} className="py-3">
+            <div className="flex items-start gap-3">
+              <span className={cn("mt-0.5 shrink-0", r.tone)}>{r.icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14.5px] font-medium leading-snug">
+                  <span className="mr-2 font-mono text-[11px] font-normal text-ink-subtle whitespace-nowrap">{code}</span>
+                  {CLAIM_INFO[code].label}
+                </div>
+                <p className={cn("mt-0.5 text-[13px]", r.tone)}>{r.label}</p>
+                <Link href={`/verify/${cause.id}/${code}`} className="mt-1 inline-flex min-h-11 items-center text-[13px] text-sera-text underline-offset-2 hover:underline rounded-sm focus-visible:outline-2 focus-visible:outline-ring lg:min-h-0">
+                  {s.pathCount > 0 ? "See how it was checked" : "Help check this"}
+                </Link>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
   return (
     <div className="rounded-2xl border border-rule bg-card p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Eyebrow>Trust</Eyebrow>
         <ChecksBar done={cause.checksDone} total={cause.checksTotal} />
       </div>
-      <ul className="mt-4 divide-y divide-rule">
-        {required.map((code) => {
-          const s = claimOf(cause, code);
-          if (!s) return null;
-          const r = rowState(s);
-          return (
-            <li key={code} className="py-3">
-              <div className="flex items-start gap-3">
-                <span className={cn("mt-0.5 shrink-0", r.tone)}>{r.icon}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[14.5px] font-medium leading-snug">
-                    <span className="mr-2 font-mono text-[11px] font-normal text-ink-subtle whitespace-nowrap">{code}</span>
-                    {CLAIM_INFO[code].label}
-                  </div>
-                  <p className={cn("mt-0.5 text-[13px]", r.tone)}>{r.label}</p>
-                  <Link href={`/verify/${cause.id}/${code}`} className="mt-1 inline-block text-[13px] text-sera-text underline-offset-2 hover:underline rounded-sm focus-visible:outline-2 focus-visible:outline-ring">
-                    {s.pathCount > 0 ? "See how it was checked" : "Help check this"}
-                  </Link>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {badges.map((b) => (
-          <Link key={b.code} href={`/verify/${cause.id}/${b.code}`} className={cn("inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium", b.on ? "bg-[var(--pill-green-bg)] text-[var(--pill-green-fg)]" : "bg-[var(--pill-grey-bg)] text-[var(--pill-grey-fg)]")}>
-            {b.on ? <Check className="h-3.5 w-3.5" aria-hidden /> : <CircleDashed className="h-3.5 w-3.5" aria-hidden />}
-            {b.label}
-            {!b.on && <span className="sr-only">, not yet</span>}
-          </Link>
-        ))}
-      </div>
-      <p className="mt-4 text-[13.5px] leading-[1.5] text-ink-muted">Gifts go straight to this cause's own address. Verification shows what has been checked, not whether the cause can use the money.</p>
-      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-rule pt-4">
+      <dl className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <dt className="eyebrow">Given so far</dt>
-          <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtUsd(Number(cause.givenUsd))}</dd>
+          <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtUsd(givenUsd)}</dd>
+          <dd className="font-mono text-[11.5px] text-ink-subtle tnum">about {fmtRm(givenUsd)}</dd>
         </div>
         <div>
           <dt className="eyebrow">Givers</dt>
           <dd className="mt-1 font-mono text-[20px] font-semibold tnum">{fmtInt(cause.giversCount)}</dd>
         </div>
       </dl>
+      <div className="mt-4 border-t border-rule pt-4">
+        {isMobile ? (
+          <details>
+            <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-[14.5px] font-medium list-none [&::-webkit-details-marker]:hidden">
+              <span>
+                The {cause.checksTotal} checks, {cause.checksDone} done
+              </span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-subtle">Open</span>
+            </summary>
+            <div className="mt-2">{claimRows}</div>
+          </details>
+        ) : (
+          claimRows
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {badges.map((b) => (
+          <Link key={b.code} href={`/verify/${cause.id}/${b.code}`} className={cn("inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium lg:min-h-7", b.on ? "bg-[var(--pill-green-bg)] text-[var(--pill-green-fg)]" : "bg-[var(--pill-grey-bg)] text-[var(--pill-grey-fg)]")}>
+            {b.on ? <Check className="h-3.5 w-3.5" aria-hidden /> : <CircleDashed className="h-3.5 w-3.5" aria-hidden />}
+            {b.label}
+            {!b.on && <span className="sr-only">, not yet</span>}
+          </Link>
+        ))}
+      </div>
+      <p className="mt-4 text-[13.5px] leading-[1.5] text-ink-muted">
+        Your gift goes straight to this cause's own address. The organisation listed itself and set that address, so it is theirs by design, and nobody else can point it somewhere different. Verification tells
+        you what has been checked about the organisation, not whether it can spend the money.
+      </p>
       {(cause.concerns.length > 0 || challenged.length > 0 || cause.homepageHiddenReason) && (
         <div className="mt-4 space-y-2 border-t border-rule pt-4">
           <Eyebrow>Concerns</Eyebrow>
@@ -209,7 +292,7 @@ function TrustCard({ cause }: { cause: CauseDetail }) {
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <div>
                   <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">challenge</span>
-                  <p className="mt-0.5 text-[13.5px]">A challenge is open on {k.claimType} ({CLAIM_INFO[k.claimType].label}). Voting reopened.</p>
+                  <p className="mt-0.5 text-[13.5px]">Somebody has challenged {k.claimType} ({CLAIM_INFO[k.claimType].label}). Voting is open again.</p>
                   <Link href={claimHref(cause.id, k.claimType)} className="mt-1 inline-block text-[13px] font-medium underline underline-offset-2">
                     Open the claim
                   </Link>
@@ -223,7 +306,7 @@ function TrustCard({ cause }: { cause: CauseDetail }) {
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <div>
                   <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] opacity-80">steward</span>
-                  <p className="mt-0.5 text-[13.5px]">Taken off the homepage by a steward: {cause.homepageHiddenReason}</p>
+                  <p className="mt-0.5 text-[13.5px]">Taken off the home page by a steward: {cause.homepageHiddenReason}</p>
                 </div>
               </div>
             </Notice>
@@ -265,13 +348,13 @@ function LiveBlock({ cause }: { cause: CauseDetail }) {
       ) : (
         <div className="rounded-xl border border-rule bg-paper-warm p-5">
           <div className="flex items-center gap-2 text-[14.5px] font-medium">
-            <span className="h-2 w-2 rounded-full bg-ink/30" aria-hidden /> Offline. Gifts made during a stream show on screen.
+            <span className="h-2 w-2 rounded-full bg-ink/30" aria-hidden /> Offline. A gift made during a stream shows up on screen.
           </div>
           {channels.length > 0 && (
             <ul className="mt-3 flex flex-wrap gap-2">
               {channels.map(([k, v]) => (
                 <li key={k}>
-                  <a href={v} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center gap-1 rounded-full border border-rule bg-card px-3 text-[13px] capitalize hover:border-ink/40">
+                  <a href={v} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-full border border-rule bg-card px-3 text-[13px] capitalize hover:border-ink/40 sm:min-h-8">
                     {k} <ExternalLink className="h-3 w-3" aria-hidden />
                   </a>
                 </li>
@@ -291,7 +374,7 @@ function WhatTheyDo({ cause }: { cause: CauseDetail }) {
   const p = profileOf(cause);
   return (
     <Section id="work" title="What they do">
-      {p.background && <p className="text-[15.5px] leading-[1.6] text-ink-muted max-w-[64ch]">{p.background}</p>}
+      {p.background && <p className="measure text-[15.5px] leading-[1.6] text-ink-muted">{p.background}</p>}
       <div className="mt-4 grid gap-6 sm:grid-cols-2">
         <div>
           <Eyebrow>Programmes</Eyebrow>
@@ -312,7 +395,7 @@ function WhatTheyDo({ cause }: { cause: CauseDetail }) {
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-sera" aria-hidden /> <span className="tnum">{x}</span>
               </li>
             ))}
-            {p.impact.length === 0 && <li className="text-ink-muted">No dated figures published yet. A helper's site visit would add one.</li>}
+            {p.impact.length === 0 && <li className="text-ink-muted">No dated figures published yet. A visit by a helper would add one.</li>}
           </ul>
           {p.beneficiaries && (
             <p className="mt-3 text-[13.5px] text-ink-muted">
@@ -341,44 +424,51 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
       await pledgeHelp(h.id);
       await invalidate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(null);
     }
   };
   return (
-    <Section id="help" title="Help this cause" lede={`Open requests from the listing. A fulfilled request, confirmed by the cause owner, earns ${fmtXp(XP.care_help_fulfilled.amount)} on ${COMMUNITY_SITE}.`}>
-      {cause.helpRequests.length === 0 && <Empty title="No open requests" body="Check back after the charity claims its listing." />}
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {cause.helpRequests.map((h) => {
-          const taker = pledgedBy(h);
-          return (
-            <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
-              <div className="flex items-center justify-between gap-2">
-                <Eyebrow>{h.kind}</Eyebrow>
-                <span className="font-mono text-[11px] text-ink-muted tnum" title={`XP on ${COMMUNITY_SITE}`}>{fmtXp(h.kind === "translate" ? XP.care_translation.amount : XP.care_help_fulfilled.amount)}</span>
-              </div>
-              <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
-              <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>
-              <div className="mt-3">
-                {h.state === "open" ? (
-                  ONCHAIN_ONLY ? (
-                    <span className="text-[13px] text-ink-muted">Pledge from your wallet on the registry (pledgeHelp #{h.id}).</span>
+    <Section id="help" title="Help this cause" lede={`Open requests, posted by the organisation. A request you finish, once the organisation confirms it, earns ${fmtXp(XP.care_help_fulfilled.amount)} on ${COMMUNITY_SITE}.`}>
+      {cause.helpRequests.length === 0 ? (
+        <Empty title="No open requests" body="This organisation has not asked for anything yet. You can still help by checking one of its claims." >
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/verify/${cause.id}/C1`}>Help check this cause</Link>
+          </Button>
+        </Empty>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {cause.helpRequests.map((h) => {
+            const taker = pledgedBy(h);
+            return (
+              <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <Eyebrow>{h.kind}</Eyebrow>
+                  <span className="font-mono text-[11px] text-ink-muted tnum" title={`XP on ${COMMUNITY_SITE}`}>{fmtXp(h.kind === "translate" ? XP.care_translation.amount : XP.care_help_fulfilled.amount)}</span>
+                </div>
+                <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
+                <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>
+                <div className="mt-3">
+                  {h.state === "open" ? (
+                    ONCHAIN_ONLY ? (
+                      <span className="text-[13px] text-ink-muted">Offer to help from your own wallet on the registry (pledgeHelp #{h.id}).</span>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => void onHelp(h)} disabled={busy === h.id}>
+                        {busy === h.id ? "Saving" : "I can help"}
+                      </Button>
+                    )
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => void onHelp(h)} disabled={busy === h.id}>
-                      {busy === h.id ? "Saving" : "I can help"}
-                    </Button>
-                  )
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted">
-                    <Check className="h-4 w-4 text-sera-text" aria-hidden /> {h.state === "fulfilled" ? "Fulfilled" : h.state === "closed" ? "Closed" : <>Taken by {taker ? <Wallet address={taker} /> : "a helper"}</>}
-                  </span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                    <span className="inline-flex items-center gap-1.5 text-[13px] text-ink-muted">
+                      <Check className="h-4 w-4 text-sera-text" aria-hidden /> {h.state === "fulfilled" ? "Done" : h.state === "closed" ? "Closed" : <>Taken by {taker ? <Wallet address={taker} /> : "a helper"}</>}
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {error && <Notice tone="bad" className="mt-3">{error}</Notice>}
     </Section>
   );
@@ -410,8 +500,8 @@ function Organisation({ cause }: { cause: CauseDetail }) {
           </div>
         ))}
       </dl>
-      <p className="mt-3 font-mono text-[12px] text-ink-muted">
-        Cause address <Wallet address={cause.depositAddress} you={false} />. Every transfer in, conversion and withdrawal is on the record below.
+      <p className="mt-3 break-words font-mono text-[12px] text-ink-muted">
+        Cause address <Wallet address={cause.depositAddress} you={false} />. Set by the organisation when it listed itself. Every transfer in, every conversion and every withdrawal is on the record below.
       </p>
     </Section>
   );
@@ -419,19 +509,19 @@ function Organisation({ cause }: { cause: CauseDetail }) {
 
 function Updates({ cause }: { cause: CauseDetail }) {
   return (
-    <Section id="updates" title="Updates" lede="From the charity, newest first: reports, receipts, photos and streams.">
+    <Section id="updates" title="Updates" lede="From the organisation, newest first: reports, receipts, photos and streams.">
       {cause.updates.length === 0 ? (
-        <Empty title="No updates yet" body="Updates appear here once the charity claims its listing and posts." />
+        <Empty title="No updates yet" body="Updates show up here once the organisation posts one." />
       ) : (
         <ol className="space-y-4">
           {cause.updates.map((u) => (
             <li key={u.id} className="rounded-xl border border-rule bg-card p-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Eyebrow>{u.kind}</Eyebrow>
                 <time className="font-mono text-[11.5px] text-ink-subtle" dateTime={u.at}>{fmtDate(u.at)}</time>
               </div>
               <h3 className="mt-1.5 font-display text-[17px] font-semibold leading-snug">{u.body?.title ?? u.kind}</h3>
-              <p className="mt-1 text-[14.5px] leading-[1.5] text-ink-muted">{u.body?.text ?? u.body?.body ?? ""}</p>
+              <p className="mt-1 measure text-[14.5px] leading-[1.5] text-ink-muted">{u.body?.text ?? u.body?.body ?? ""}</p>
               {(u.body?.link ?? u.body?.url) && (
                 <a href={u.body?.link ?? u.body?.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-[13.5px] text-sera-text underline underline-offset-2">
                   Open link <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -450,8 +540,16 @@ function Record({ cause }: { cause: CauseDetail }) {
   const [all, setAll] = useState(false);
   const events = recordLines(rec.data ?? []);
   return (
-    <Section id="record" title="The record" lede="Everything that happened to this cause, newest first. On-chain events link to their transaction. Signed messages are stored by the API with their hash.">
-      {rec.isLoading ? <Spinner label="Loading the record" /> : <RecordList events={events} limit={all ? undefined : 12} />}
+    <Section id="record" title="The record" lede="Everything that has happened to this cause, newest first. An event on the blockchain links to its transaction. A signed message is stored by the API with its fingerprint.">
+      {rec.isError ? (
+        <ErrorState title="We could not load the record" error={rec.error} onRetry={() => void rec.refetch()} />
+      ) : rec.isLoading ? (
+        <Spinner label="Loading the record" />
+      ) : events.length === 0 ? (
+        <Empty title="Nothing on the record yet" body="The first entry appears as soon as a gift, an update or a check arrives." />
+      ) : (
+        <RecordList events={events} limit={all ? undefined : 12} />
+      )}
       {events.length > 12 && (
         <Button variant="link" className="mt-3" onClick={() => setAll(!all)}>
           {all ? "Show fewer" : `Show all ${events.length} events`}
@@ -464,7 +562,7 @@ function Record({ cause }: { cause: CauseDetail }) {
 function Sources({ cause }: { cause: CauseDetail }) {
   const p = profileOf(cause);
   return (
-    <Section id="sources" title="Sources" lede={p.profileCheckedOn ? `Every page this profile came from. Profile checked on ${fmtDate(p.profileCheckedOn)}.` : "Every page this profile came from."}>
+    <Section id="sources" title="Sources" lede={p.profileCheckedOn ? `Every page this profile came from. The profile was checked on ${fmtDate(p.profileCheckedOn)}.` : "Every page this profile came from."}>
       <ul className="space-y-1.5">
         {p.sources.map((s) => (
           <li key={s} className="text-[13.5px]">

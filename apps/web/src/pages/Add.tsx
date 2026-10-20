@@ -1,3 +1,9 @@
+/**
+ * Listing a cause. The organisation lists itself: whoever fills this in sets
+ * the wallet that receives the gifts, so it has to be the organisation's own.
+ * Listing on an organisation's behalf is still possible, but it is the side
+ * path, and the copy says plainly what the wallet choice means.
+ */
 import { ArrowLeft, ArrowRight, Check, FileText, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -9,13 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input";
 import { SignInButton } from "@/components/SignInButton";
 import { useCopy } from "@/hooks/useCopy";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, prepareCause, submitCause } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CATEGORIES, CLAIM_INFO, COMMUNITY_SITE, STATE_NAMES, XP } from "@/lib/constants";
+import { CATEGORIES, CLAIM_INFO, COMMUNITY_SITE, STATE_NAMES, TRIAL, XP } from "@/lib/constants";
 import { fmtXp } from "@/lib/format";
 import { useInvalidateAll } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
+import { breadcrumbSchema } from "@/lib/seoSchemas";
 import type { CauseDetail, NewCauseDocument, NewCauseInput, OrgKind, PreparedCause } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,18 +38,27 @@ const EMPTY: NewCauseInput = {
   registration: "",
   payout: "",
   photoPermission: false,
-  relationship: "supports",
+  // The organisation lists itself, so running it is the default answer.
+  relationship: "runs",
   homepage: true,
   orgKind: "registered",
   documents: [],
   redactionConfirmed: false,
 };
 
+/** Who is filling the form in. Self-listing is first and is the default. */
+const RELATIONSHIPS: { id: NewCauseInput["relationship"]; label: string }[] = [
+  { id: "runs", label: "I run this organisation" },
+  { id: "volunteers", label: "I work or volunteer here" },
+  { id: "supports", label: "I am listing it for the organisation, with their agreement" },
+  { id: "other", label: "Something else" },
+];
+
 const ORG_KINDS: { id: OrgKind; label: string; body: string; docs: { claim: NewCauseDocument["claim"]; label: string; required: boolean }[] }[] = [
   {
     id: "licensed",
     label: "Licensed non-profit",
-    body: "A children's home, elderly care centre or other service the law licenses. Expected: registration certificate, the JKM care licence, and the LHDN approval if you have one.",
+    body: "A children's home, an elderly care centre or another service the law licenses. We expect your registration certificate, your JKM care licence, and your LHDN approval letter if you have one.",
     docs: [
       { claim: "C1", label: "Registration certificate (ROS, SSM or BHEUU)", required: true },
       { claim: "C6", label: "Care licence (JKM, Care Centres Act 1993)", required: true },
@@ -50,7 +68,7 @@ const ORG_KINDS: { id: OrgKind; label: string; body: string; docs: { claim: NewC
   {
     id: "registered",
     label: "Registered non-profit",
-    body: "A society, foundation, trust or company limited by guarantee. Expected: registration certificate, and the LHDN approval if you have one.",
+    body: "A society, a foundation, a trust or a company limited by guarantee. We expect your registration certificate, and your LHDN approval letter if you have one.",
     docs: [
       { claim: "C1", label: "Registration certificate (ROS, SSM or BHEUU)", required: true },
       { claim: "C5", label: "LHDN section 44(6) approval letter", required: false },
@@ -59,15 +77,16 @@ const ORG_KINDS: { id: OrgKind; label: string; body: string; docs: { claim: NewC
   {
     id: "informal",
     label: "Informal group",
-    body: "A hatchery, a feeding round, a volunteer crew without a registered body. No documents expected. Helpers will look for dated photos and news instead, and the 'registered' checks stay open until there is a body to check.",
+    body: "A hatchery, a feeding round, a volunteer crew with no registered body behind it. No documents expected. Helpers will look for dated photos and news reports instead, and the checks about registration stay open until there is a body to check.",
     docs: [],
   },
 ];
 
-type Step = "details" | "documents" | "review" | "done";
+type Step = "details" | "documents" | "review";
 
 export function AddPage() {
-  useSeo("Add a cause", "List a cause on Care Share Donate. Anyone with a wallet can add one.");
+  useSeo(ROUTE_SEO.add);
+  useJsonLdMany([{ id: "breadcrumb", node: breadcrumbSchema([{ name: "List your cause", path: "/add" }]) }]);
   const { user, signIn, canSignIn } = useAuth();
   const invalidate = useInvalidateAll();
   const [step, setStep] = useState<Step>("details");
@@ -81,6 +100,7 @@ export function AddPage() {
 
   const validLink = /^https?:\/\/\S+\.\S+/i.test(form.link.trim());
   const validDetails = form.name.trim().length > 2 && form.category && form.state && form.summary.trim().length > 10 && form.summary.length <= 280 && validLink && form.photoPermission;
+  const selfListing = form.relationship === "runs" || form.relationship === "volunteers";
 
   const toReview = async () => {
     setError(null);
@@ -92,7 +112,7 @@ export function AddPage() {
       setPrepared(await prepareCause(form));
       setStep("review");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not check for duplicates");
+      setError(e instanceof Error ? e.message : "We could not check for copies of this cause. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -105,21 +125,24 @@ export function AddPage() {
       const c = await submitCause(form);
       await invalidate();
       setCreated(c);
-      setStep("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not list the cause");
+      setError(e instanceof Error ? e.message : "We could not list the cause. Please try again.");
     } finally {
       setBusy(false);
     }
   };
 
-  if (step === "done" && created) return <Done cause={created} />;
+  if (created) return <Done cause={created} selfListing={selfListing} />;
 
   return (
-    <div className="container max-w-3xl py-8 md:py-12">
-      <Eyebrow>Add a cause</Eyebrow>
-      <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">List a cause you know.</h1>
-      <p className="mt-3 text-[16px] text-ink-muted max-w-[58ch]">Anyone with a wallet can add one. There is no deposit. Listing it earns {fmtXp(XP.care_cause_listed.amount)} on {COMMUNITY_SITE}, and {fmtXp(XP.care_cause_verified.amount)} more if it later reaches Verified.</p>
+    <div className="container container-narrow py-8 md:py-12">
+      <Eyebrow>Add your organisation</Eyebrow>
+      <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">List your cause.</h1>
+      <p className="mt-3 text-[16px] text-ink-muted measure-lede">
+        This is for the organisation itself. You fill in the form, and the wallet you give is the wallet that receives the gifts. So it should be your organisation's own. There is no deposit to pay. Listing
+        earns {fmtXp(XP.care_cause_listed.amount)} on {COMMUNITY_SITE}, and {fmtXp(XP.care_cause_verified.amount)} more once the cause reaches Verified.
+      </p>
+      <p className="mt-2 text-[14.5px] text-ink-muted measure">{TRIAL.home}</p>
 
       <ol className="mt-8 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em]" aria-label="Steps">
         {(["details", "documents", "review"] as const).map((s, i) => (
@@ -162,46 +185,61 @@ export function AddPage() {
               </Select>
             </Field>
           </div>
-          <Field label="Town" htmlFor="town" hint="Optional. Helps people find a cause near them.">
+          <Field label="Town" htmlFor="town" hint="Optional. It helps people find a cause near them.">
             <Input id="town" value={form.town} onChange={(e) => set("town", e.target.value)} placeholder="Cherating" />
           </Field>
-          <Field label="What the money pays for" htmlFor="summary" hint="Be specific. 'RM15 buys one hatchery basket' beats 'help the ocean'.">
+          <Field label="What the money pays for" htmlFor="summary" hint="Be exact. 'RM15 buys one hatchery basket' works better than 'help the ocean'.">
             <Textarea id="summary" required maxLength={280} value={form.summary} onChange={(e) => set("summary", e.target.value)} aria-describedby="summary-hint summary-count" />
             <p id="summary-count" className="mt-1 text-right font-mono text-[11px] text-ink-subtle tnum">{form.summary.length}/280</p>
           </Field>
-          <Field label="Official website or social link" htmlFor="link" hint="Needed for the duplicate check and as the first source on the profile.">
+          <Field label="Your website or social media page" htmlFor="link" hint="We use it to check the cause is not already listed, and it becomes the first source on your profile.">
             <Input id="link" type="url" required value={form.link} onChange={(e) => set("link", e.target.value)} placeholder="https://www.instagram.com/kasih.turtle/" />
           </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Registration number, if known" htmlFor="registration" hint="PPM, SSM or PPAB number. Used for the duplicate check.">
-              <Input id="registration" value={form.registration} onChange={(e) => set("registration", e.target.value)} placeholder="PPM-001-11-10062011" className="font-mono" />
-            </Field>
-            <Field label="Payout wallet (optional)" htmlFor="payout" hint="Leave blank if you do not run the cause. The charity sets it when it claims the listing.">
-              <Input id="payout" value={form.payout} onChange={(e) => set("payout", e.target.value)} placeholder="0x…" className="font-mono" />
-            </Field>
-          </div>
-          <Field label="Your relationship to the cause" htmlFor="relationship">
-            <Select id="relationship" value={form.relationship} onChange={(e) => set("relationship", e.target.value as NewCauseInput["relationship"])}>
-              <option value="runs">I run it</option>
-              <option value="volunteers">I volunteer</option>
-              <option value="supports">I support it</option>
-              <option value="other">Other</option>
-            </Select>
+          <Field label="Your registration number" htmlFor="registration" hint="Your PPM, SSM or PPAB number. Leave it blank if you do not have one.">
+            <Input id="registration" value={form.registration} onChange={(e) => set("registration", e.target.value)} placeholder="PPM-001-11-10062011" className="font-mono" />
           </Field>
+
+          <fieldset className="rounded-xl border border-rule bg-paper-warm p-4">
+            <legend className="px-1 font-sans text-[14px] font-semibold">Who receives the gifts</legend>
+            <p className="text-[13.5px] leading-[1.5] text-ink-muted measure">
+              Whoever lists a cause sets the wallet that receives the gifts. That is why the organisation should list itself. Gifts arrive at the cause's own address, and withdrawals go to the payout wallet you
+              set here.
+            </p>
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              <Field label="Who is listing this cause?" htmlFor="relationship">
+                <Select id="relationship" value={form.relationship} onChange={(e) => set("relationship", e.target.value as NewCauseInput["relationship"])}>
+                  {RELATIONSHIPS.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Your organisation's payout wallet" htmlFor="payout" hint="Optional now. You can add it later from your dashboard. Use a wallet the organisation controls, not a personal one.">
+                <Input id="payout" value={form.payout} onChange={(e) => set("payout", e.target.value)} placeholder="0x…" className="font-mono" />
+              </Field>
+            </div>
+            {!selfListing && (
+              <Notice tone="warn" className="mt-4">
+                You are listing this for someone else. Please use the organisation's own payout wallet, not yours, and send them the invite link we give you at the end so they can take the listing over.
+              </Notice>
+            )}
+          </fieldset>
+
           <div>
             <p className="font-sans text-[14px] font-medium mb-1.5">Photos</p>
-            <input type="file" accept="image/*" multiple className="block w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2 file:text-[13px] file:font-medium file:text-ink" aria-label="Photos" />
-            <Checkbox id="photoPermission" className="mt-3" checked={form.photoPermission} onChange={(e) => set("photoPermission", e.target.checked)} label="I took these or have permission to use them" required />
+            <input type="file" accept="image/*" multiple className="block min-h-11 w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2.5 file:text-[13px] file:font-medium file:text-ink" aria-label="Photos" />
+            <Checkbox id="photoPermission" className="mt-3" checked={form.photoPermission} onChange={(e) => set("photoPermission", e.target.checked)} label="I took these photos, or I have permission to use them" required />
           </div>
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-rule bg-paper-warm p-4">
+          <div className="flex flex-col gap-3 rounded-xl border border-rule bg-paper-warm p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium text-[15px]">Show on homepage</p>
-              <p className="text-[13.5px] text-ink-muted">You decide. The homepage is a feed ordered by activity, and every card shows the verification state.</p>
+              <p className="font-medium text-[15px]">Show on the home page</p>
+              <p className="text-[13.5px] text-ink-muted measure">Your choice. The home page is a feed ordered by what happened last, and every card shows how far the checks have got.</p>
             </div>
-            <Switch id="homepage" label="Show on homepage" checked={form.homepage} onCheckedChange={(v) => set("homepage", v)} />
+            <Switch id="homepage" label="Show on the home page" checked={form.homepage} onCheckedChange={(v) => set("homepage", v)} />
           </div>
           <div className="flex justify-end">
-            <Button type="submit" size="lg" disabled={!validDetails}>
+            <Button type="submit" size="lg" disabled={!validDetails} className="w-full sm:w-auto">
               Documents <ArrowRight className="h-4 w-4" aria-hidden />
             </Button>
           </div>
@@ -210,9 +248,13 @@ export function AddPage() {
 
       {step === "documents" && (
         <div className="mt-6 rounded-2xl border border-rule bg-card p-5 sm:p-7">
-          <fieldset>
-            <legend className="font-display text-[20px] font-semibold tracking-tight">What kind of organisation is it?</legend>
-            <p className="mt-1 text-[14.5px] text-ink-muted">This sets which documents helpers expect to see. You can skip documents; helpers can upload them later.</p>
+          <h2 className="font-display text-[22px] font-semibold tracking-tight">Show us who you are.</h2>
+          <p className="mt-1.5 text-[14.5px] text-ink-muted measure">
+            This step is your organisation proving who it is. Upload your own papers. You can skip them for now and add them later, or let a helper find them on a public register instead.
+          </p>
+          <fieldset className="mt-6">
+            <legend className="font-display text-[19px] font-semibold tracking-tight">What kind of organisation are you?</legend>
+            <p className="mt-1 text-[14.5px] text-ink-muted measure">This sets which papers we expect from you.</p>
             <div className="mt-4 grid gap-3">
               {ORG_KINDS.map((k) => (
                 <label key={k.id} className={cn("flex cursor-pointer gap-3 rounded-xl border p-4", form.orgKind === k.id ? "border-ink bg-paper-warm" : "border-rule")}>
@@ -231,12 +273,12 @@ export function AddPage() {
             if (kind.docs.length === 0) return null;
             return (
               <div className="mt-6">
-                <h3 className="font-display text-[17px] font-semibold">Documents</h3>
-                <p className="mt-1 text-[13.5px] text-ink-muted">PDF or image. Each one is stored as evidence against the matching claim, with its hash on the record.</p>
+                <h3 className="font-display text-[17px] font-semibold">Your documents</h3>
+                <p className="mt-1 text-[13.5px] text-ink-muted measure">A PDF or a photo. Each one is kept as proof for the matching claim, and we record a fingerprint of the file so nobody can swap it later.</p>
                 <Notice tone="warn" className="mt-3">
                   <div className="flex gap-2">
                     <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                    <span>Redact personal data before you upload: IC numbers, home addresses, personal phone numbers and signatures. Files with unredacted personal data are rejected by moderation. Organisation details stay.</span>
+                    <span>Black out personal details before you upload: IC numbers, home addresses, personal phone numbers and signatures. We reject files that still show them. Organisation details stay.</span>
                   </div>
                 </Notice>
                 <ul className="mt-4 space-y-3">
@@ -250,13 +292,13 @@ export function AddPage() {
                             {d.label}
                             {!d.required && <span className="ml-2 text-[12px] text-ink-subtle">optional</span>}
                           </label>
-                          <span className="text-[12.5px] text-ink-muted">Evidence for: {CLAIM_INFO[d.claim].label}</span>
+                          <span className="text-[12.5px] text-ink-muted">Proof for: {CLAIM_INFO[d.claim].label}</span>
                         </div>
                         <input
                           id={`doc-${d.claim}`}
                           type="file"
                           accept="application/pdf,image/*"
-                          className="mt-2 block w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2 file:text-[13px] file:font-medium file:text-ink"
+                          className="mt-2 block min-h-11 w-full text-[14px] text-ink-muted file:mr-3 file:rounded-full file:border file:border-rule file:bg-card file:px-4 file:py-2.5 file:text-[13px] file:font-medium file:text-ink"
                           onChange={(e) => {
                             const f = e.target.files?.[0];
                             const rest = form.documents.filter((x) => x.claim !== d.claim);
@@ -272,18 +314,18 @@ export function AddPage() {
                     );
                   })}
                 </ul>
-                <Checkbox id="redaction" className="mt-4" checked={form.redactionConfirmed} onChange={(e) => set("redactionConfirmed", e.target.checked)} label="I have removed personal data from these files" />
+                <Checkbox id="redaction" className="mt-4" checked={form.redactionConfirmed} onChange={(e) => set("redactionConfirmed", e.target.checked)} label="I have blacked out personal details in these files" />
               </div>
             );
           })()}
 
           {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
-          <div className="mt-6 flex items-center justify-between gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button variant="ghost" onClick={() => setStep("details")}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Back
             </Button>
             <Button size="lg" onClick={() => void toReview()} disabled={busy || (form.documents.length > 0 && !form.redactionConfirmed)}>
-              {busy ? "Checking for duplicates" : "Check and review"}
+              {busy ? "Checking" : "Check and review"}
             </Button>
           </div>
         </div>
@@ -294,11 +336,11 @@ export function AddPage() {
           {prepared.duplicates.length > 0 && (
             <div className="mb-6">
               <h2 className="font-display text-[20px] font-semibold tracking-tight">Is it one of these?</h2>
-              <p className="mt-1 text-[14.5px] text-ink-muted">We found causes with a similar name or the same registration number. Give to the existing one rather than listing a copy.</p>
+              <p className="mt-1 text-[14.5px] text-ink-muted measure">We found causes with a similar name or the same registration number. If one of them is you, claim that listing instead of making a second one.</p>
               <ul className="mt-3 divide-y divide-rule border-y border-rule">
                 {prepared.duplicates.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <div>
+                  <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
                       <Link href={causeHref(d.id, d.slug)} className="font-medium text-[15px] hover:text-sera-text">
                         {d.name}
                       </Link>
@@ -322,8 +364,10 @@ export function AddPage() {
               ["Link", form.link || "None"],
               ["Registration", form.registration || "Not given"],
               ["Organisation", ORG_KINDS.find((k) => k.id === form.orgKind)?.label ?? ""],
+              ["Listed by", RELATIONSHIPS.find((r) => r.id === form.relationship)?.label ?? ""],
+              ["Payout wallet", form.payout || "Not set yet"],
               ["Documents", form.documents.length ? form.documents.map((d) => `${d.claim}: ${d.fileName}`).join("; ") : "None"],
-              ["Homepage", form.homepage ? "Shown" : "Not shown"],
+              ["Home page", form.homepage ? "Shown" : "Not shown"],
             ].map(([k, v]) => (
               <div key={k} className="grid gap-0.5 py-2.5 sm:grid-cols-[150px_1fr]">
                 <dt className="eyebrow">{k}</dt>
@@ -331,20 +375,20 @@ export function AddPage() {
               </div>
             ))}
           </dl>
-          <p className="mt-4 text-[13.5px] text-ink-muted break-words">
-            Listing writes the profile hash to the registry and creates the cause's own deposit address. The profile is stored at{" "}
+          <p className="mt-4 text-[13.5px] text-ink-muted break-words measure">
+            Listing saves a fingerprint of your profile to the public registry and creates this cause's own address. Gifts arrive at that address and nowhere else. The profile is stored at{" "}
             <a href={prepared.uri} target="_blank" rel="noopener noreferrer" className="text-sera-text underline underline-offset-2">
               {prepared.uri}
             </a>{" "}
-            (hash <span className="font-mono">{prepared.hash.slice(0, 16)}…</span>).
+            (fingerprint <span className="font-mono">{prepared.hash.slice(0, 16)}…</span>).
           </p>
           {ONCHAIN_ONLY && (
             <Notice tone="info" className="mt-4">
-              The profile is prepared. Listing itself is a registry transaction (`listCause`) sent from your wallet with this URI; it appears on the site once the indexer sees it.
+              Your profile is ready. Listing itself is one registry transaction (`listCause`) sent from your own wallet with this address. The cause appears on the site as soon as we see it.
             </Notice>
           )}
           {error && <Notice tone="bad" className="mt-4">{error}</Notice>}
-          <div className="mt-6 flex items-center justify-between gap-3">
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button variant="ghost" onClick={() => setStep("documents")}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Back
             </Button>
@@ -366,42 +410,48 @@ export function AddPage() {
   );
 }
 
-function Done({ cause }: { cause: CauseDetail }) {
+function Done({ cause, selfListing }: { cause: CauseDetail; selfListing: boolean }) {
   const invite = `${cause.shareUrl}?claim=invite`;
   const { copied, copy } = useCopy();
+  const next = [
+    `It shows under New${cause.showOnHomepage ? " and in the home page feed" : ""}, with a New pill on it until somebody checks it.`,
+    `Anyone can add proof and write down how they checked you. Helpers earn XP on ${COMMUNITY_SITE} when the result agrees with them.`,
+    selfListing
+      ? "Gifts arrive at this cause's own address from today. You own the listing, so you set the payout wallet, post updates and ask for help from your dashboard."
+      : "Gifts arrive at this cause's own address from today. Send the organisation the invite link below so they can take the listing over, set their own payout wallet and post updates.",
+  ];
   return (
-    <div className="container max-w-3xl py-10 md:py-14">
+    <div className="container container-narrow py-10 md:py-14">
       <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--pill-green-bg)] text-[var(--pill-green-fg)]">
         <Check className="h-5 w-5" aria-hidden />
       </div>
       <h1 className="mt-4 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">Your cause is listed.</h1>
-      <p className="mt-2 text-[16px] text-ink-muted">
+      <p className="mt-2 text-[16px] text-ink-muted measure-lede">
         <Link href={causeHref(cause.id, cause.slug)} className="text-sera-text underline underline-offset-2">
           {cause.name}
         </Link>{" "}
-        has its own address and a page. Here is what happens next.
+        now has its own address and its own page. Here is what happens next.
       </p>
-      <ol className="mt-6 space-y-3 text-[15.5px]">
-        {[
-          `It shows under New${cause.showOnHomepage ? " and on the homepage feed" : ""}, with a New pill until someone checks it.`,
-          `Anyone can upload evidence and write a verification path. Helpers earn XP on ${COMMUNITY_SITE} when the outcome agrees with them.`,
-          "Gifts go straight to the cause's address from day one. If you know the charity, invite them to claim the listing, set the payout wallet and post updates.",
-        ].map((t, i) => (
+      <ol className="mt-6 space-y-3 text-[15.5px] measure">
+        {next.map((t, i) => (
           <li key={i} className="flex gap-3">
             <span className="font-mono text-[12px] text-ink-subtle mt-1">{i + 1}</span>
             <span>{t}</span>
           </li>
         ))}
       </ol>
-      <div className="mt-8 rounded-2xl border border-rule bg-paper-warm p-5">
-        <p className="font-display text-[17px] font-semibold">Invite the charity to claim the listing</p>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-card px-3 py-2 font-mono text-[12.5px]">{invite}</code>
-          <Button variant="outline" onClick={() => void copy(invite)}>
-            {copied ? "Copied" : "Copy invite"}
-          </Button>
+      {!selfListing && (
+        <div className="mt-8 rounded-2xl border border-rule bg-paper-warm p-5">
+          <p className="font-display text-[17px] font-semibold">Invite the organisation to take the listing over</p>
+          <p className="mt-1 text-[13.5px] text-ink-muted measure">When they claim it, they control the profile, the payout wallet and the updates.</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-card px-3 py-2 font-mono text-[12.5px]">{invite}</code>
+            <Button variant="outline" onClick={() => void copy(invite)}>
+              {copied ? "Copied" : "Copy invite"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
       <div className="mt-6">
         <Eyebrow className="mb-2">Share it</Eyebrow>
         <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} />

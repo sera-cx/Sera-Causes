@@ -10,6 +10,24 @@ export function fmtInt(n: number): string {
   return int.format(n);
 }
 
+/**
+ * Ringgit per US dollar, taken from the MYRT value the give sheet already
+ * uses so the two never disagree. It is indicative, not a quote: the rate a
+ * gift actually settles at is shown before you confirm.
+ */
+export const MYR_PER_USD = 4.25;
+
+/** Ringgit, for readers in Malaysia. Rounded, because it is an indication. */
+export function fmtRm(usd: number): string {
+  const myr = usd * MYR_PER_USD;
+  return `RM${myr >= 100 ? int.format(Math.round(myr / 5) * 5) : int.format(Math.round(myr))}`;
+}
+
+/** "US$50 (about RM210)". Use it the first time an amount appears on a page. */
+export function fmtUsdWithRm(usd: number, opts: { cents?: boolean } = {}): string {
+  return `${fmtUsd(usd, opts)} (about ${fmtRm(usd)})`;
+}
+
 export function fmtGsera(n: number): string {
   return `${int.format(n)} gSera`;
 }

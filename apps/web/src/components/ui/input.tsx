@@ -1,8 +1,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * `min-h-11` is the floor every form control keeps, 44px, so a thumb can hit
+ * it. It is a utility rather than a global rule on purpose: these controls
+ * also carry `flex`, and the `.flex { min-height: 0 }` guard in index.css
+ * sits in the components layer, where it would beat anything written in the
+ * base layer. A caller passing `h-10` or `h-9` still only sets `height`, so
+ * the floor holds.
+ */
 const base =
-  "flex w-full rounded-md border border-input bg-paper px-3 py-2 text-[15px] text-ink placeholder:text-ink-subtle focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50";
+  "flex min-h-11 w-full rounded-md border border-input bg-paper px-3 py-2 text-[15px] text-ink placeholder:text-ink-subtle focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50";
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
   <input ref={ref} className={cn(base, "h-11", className)} {...props} />
@@ -25,8 +33,9 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
   return <label className={cn("block font-sans text-[14px] font-medium text-ink mb-1.5", className)} {...props} />;
 }
 
+/** A hint is running prose, so it takes the shared measure even in a wide field. */
 export function Hint({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("mt-1.5 text-[13px] leading-snug text-ink-muted", className)} {...props} />;
+  return <p className={cn("mt-1.5 measure text-[13px] leading-snug text-ink-muted", className)} {...props} />;
 }
 
 export function Field({ label, htmlFor, hint, children, className }: { label: string; htmlFor: string; hint?: string; children: React.ReactNode; className?: string }) {
@@ -39,10 +48,14 @@ export function Field({ label, htmlFor, hint, children, className }: { label: st
   );
 }
 
+/**
+ * The label is the tap target, not the box, so it carries the 44px minimum
+ * and the box itself only has to be big enough to see.
+ */
 export function Checkbox({ className, label, id, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: React.ReactNode }) {
   return (
-    <label htmlFor={id} className={cn("flex items-start gap-3 text-[15px] text-ink", className)}>
-      <input id={id} type="checkbox" className="mt-1 h-4.5 w-4.5 shrink-0 accent-[#1B7A3F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" {...props} />
+    <label htmlFor={id} className={cn("flex min-h-11 items-start gap-3 py-1.5 text-[15px] text-ink", className)}>
+      <input id={id} type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-[#1B7A3F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" {...props} />
       <span>{label}</span>
     </label>
   );

@@ -26,7 +26,7 @@ export function RecordList({ events, limit }: { events: RecordLine[]; limit?: nu
             )}
           </div>
           {e.txHash ? (
-            <a href={`${EXPLORER}${e.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text hover:underline" aria-label={`Transaction ${e.txHash.slice(0, 10)}`}>
+            <a href={`${EXPLORER}${e.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-mono text-[11px] text-sera-text hover:underline sm:min-h-0" aria-label={`Transaction ${e.txHash.slice(0, 10)}`}>
               tx {e.txHash.slice(0, 8)} <ExternalLink className="h-3 w-3" aria-hidden />
             </a>
           ) : (

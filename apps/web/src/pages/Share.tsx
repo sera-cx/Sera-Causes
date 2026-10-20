@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Copy, Printer } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "wouter";
-import { Spinner } from "@/components/Empty";
+import { ErrorState, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { QrCode } from "@/components/QrCode";
 import { ShareButtons, shareUrlFor } from "@/components/ShareButtons";
@@ -11,6 +11,7 @@ import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import { API_URL, recordShare } from "@/lib/api";
 import { SITE_ORIGIN } from "@/lib/constants";
+import { ROUTE_SEO, shareSeo } from "@/lib/seo";
 import { fmtUsd } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useCause } from "@/lib/queries";
@@ -22,8 +23,14 @@ export function SharePage() {
   const { id = "" } = useParams<{ id: string }>();
   const q = useCause(Number.parseInt(id, 10));
   const cause = q.data;
-  useSeo(cause ? `Share ${cause.name}` : "Share");
-  if (q.isLoading) return <div className="container"><Spinner /></div>;
+  useSeo(cause ? shareSeo(cause) : ROUTE_SEO.causes);
+  if (q.isLoading) return <div className="container"><Spinner label="Loading" /></div>;
+  if (q.isError)
+    return (
+      <div className="container container-tight py-14">
+        <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()} />
+      </div>
+    );
   if (!cause) return <NotFoundPage />;
   return <ShareTools cause={cause} />;
 }
@@ -32,13 +39,13 @@ function ShareTools({ cause }: { cause: CauseDetail }) {
   const url = shareUrlFor(cause.id, cause.slug);
   const { copied, copy } = useCopy();
   return (
-    <div className="container max-w-4xl py-8 md:py-12">
-      <Link href={causeHref(cause.id, cause.slug)} className="inline-flex items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink">
+    <div className="container container-reading py-8 md:py-12">
+      <Link href={causeHref(cause.id, cause.slug)} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink sm:min-h-0">
         <ArrowLeft className="h-4 w-4" aria-hidden /> {cause.name}
       </Link>
       <Eyebrow className="mt-4">Share</Eyebrow>
       <h1 className="mt-1 font-display text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">Share {cause.name}.</h1>
-      <p className="mt-2 text-[16px] text-ink-muted max-w-[58ch]">A link with a preview card, buttons for chat apps, a button for any website, and a poster with a QR code to the cause's page and address.</p>
+      <p className="mt-2 measure-lede text-[16px] text-ink-muted">A link with a preview card, buttons for chat apps, a button for any website, and a printable poster with a QR code to the cause's page and its address.</p>
 
       <section className="mt-10" aria-labelledby="link-h">
         <h2 id="link-h" className="font-display text-[22px] font-semibold tracking-tight">Link</h2>
@@ -57,7 +64,7 @@ function ShareTools({ cause }: { cause: CauseDetail }) {
 
       <section className="mt-12" aria-labelledby="poster-h">
         <h2 id="poster-h" className="font-display text-[22px] font-semibold tracking-tight">QR poster</h2>
-        <p className="mt-1.5 text-[15px] text-ink-muted max-w-[58ch]">A4, with the cause photo, name, a QR code to the page and the cause's own address. Print it or save it as a PDF from the print dialog.</p>
+        <p className="mt-1.5 measure text-[15px] text-ink-muted">A4, with the cause photo, its name, a QR code to its page and the cause's own address. Print it, or save it as a PDF from the print window.</p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <div className="rounded-xl border border-rule bg-white p-2 w-fit">
             <QrCode text={url} size={120} alt={`QR code linking to ${cause.name}`} />
@@ -126,12 +133,12 @@ function EmbedSnippet({ cause }: { cause: CauseDetail }) {
   return (
     <section className="mt-12" aria-labelledby="embed-h">
       <h2 id="embed-h" className="font-display text-[22px] font-semibold tracking-tight">Give button for your website</h2>
-      <p className="mt-1.5 text-[15px] text-ink-muted max-w-[58ch]">Paste this where you want a Sera.cx-branded "Give to {cause.name}" button. It opens the give flow on causes.sera.cx.</p>
+      <p className="mt-1.5 measure text-[15px] text-ink-muted">Paste this into your own page where you want a Sera.cx "Give to {cause.name}" button. It opens the giving steps on causes.sera.cx.</p>
       <div className="mt-4 grid gap-5 md:grid-cols-2">
         <div>
           <div className="flex gap-1 border-b border-rule" role="tablist" aria-label="Snippet type">
             {(["iframe", "script"] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px border-b-2 px-3 py-2 font-mono text-[12.5px] ${tab === t ? "border-sera text-ink" : "border-transparent text-ink-muted"}`}>
+              <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px min-h-11 border-b-2 px-3 font-mono text-[12.5px] ${tab === t ? "border-sera text-ink" : "border-transparent text-ink-muted"}`}>
                 {t === "iframe" ? "iframe" : "script tag"}
               </button>
             ))}

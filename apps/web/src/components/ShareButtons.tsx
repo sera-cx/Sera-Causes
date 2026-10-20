@@ -20,7 +20,7 @@ export function ShareButtons({ causeId, slug, name, className, size = "sm" }: { 
   const url = shareUrlFor(causeId, slug);
   const text = `Give to ${name} in stablecoins on causes.sera.cx`;
   const { copied, copy } = useCopy();
-  const btn = cn("inline-flex items-center gap-1.5 rounded-full border border-rule bg-card font-sans font-medium text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", size === "sm" ? "h-9 px-3.5 text-[13px]" : "h-11 px-4 text-[14.5px]");
+  const btn = cn("inline-flex items-center gap-1.5 rounded-full border border-rule bg-card font-sans font-medium text-ink hover:border-ink/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", size === "sm" ? "h-9 min-h-11 px-3.5 text-[13px] sm:min-h-9" : "h-11 px-4 text-[14.5px]");
   return (
     <div className={cn("flex flex-wrap gap-2", className)} role="group" aria-label={`Share ${name}`}>
       {CHANNELS(url, text).map((c) => (

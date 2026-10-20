@@ -110,6 +110,19 @@ function detailMessage(body: { error?: string; message?: string; detail?: unknow
   return base;
 }
 
+/**
+ * How long a single API call may take before we give up. Without this a stuck
+ * or unreachable API leaves every list on its loading state for ever, which is
+ * exactly what a reader sees when the API is down. On a timeout we throw, the
+ * query goes to its error state, and the page offers a retry.
+ */
+export const API_TIMEOUT_MS = 12_000;
+
+/** True when the call failed because the API could not be reached or did not answer in time. */
+export function isOfflineError(e: unknown): boolean {
+  return e instanceof ApiError && (e.status === 0 || e.status === 408 || e.status >= 500);
+}
+
 async function http<T>(path: string, init?: RequestInit & { json?: unknown; form?: FormData }): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (init?.json !== undefined) headers["Content-Type"] = "application/json";
@@ -122,11 +135,21 @@ async function http<T>(path: string, init?: RequestInit & { json?: unknown; form
     // Dev bypass, matched by `!isProduction` on the API. Never in a production build.
     if (import.meta.env.DEV && signer.devWallet) headers["X-Dev-Wallet"] = signer.wallet;
   }
-  const res = await fetch(`${API_URL}/api/v1${path}`, {
-    method: init?.method ?? (init?.json !== undefined || init?.form ? "POST" : "GET"),
-    headers,
-    body: init?.json !== undefined ? JSON.stringify(init.json) : (init?.form ?? init?.body),
-  });
+  let res: Response;
+  const timeout = AbortSignal.timeout ? AbortSignal.timeout(API_TIMEOUT_MS) : undefined;
+  try {
+    res = await fetch(`${API_URL}/api/v1${path}`, {
+      method: init?.method ?? (init?.json !== undefined || init?.form ? "POST" : "GET"),
+      headers,
+      body: init?.json !== undefined ? JSON.stringify(init.json) : (init?.form ?? init?.body),
+      signal: timeout,
+    });
+  } catch (e) {
+    // A network failure, a blocked request or our own timeout. Either way the
+    // API did not answer, so give the caller something it can show.
+    const timedOut = e instanceof DOMException && e.name === "TimeoutError";
+    throw new ApiError(timedOut ? 408 : 0, timedOut ? "The server took too long to answer." : "Could not reach the server.", e);
+  }
   if (!res.ok) {
     let message = `${res.status} ${res.statusText}`;
     let detail: unknown;

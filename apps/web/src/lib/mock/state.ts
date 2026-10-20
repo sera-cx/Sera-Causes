@@ -359,9 +359,11 @@ function needsFor(id: number, profile: CauseProfile, listedAt: string): HelpRequ
     closedAt: null,
     pledges: [],
   });
-  if (needsIntro) out.push(base("intro", 1, `Introduce us to whoever runs ${profile.name}`, "We need a contact who can claim the listing and share the registration certificate."));
+  // The organisation lists itself, so nobody needs an introduction to it.
+  // What is missing on a thin profile is a public record somebody can check.
+  if (needsIntro) out.push(base("intro", 1, `Find a public record for ${profile.name}`, "This profile has no registration number or website on it yet. A register entry, an official page or a news report would let a helper start the checks."));
   if (profile.location.town) {
-    const h = base("visit", 2, `Visit ${profile.location.town} and photograph the work`, "Dated photos with a location. This is one of the two sources needed for the 'work is real' check.");
+    const h = base("visit", 2, `Visit ${profile.location.town} and photograph the work`, "Photos with a date and a location on them. This is one of the two sources the 'the work is real' check needs.");
     if (rand() < 0.3) {
       const helper = HELPERS[(id + 2) % HELPERS.length]!.wallet;
       h.state = "pledged";
@@ -370,7 +372,7 @@ function needsFor(id: number, profile: CauseProfile, listedAt: string): HelpRequ
     }
     out.push(h);
   }
-  if (id % 3 === 0 || needsIntro) out.push(base("translate", 3, "Translate the profile into Bahasa Malaysia", "Summary, programmes and the organisation section. Keep names and numbers as they are."));
+  if (id % 3 === 0 || needsIntro) out.push(base("translate", 3, "Translate the profile into Bahasa Malaysia", "The summary, the programmes and the organisation section. Keep the names and the numbers exactly as they are."));
   return out.slice(0, 3);
 }
 
@@ -551,7 +553,7 @@ export function buildWorld(): MockWorld {
           const helper = HELPERS[(causeId * 3 + ci + k) % HELPERS.length]!;
           const at = ago(startHoursAgo - k * 14);
           const author = (causeId === 25 && code === "C1" && k === 0) || (causeId === 41 && code === "C1" && k === 1) || (causeId === 33 && code === "C2" && k === 0) ? DEMO_WALLET : helper.wallet;
-          const body: PathBody = { ...pathText(profile, code, result), screenshotHash: fakeHash(causeId * 1000 + ci * 50 + k), checkedAt: at, result, conflictOfInterest: "None. I have no relationship with this organisation." };
+          const body: PathBody = { ...pathText(profile, code, result), screenshotHash: fakeHash(causeId * 1000 + ci * 50 + k), checkedAt: at, result, conflictOfInterest: "None. I do not know anyone at this organisation." };
           const p: PathView = { id: id("path"), causeId, claimType: code, epoch, author, body, contentHash: fakeHash(causeId * 3000 + ci * 70 + k), result, checkedAt: at, signature: fakeSig(causeId * 100 + ci * 10 + k), createdAt: at, outcomeAgreed: agreed };
           paths.push(p);
           api(causeId, "PathSigned", at, { ...p });
@@ -605,7 +607,7 @@ export function buildWorld(): MockWorld {
         pushVotes(4, 24 * 12, ["verified", "verified", "verified", "verified"], 0, null);
         const challenger = HELPERS[8]!.wallet;
         const createdAt = ago(30);
-        const chPath: PathBody = { ...pathText(profile, code, "not_verified"), screenshotHash: fakeHash(causeId * 1000 + 999), checkedAt: createdAt, result: "not_verified", conflictOfInterest: "None. I have no relationship with this organisation." };
+        const chPath: PathBody = { ...pathText(profile, code, "not_verified"), screenshotHash: fakeHash(causeId * 1000 + 999), checkedAt: createdAt, result: "not_verified", conflictOfInterest: "None. I do not know anyone at this organisation." };
         const ch: Challenge = {
           id: id("ch"),
           causeId,

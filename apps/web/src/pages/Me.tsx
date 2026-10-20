@@ -1,6 +1,6 @@
 import { Award, Check, CircleDashed, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
-import { Empty, Notice, Spinner } from "@/components/Empty";
+import { Empty, ErrorState, Notice, SkeletonRows, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { SignInButton } from "@/components/SignInButton";
@@ -8,30 +8,42 @@ import { Pill } from "@/components/StatusPill";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
 import { COMMUNITY_SITE, LINKS, VOTE_WEIGHT, XP } from "@/lib/constants";
-import { fmtDate, fmtGsera, fmtInt, fmtMultiplier, fmtUsd, fmtXp, timeAgo } from "@/lib/format";
+import { fmtDate, fmtGsera, fmtInt, fmtMultiplier, fmtRm, fmtUsd, fmtXp, timeAgo } from "@/lib/format";
 import { useDashboard, useMe } from "@/lib/queries";
 import { causeHref, claimHref, fromRaw, voteWeight } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
 import type { ClaimCode, LedgerView, Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
 export function MePage() {
-  useSeo("My gSera and XP", `Your gSera balance from giving, your Care XP on ${COMMUNITY_SITE}, reputation, gifts and contributions.`);
+  useSeo(ROUTE_SEO.me);
   const { user, ready } = useAuth();
   const me = useMe();
   if (!ready) return <div className="container"><Spinner /></div>;
   if (!user)
     return (
-      <div className="container max-w-xl py-16 text-center">
+      <div className="container container-tight py-16 text-center">
         <Eyebrow>My gSera and XP</Eyebrow>
         <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to see your balance.</h1>
-        <p className="mt-2 text-ink-muted">The same gSera balance as g.sera.cx for giving, your Care XP on {COMMUNITY_SITE} for helping, plus reputation, gifts and contributions.</p>
+        <p className="mt-2 measure mx-auto text-ink-muted">The same gSera balance as g.sera.cx for giving, your Care XP on {COMMUNITY_SITE} for helping, plus your reputation, your gifts and your checks.</p>
         <SignInButton size="lg" className="mt-6" label="Sign in" />
       </div>
     );
-  if (me.isError) return <div className="container py-10"><Notice tone="bad">Could not load your balance: {me.error instanceof Error ? me.error.message : "unknown error"}</Notice></div>;
-  if (me.isLoading || !me.data) return <div className="container"><Spinner label="Loading your balance" /></div>;
+  if (me.isError)
+    return (
+      <div className="container py-10">
+        <ErrorState title="We could not load your balance" error={me.error} onRetry={() => void me.refetch()} />
+      </div>
+    );
+  if (me.isLoading || !me.data)
+    return (
+      <div className="container py-10">
+        <Spinner label="Loading your balance" />
+        <SkeletonRows rows={4} />
+      </div>
+    );
   return <MeView me={me.data} displayName={user.displayName} />;
 }
 
@@ -82,20 +94,20 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
         <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">
           {displayName} <span className="font-mono text-[16px] font-normal text-ink-muted tnum align-middle">{me.wallet.slice(0, 6)}…{me.wallet.slice(-4)}</span>
         </h1>
-        <p className="mt-2 text-[15.5px] text-ink-muted">
+        <p className="mt-2 measure text-[15.5px] text-ink-muted">
           One balance with{" "}
           <a href={LINKS.gsera} target="_blank" rel="noopener noreferrer" className="text-sera-text underline underline-offset-2">
             g.sera.cx
           </a>
-          . Charity-tagged gSera cannot buy Lucky Draw tickets. Helping earns XP on {COMMUNITY_SITE} instead.
+          . gSera earned from giving cannot buy Lucky Draw tickets. Helping earns Care XP on {COMMUNITY_SITE} instead, which is a standing and not a balance.
         </p>
       </div>
 
       <GreenField className="mt-8" kicker="gSera balance, from giving" title="Spend it, stake it, keep your rank.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <GfCard label="Spendable" ticker="gSera" figure={fmtInt(spendable)} meta={m ? [{ label: "volume tier", value: fmtMultiplier(m.volumeTier) }, { label: "streak", value: fmtMultiplier(m.streak) }] : [{ label: "staked", value: fmtInt(Math.abs(me.ledger.staked)) }]} />
-          <GfCard label="Charity-tagged" ticker="From giving" figure={fmtInt(charityTagged)} meta={[{ label: "of credited", value: me.ledger.credited ? `${Math.round((charityTagged / me.ledger.credited) * 100)}%` : "0%" }]} tab="#59E39A" />
-          <GfCard label="Lifetime earned" ticker="Season 1" figure={fmtInt(lifetime)} meta={[{ label: "rank is never lowered", value: "by spending" }]} tab="#00E676" />
+          <GfCard label="From giving" ticker="Charity-tagged" figure={fmtInt(charityTagged)} meta={[{ label: "of everything credited", value: me.ledger.credited ? `${Math.round((charityTagged / me.ledger.credited) * 100)}%` : "0%" }]} tab="#59E39A" />
+          <GfCard label="Earned all time" ticker="Season 1" figure={fmtInt(lifetime)} meta={[{ label: "spending never", value: "lowers your rank" }]} tab="#00E676" />
         </div>
       </GreenField>
 
@@ -105,9 +117,9 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
 
           <section aria-labelledby="hist-h">
             <h2 id="hist-h" className="font-display text-[22px] font-semibold tracking-tight">gSera history</h2>
-            <p className="mt-1 text-[14px] text-ink-muted">Gifts and challenge stakes, with the reason for every entry.</p>
+            <p className="mt-1 measure text-[14px] text-ink-muted">Gifts and challenge stakes, with the reason for every line.</p>
             {entries.length === 0 ? (
-              <Empty className="mt-4" title="Nothing credited yet" body="Give to a cause. Gifts earn gSera; helping earns XP, in the section above." />
+              <Empty className="mt-4" title="Nothing credited yet" body="Give to a cause and the gSera appears here. Helping earns Care XP instead, in the section above." />
             ) : (
               <ul className="mt-4 divide-y divide-rule border-y border-rule">
                 {entries.map((l) => (
@@ -119,9 +131,9 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
 
           <section aria-labelledby="gifts-h">
             <h2 id="gifts-h" className="font-display text-[22px] font-semibold tracking-tight">Gifts</h2>
-            <p className="mt-1 text-[14px] text-ink-muted">Each gift went straight to the cause's own address and is on its public record.</p>
+            <p className="mt-1 measure text-[14px] text-ink-muted">Each gift went straight to the cause's own address, and each one is on that cause's public record.</p>
             {me.gifts.length === 0 ? (
-              <Empty className="mt-4" title="No gifts yet" />
+              <Empty className="mt-4" title="No gifts yet" body="Find a cause you care about and give whatever you can." />
             ) : (
               <ul className="mt-4 divide-y divide-rule border-y border-rule">
                 {me.gifts.map((g) => {
@@ -134,7 +146,7 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
                           {causeName(g.causeId)}
                         </Link>
                         <p className="font-mono text-[12.5px] text-ink-muted tnum">
-                          {fromRaw(g.amount, t?.decimals ?? 6).toLocaleString("en-GB")} {t?.symbol ?? "tokens"} ({fmtUsd(Number(g.usd))}) · {fmtDate(g.createdAt)} · {g.source === "sera_swap" ? "via Sera.cx swap" : "direct transfer"}
+                          {fromRaw(g.amount, t?.decimals ?? 6).toLocaleString("en-GB")} {t?.symbol ?? "tokens"} ({fmtUsd(Number(g.usd))}, about {fmtRm(Number(g.usd))}) · {fmtDate(g.createdAt)} · {g.source === "sera_swap" ? "through a Sera.cx swap" : "sent directly"}
                           {gsera > 0 ? ` · +${fmtGsera(gsera)}` : g.ledgerNote ? ` · no gSera (${g.ledgerNote.replace(/_/g, " ")})` : ""}
                         </p>
                       </div>
@@ -142,7 +154,7 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
                         <Pill tone={g.kytState === "clear" ? "green" : "amber"} icon={g.kytState === "clear" ? Check : CircleDashed}>
                           {g.kytState === "clear" ? "Arrived" : "Screening"}
                         </Pill>
-                        <a href={`${EXPLORER}${g.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
+                        <a href={`${EXPLORER}${g.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-mono text-[11px] text-sera-text sm:min-h-0" aria-label="Transaction">
                           tx <ExternalLink className="h-3 w-3" aria-hidden />
                         </a>
                       </div>
@@ -155,9 +167,9 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
 
           <section aria-labelledby="contrib-h">
             <h2 id="contrib-h" className="font-display text-[22px] font-semibold tracking-tight">Contributions</h2>
-            <p className="mt-1 text-[14px] text-ink-muted">Paths, votes and help, with their outcomes. Each one earns XP on {COMMUNITY_SITE}, not gSera.</p>
+            <p className="mt-1 measure text-[14px] text-ink-muted">Your checks, votes and help, with how each one turned out. Each earns Care XP on {COMMUNITY_SITE}, not gSera.</p>
             {contribs.length === 0 ? (
-              <Empty className="mt-4" title="No contributions yet" body="Write a verification path or vote on an open claim." />
+              <Empty className="mt-4" title="You have not helped yet" body="Check a claim on a charity, or vote on one that is open." />
             ) : (
               <ul className="mt-4 divide-y divide-rule border-y border-rule">
                 {contribs.map((c) => (
@@ -205,7 +217,8 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
             <Eyebrow>Reputation</Eyebrow>
             <p className="mt-2 font-mono text-[32px] font-semibold leading-none tnum">{me.reputation}</p>
             <p className="mt-2 text-[13.5px] text-ink-muted">
-              Vote weight <span className="font-mono tnum text-ink">{voteWeight(me.reputation)}</span> of {VOTE_WEIGHT.max}. Earned only from checks that match final outcomes. Neither gSera nor XP adds weight.
+              Vote weight <span className="font-mono tnum text-ink">{voteWeight(me.reputation)}</span> of {VOTE_WEIGHT.max}. You earn it only from checks that match the final result. Neither gSera nor XP adds
+              weight.
             </p>
             <p className="mt-2 text-[13px] text-ink-muted">
               {me.eligibility.canVote ? "You can vote." : `Not eligible to vote yet: ${me.eligibility.reasons.join("; ")}.`} Screening: {me.kytState}.
@@ -233,7 +246,7 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
                 Open the dashboard
               </Link>
             </p>
-            <p className="mt-2">Leaderboards: {me.leaderboardOptOut ? "opted out" : "shown as a short address"}.</p>
+            <p className="mt-2">Leaderboards: {me.leaderboardOptOut ? "you are kept off them" : "you show as a short address"}.</p>
             {me.notifications.length > 0 && <p className="mt-2">{me.notifications.filter((n) => !n.readAt).length} unread notifications.</p>}
           </div>
         </aside>
@@ -267,7 +280,7 @@ function CareXp({ me, causeName }: { me: Me; causeName: (id: number) => string }
         <div className="rounded-2xl border border-rule bg-card p-4">
           <Eyebrow>Waiting to be credited</Eyebrow>
           <p className="mt-2 font-mono text-[32px] font-semibold leading-none tnum">{fmtInt(xp.queued)}</p>
-          <p className="mt-1 font-mono text-[11.5px] text-ink-muted">goes across once the link is live</p>
+          <p className="mt-1 font-mono text-[11.5px] text-ink-muted">moves across once the link is live</p>
         </div>
         <div className="rounded-2xl border border-rule bg-card p-4">
           <Eyebrow>Credited on {COMMUNITY_SITE}</Eyebrow>
@@ -276,10 +289,10 @@ function CareXp({ me, causeName }: { me: Me; causeName: (id: number) => string }
         </div>
       </div>
       <Notice tone="warn" className="mt-4">
-        The link to {COMMUNITY_SITE} is not live yet. Every event is recorded here and credited there once it is.
+        The link to {COMMUNITY_SITE} is not live yet. Every event is recorded here, and credited there as soon as it is.
       </Notice>
       {xp.events.length === 0 ? (
-        <Empty className="mt-4" title="No XP yet" body="Write a verification path, vote on an open claim or fulfil a help request." />
+        <Empty className="mt-4" title="No XP yet" body="Check a claim, vote on an open one, or finish a help request." />
       ) : (
         <ul className="mt-4 divide-y divide-rule border-y border-rule">
           {xp.events.map((e) => (

@@ -1,21 +1,25 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Spinner } from "@/components/Empty";
+import { Empty, ErrorState, SkeletonRows } from "@/components/Empty";
 import { GfCard, GreenField } from "@/components/GreenField";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { COMMUNITY_SITE } from "@/lib/constants";
 import { fmtInt, fmtUsd } from "@/lib/format";
 import { useLeaderboards } from "@/lib/queries";
 import { causeHref, shortAddress } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
+import { breadcrumbSchema } from "@/lib/seoSchemas";
 import type { LeaderboardBoard, LeaderboardPeriod, Leaderboards } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const BOARDS: { id: LeaderboardBoard; label: string; blurb: string }[] = [
-  { id: "givers", label: "Givers", blurb: "By US$ given across every cause." },
-  { id: "helpers", label: "Helpers", blurb: `By Care XP on ${COMMUNITY_SITE}, from paths, votes, evidence, help and listings.` },
-  { id: "causes", label: "Causes", blurb: "By US$ received." },
+  { id: "givers", label: "Givers", blurb: "Ordered by how much they have given, in US$, across every cause." },
+  { id: "helpers", label: "Helpers", blurb: `Ordered by Care XP on ${COMMUNITY_SITE}, earned from checks, votes, evidence, help and listings.` },
+  { id: "causes", label: "Causes", blurb: "Ordered by how much each cause has received, in US$." },
 ];
 
 interface Row {
@@ -36,7 +40,8 @@ function toRows(data: Leaderboards | undefined): Row[] {
 }
 
 export function LeaderboardsPage() {
-  useSeo("Leaderboards", "Givers, helpers and causes, this month and all time.");
+  useSeo(ROUTE_SEO.leaderboards);
+  useJsonLdMany([{ id: "breadcrumb", node: breadcrumbSchema([{ name: "Leaderboards", path: "/leaderboards" }]) }]);
   const [board, setBoard] = useState<LeaderboardBoard>("givers");
   const [period, setPeriod] = useState<LeaderboardPeriod>("30d");
   const q = useLeaderboards(board, period);
@@ -48,13 +53,14 @@ export function LeaderboardsPage() {
     <div>
       <div className="container pt-10 md:pt-14">
         <SectionHeader
+          level={1}
           kicker="Leaderboards"
           title="Who gives, who checks, who gets given to."
-          lede="Wallets show as short addresses. You can opt out in your settings."
+          lede="A wallet shows as a short address. You can keep yourself off these lists in your settings."
           action={
             <div className="flex rounded-full border border-rule p-0.5" role="group" aria-label="Period">
               {(["30d", "all"] as LeaderboardPeriod[]).map((p) => (
-                <button key={p} type="button" onClick={() => setPeriod(p)} aria-pressed={period === p} className={cn("h-9 rounded-full px-4 text-[13.5px] font-medium", period === p ? "bg-ink text-paper" : "text-ink-muted hover:text-ink")}>
+                <button key={p} type="button" onClick={() => setPeriod(p)} aria-pressed={period === p} className={cn("min-h-11 rounded-full px-4 text-[13.5px] font-medium", period === p ? "bg-ink text-paper" : "text-ink-muted hover:text-ink")}>
                   {p === "30d" ? "Last 30 days" : "All time"}
                 </button>
               ))}
@@ -70,12 +76,18 @@ export function LeaderboardsPage() {
             ))}
           </TabsList>
         </Tabs>
-        <p className="mt-3 text-[14px] text-ink-muted">{info.blurb}</p>
+        <p className="mt-3 measure text-[14px] text-ink-muted">{info.blurb}</p>
       </div>
 
       <GreenField className="mt-6" kicker={`Top ${info.label.toLowerCase()}, ${period === "30d" ? "last 30 days" : "all time"}`} footer={false}>
-        {q.isLoading ? (
-          <Spinner />
+        {q.isError ? (
+          <p className="text-[14px] font-medium text-[#06120C]">We could not load this board. Try again below.</p>
+        ) : q.isPending || q.isLoading ? (
+          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[#06120C]" role="status">
+            Loading
+          </p>
+        ) : top.length === 0 ? (
+          <p className="text-[14px] text-[#06120C]">Nothing to show for this period yet.</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {top.map((r, i) => (
@@ -86,6 +98,8 @@ export function LeaderboardsPage() {
       </GreenField>
 
       <div className="container py-10 md:py-14">
+        {q.isError && <ErrorState title="We could not load the leaderboards" error={q.error} onRetry={() => void q.refetch()} />}
+        {!q.isError && (q.isPending || q.isLoading) && <SkeletonRows rows={6} />}
         <ol className="divide-y divide-rule border-y border-rule">
           {rows.slice(3).map((r) => (
             <li key={r.rank} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 py-2.5 text-[14.5px]">
@@ -104,7 +118,16 @@ export function LeaderboardsPage() {
             </li>
           ))}
         </ol>
-        {rows.length === 0 && !q.isLoading && <p className="text-ink-muted">Nothing yet for this period.</p>}
+        {rows.length === 0 && !q.isLoading && !q.isPending && !q.isError && (
+          <Empty
+            title={board === "causes" ? "No cause has received a gift yet" : board === "helpers" ? "Nobody has helped yet" : "Nobody has given yet"}
+            body={board === "causes" ? "Once a cause receives its first gift it appears here." : board === "helpers" ? "Check a charity and you will be the first name on this list." : "Give to a cause and you will be the first name on this list."}
+          >
+            <Button asChild variant="outline">
+              <Link href={board === "helpers" ? "/verify" : "/causes"}>{board === "helpers" ? "Help check a charity" : "Find a cause"}</Link>
+            </Button>
+          </Empty>
+        )}
       </div>
     </div>
   );

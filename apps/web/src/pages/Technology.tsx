@@ -1,136 +1,262 @@
-import { ExternalLink } from "lucide-react";
+/* How it works, told in pictures.
+   The old version of this page was a wall of prose that nobody read. The
+   drawings in components/illustrations carry the mechanism now, and the
+   words are down to a caption and a sentence or two per section, kept
+   plain enough for a reader whose first language is not English. */
+import { ArrowRight, ExternalLink } from "lucide-react";
+import { type ReactNode } from "react";
 import { Link } from "wouter";
-import { Spinner } from "@/components/Empty";
+import { Empty, ErrorState, Spinner } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
-import { SectionHeader } from "@/components/SectionHeader";
+import { GfCard, GreenField } from "@/components/GreenField";
 import { Wallet } from "@/components/Wallet";
+import {
+  BuildOnIt,
+  CoinAndBadge,
+  Figure,
+  HowChecked,
+  OpenList,
+  PublicRecord,
+  StraightToTheCause,
+  TwoJars,
+} from "@/components/illustrations";
 import { useSeo } from "@/hooks/useSeo";
-import { CHALLENGE_STAKE, COMMUNITY_SITE, GSERA, LINKS, VOTING, XP } from "@/lib/constants";
-import { fmtDate, fmtGsera, fmtInt, fmtXp } from "@/lib/format";
+import { CHALLENGE_STAKE, COMMUNITY_SITE, LINKS, VOTING } from "@/lib/constants";
+import { fmtDate, fmtGsera } from "@/lib/format";
 import { useLatestEvents } from "@/lib/queries";
 import { describeRecord } from "@/lib/record";
 import { causeHref } from "@/lib/rules";
+import { ROUTE_SEO } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
 export function TechnologyPage() {
-  useSeo("Technology", `How Care Share Donate works: one open list of causes, gifts that go straight to the cause, community verification, gSera for giving, XP on ${COMMUNITY_SITE} for helping, and the public record.`);
+  useSeo(ROUTE_SEO.technology);
   return (
-    <div className="container max-w-4xl py-10 md:py-14">
-      <SectionHeader kicker="Technology" title="How it works, for people who want to know." lede="Everything below is open source. Anyone can read the list, check the record, or run their own front end on it." size="lg" />
+    <>
+      <Hero />
 
-      <div className="prose-csd mt-10">
-        <h2 id="registry">1. One open list of causes</h2>
-        <p>Every cause is an entry in a registry contract on Ethereum. The entry holds the owner, the cause's own address, its status, the hash of its profile, and the outcome of each verification claim. The profile itself (name, story, photos, sources) is a JSON file the site hosts now and pins to IPFS before mainnet. The contract never reads it; front ends do.</p>
-        <p>Because the list is public and the contract is open source, anyone can build another front end on the same 44 causes, or fork the whole thing for another country. The only rule in our own front end is that gifts in a different stablecoin are swapped through Sera.cx, nothing else.</p>
+      <Scene
+        id="registry"
+        n="01"
+        title="One open list of causes"
+        caption="One notice board. Every house reads the same list."
+        art={<OpenList />}
+      >
+        <p>Every cause sits on one public list. It is kept on Ethereum, a shared computer no company owns. Any website can read it. Ours is only one of them.</p>
+      </Scene>
 
-        <NoticeBoard />
+      <Scene
+        id="gifts"
+        n="02"
+        title="Your gift goes straight to the cause"
+        caption="A tin you can see through, on the cause's own doorstep."
+        art={<StraightToTheCause />}
+        flip
+      >
+        <p>Each cause has its own address for money, like its own post box. Your gift lands there. Nothing is held back, and nobody has to claim it.</p>
+        <p>Giving in a currency the cause does not keep? Sera.cx changes it on the way, at a rate you see first.</p>
+      </Scene>
 
-        <h2 id="gifts">2. Your gift goes straight to the cause</h2>
-        <p>Each cause has its own deposit address, an embedded wallet created under the owner's account for that cause. A gift is a stablecoin transfer to that address. If you give in a stablecoin the cause does not keep, the site asks Sera.cx for a swap with the cause's address as the recipient, and shows you the rate and fees before you confirm. Nothing is held back, there is no claiming step, and gifts are final.</p>
-        <p>You can also send directly from any wallet or exchange. The address and a QR code are on every give page. The gift appears on the cause's public record when it arrives.</p>
-        <p>The owner decides what the treasury does with arrivals: keep one currency (each arrival is converted through Sera.cx on arrival) or hold what arrives and convert from the dashboard when they choose. Every conversion and every withdrawal is on the record too.</p>
+      <Scene
+        id="treasury"
+        n="03"
+        title="What the cause does with it"
+        caption="Two jars. The cause picks one."
+        art={<TwoJars />}
+      >
+        <p>The cause picks how to hold the money. Change it to one currency as it arrives, or keep it as it comes and change it later.</p>
+      </Scene>
 
-        <h2 id="verification">3. How charities get verified</h2>
-        <p>Verification is a trust signal, not a gate on the money. It shows what has been checked, by whom, and how. A cause is verified one claim at a time. Each claim is a single fact with a yes or no: the organisation is registered; the registration is current; the payout wallet belongs to it; the work is real and current. Children's homes and care centres also need a care licence. Tax exemption and published accounts are extra badges.</p>
-        <p>Evidence goes up first. Then helpers write a verification path: the official source they used, every step, the exact search string, what they found, a dated screenshot and a conflict-of-interest line. Paths are signed by the helper's wallet and are public and permanent, so anyone can repeat the check.</p>
-        <p>Once a claim has {VOTING.minPaths} independent paths, voting opens for {VOTING.periodDays} days. Vote weight comes from reputation alone, between 1 and 5, never from gSera or XP. A claim needs a total weight of {VOTING.quorumWeight} and {VOTING.thresholdPct}% saying Verified. Then a {VOTING.challengeWindowHours} hour challenge window lets anyone object by staking {fmtGsera(CHALLENGE_STAKE)} with counter-evidence. If nobody does, the result and a Merkle root of the inputs go on-chain, and anyone can recompute it with the published script.</p>
-        <p>While we launch, the site runs in advisory mode: votes and tallies are shown, and a Sera.cx steward finalises each claim. Switching to community mode, where votes decide, is one setting. Stewards also pause a cause on a credible report of fraud or harm, and remove evidence that contains personal data. Every steward action is on the record with a written reason, and the plan is for their role to shrink to legal takedowns.</p>
+      <Wide
+        id="verification"
+        n="04"
+        title="How a cause gets checked"
+        caption="One fact at a time, checked in the open."
+        art={<HowChecked />}
+        cap="max-w-[680px]"
+        tone="card"
+      >
+        <p>We check one fact at a time. Is the charity registered? Is it still registered today? Is the money address really theirs? Is the work real? Helpers write down every step they took, then people vote, then anyone may object.</p>
+        <p>A check tells you what we have found. It does not block the money. A gift reaches the cause either way.</p>
+        <p>While we are new, a Sera.cx steward signs off each result.</p>
+      </Wide>
 
-        <h2 id="gsera">4. gSera for giving</h2>
-        <p>A donor is a taker whose trade goes to a cause. Same balance as g.sera.cx, same season, same base rate: {fmtInt(GSERA.perUsd)} gSera per US$1, times your volume tier and streak, and {GSERA.heat.urgent}x for an urgent appeal. gSera is credited to the sending wallet when the gift arrives and passes screening. A gift that settles through a Sera.cx swap earns once, at the donor rate. Wallets linked to a cause's owner or payout wallet earn nothing on that cause, and gifts above US${fmtInt(GSERA.giftCapUsdPerWalletPerCausePer30d)} per wallet per cause in {GSERA.giftCapWindowDays} days earn 0x.</p>
-        <p>gSera earned from gifts is tagged as charity gSera. It can be spent on g.sera.cx and staked on challenges, but it cannot buy Lucky Draw tickets. Charity gSera goes back to charity.</p>
-        <h2 id="xp">5. Care XP for helping</h2>
+      <GreenField kicker="What a check needs" title="Every claim clears the same bar." footer={false} className="border-y border-rule">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <GfCard label="Separate checks" ticker="Before voting starts" figure={String(VOTING.minPaths)} />
+          <GfCard label="Days to vote" ticker="Anyone who has earned a vote" figure={String(VOTING.periodDays)} tab="#00E676" />
+          <GfCard label="Must say yes" ticker="Share of the votes" figure={`${VOTING.thresholdPct}%`} tab="#59E39A" />
+          <GfCard label="Time to object" ticker={`Costs ${fmtGsera(CHALLENGE_STAKE)} to try`} figure={`${VOTING.challengeWindowHours}h`} tab="#FFFFFF" />
+        </div>
+      </GreenField>
+
+      <Wide
+        id="record"
+        n="05"
+        title="The record"
+        caption="Every gift, swap, check and update, printed in order."
+        art={<PublicRecord />}
+      >
+        <p>Every gift, change, check and update is written down in order. Nobody can delete a line later.</p>
+      </Wide>
+
+      <section className="container pb-12 md:pb-16" aria-label="Latest events across every cause">
+        <LatestRecord />
+      </section>
+
+      <Scene
+        id="earning"
+        n="06"
+        title="What you earn"
+        caption="A coin for giving. A badge for helping."
+        art={<CoinAndBadge />}
+        flip
+      >
         <p>
-          Helping earns XP on{" "}
-          <a href={LINKS.community} target="_blank" rel="noopener noreferrer">
+          Give, and you earn gSera on{" "}
+          <a href={LINKS.gsera} target="_blank" rel="noopener noreferrer" className="underline underline-offset-[3px] text-sera-text">
+            g.sera.cx
+          </a>
+          . Help check a charity, and you earn XP on{" "}
+          <a href={LINKS.community} target="_blank" rel="noopener noreferrer" className="underline underline-offset-[3px] text-sera-text">
             {COMMUNITY_SITE}
           </a>
-          , not gSera: {fmtXp(XP.care_path_agreed.amount)} for a path the final outcome agrees with, another {fmtXp(XP.care_site_visit.amount)} when a C4 path carries a dated photo, {fmtXp(XP.care_vote_agreed.amount)} for a vote in line with the outcome, {fmtXp(XP.care_evidence_accepted.amount)} for evidence the final claim rests on, {fmtXp(XP.care_help_fulfilled.amount)} for a fulfilled help request, {fmtXp(XP.care_cause_listed.amount)} for adding a cause and {fmtXp(XP.care_cause_verified.amount)} when it reaches Verified. The full table is on <a href="/rules#xp">the rules page</a>.
+          . gSera you can spend. XP is a score for helping, not money.
         </p>
-        <p>XP is a standing in the Care track of the Sera.cx community programme. It is not a balance, it cannot be spent and it has no cash value. Every event is recorded here as you earn it and credited on {COMMUNITY_SITE} once the link between the two sites is live.</p>
+      </Scene>
 
-        <h2 id="record">6. The record</h2>
-        <p>Every listing, piece of evidence, path, vote, result, gift, conversion, withdrawal and update is on the cause's record, newest first. On-chain events link to their transaction. Signed messages are stored with their hash and committed in the Merkle root when a claim is finalised. The latest events across every cause:</p>
-      </div>
-      <LatestRecord />
-
-      <div className="prose-csd">
-        <h2 id="build">7. Build on it</h2>
-        <p>
-          The code is on{" "}
-          <a href={LINKS.github} target="_blank" rel="noopener noreferrer">
-            GitHub
-          </a>
-          : the registry contract and tests, the shared rules package with the recompute script, the indexer and API, and this web app. The registry is on Sepolia now and moves to Ethereum mainnet at launch. To run your own front end, point it at the API or at the contract directly and read the profile JSON by its hash.
-        </p>
-        <ul>
-          <li>Registry (Sepolia): published with the first deployment.</li>
-          <li>API: <code>/api/v1</code>, public reads need no key.</li>
-          <li>Recompute: <code>pnpm --filter @sera-causes/shared recompute &lt;inputs.json&gt;</code>.</li>
+      <Scene
+        id="build"
+        n="07"
+        title="Build on it"
+        caption="The plans are public. Anyone can build their own."
+        art={<BuildOnIt />}
+      >
+        <p>The code is open. Anyone can read the list, keep a copy, or build their own website on it.</p>
+        <ul className="mt-5 space-y-2 font-mono text-[12.5px] text-ink-muted">
+          <li>
+            <a href={LINKS.github} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sera-text underline underline-offset-[3px]">
+              Code on GitHub <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </li>
+          <li>
+            <code>/api/v1</code> is open to read, no key needed.
+          </li>
         </ul>
+      </Scene>
 
-        <h2 id="safety">8. Safety</h2>
-        <p>An independent security review of the contract happens before mainnet, not before Sepolia. Every gift and every voter passes KYT and KYA screening through kyt.sera.cx; flagged gifts earn no gSera. Personal data is redacted before upload and files with unredacted personal data are rejected. There is a bug bounty from launch. Report anything to security@sera.cx.</p>
-        <p>
-          Read the{" "}
-          <Link href="/rules">rules</Link> for every number in one place.
-        </p>
-      </div>
-    </div>
+      <section id="safety" className="border-t border-rule bg-paper-warm" aria-labelledby="safety-h">
+        <div className="container py-12 md:py-16">
+          <Eyebrow>08</Eyebrow>
+          <h2 id="safety-h" className="mt-3 max-w-[20ch] font-display text-[26px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[32px]">
+            Safety
+          </h2>
+          <div className="mt-4 max-w-[35rem] text-[17px] leading-[1.6] text-ink-muted">
+            <p>Outside experts review the code before launch. Every gift and every voter is screened. Found a problem? Write to <a href="mailto:security@sera.cx" className="text-sera-text underline underline-offset-[3px]">security@sera.cx</a>.</p>
+          </div>
+          <Link href="/rules" className="mt-6 inline-flex items-center gap-1.5 text-[16px] font-semibold text-ink hover:text-sera-text">
+            Every number is on the rules page <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }
 
-/* A village notice board: the record that every house can read. Drawn as a
-   scene, not a box diagram. */
-function NoticeBoard() {
+function Hero() {
   return (
-    <figure className="my-8 rounded-2xl bg-paper-warm p-6">
-      <svg viewBox="0 0 640 260" role="img" aria-labelledby="nb-title" className="mx-auto h-auto w-full max-w-[560px]">
-        <title id="nb-title">A notice board in a village square, with pinned notes that anyone passing can read</title>
-        <g fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M40 232 H600" strokeWidth="2.5" />
-          <rect x="150" y="48" width="340" height="150" rx="6" />
-          <path d="M170 198 V232 M470 198 V232" />
-          <path d="M150 48 L320 22 L490 48" />
-          <rect x="178" y="74" width="80" height="56" rx="3" fill="var(--paper)" />
-          <rect x="282" y="66" width="96" height="70" rx="3" fill="var(--paper)" />
-          <rect x="404" y="80" width="64" height="48" rx="3" fill="var(--paper)" />
-          <rect x="200" y="146" width="150" height="34" rx="3" fill="var(--paper)" />
-          <path d="M190 90 h56 M190 102 h40 M190 114 h48" stroke="var(--ink-subtle)" />
-          <path d="M294 84 h72 M294 96 h58 M294 108 h66 M294 120 h30" stroke="var(--ink-subtle)" />
-          <path d="M414 96 h44 M414 108 h30" stroke="var(--ink-subtle)" />
-          <path d="M212 158 h126 M212 170 h80" stroke="var(--ink-subtle)" />
-          <circle cx="60" cy="200" r="14" />
-          <path d="M60 214 V232 M46 232 H74" />
-          <circle cx="560" cy="196" r="14" />
-          <path d="M560 210 V232 M546 232 H574" />
-          <path d="M92 128 c20 -40 60 -40 80 0" />
-          <path d="M520 120 c16 -36 52 -36 68 0" />
-        </g>
-        <g fill="var(--sera)">
-          <circle cx="218" cy="74" r="4" />
-          <circle cx="330" cy="66" r="4" />
-          <circle cx="436" cy="80" r="4" />
-          <circle cx="275" cy="146" r="4" />
-        </g>
-      </svg>
-      <figcaption className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-subtle">The record is a notice board every house can read.</figcaption>
-    </figure>
+    <section className="border-b border-rule">
+      <div className="container py-10 md:py-16">
+        <Eyebrow>How it works</Eyebrow>
+        <h1 className="mt-4 max-w-[16ch] font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
+          How it works, <em>in pictures</em>.
+        </h1>
+        <p className="mt-5 max-w-[36rem] text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">One open list of charities. You give, the gift goes straight there, and everyone can see what happened.</p>
+      </div>
+    </section>
+  );
+}
+
+type SceneProps = {
+  id: string;
+  n: string;
+  title: string;
+  caption: ReactNode;
+  art: ReactNode;
+  children: ReactNode;
+  flip?: boolean;
+};
+
+/* Drawing on one side, a sentence or two on the other. The text track is
+   the wider of the two on both sides of the flip, which lands the prose at
+   72 to 75 characters instead of letting it run the width of a monitor. */
+function Scene({ id, n, title, caption, art, children, flip }: SceneProps) {
+  return (
+    <section id={id} className="border-t border-rule first:border-t-0" aria-labelledby={`${id}-h`}>
+      <div className={cn("container grid items-center gap-8 py-12 md:gap-12 md:py-16", flip ? "md:grid-cols-[1fr_1.2fr]" : "md:grid-cols-[1.2fr_1fr]")}>
+        <div className={cn("max-w-[38rem]", flip && "md:order-2")}>
+          <Eyebrow>{n}</Eyebrow>
+          <h2 id={`${id}-h`} className="mt-3 font-display text-[26px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[32px]">
+            {title}
+          </h2>
+          <div className="mt-4 space-y-3.5 text-[17px] leading-[1.6] text-ink-muted">{children}</div>
+        </div>
+        <Figure caption={caption} className={cn(flip && "md:order-1")}>
+          {art}
+        </Figure>
+      </div>
+    </section>
+  );
+}
+
+/* The two scenes that need the room: the checks, and the record. */
+function Wide({ id, n, title, caption, art, children, cap, tone = "warm" }: Omit<SceneProps, "flip"> & { cap?: string; tone?: "warm" | "card" }) {
+  return (
+    <section id={id} className={cn("border-t border-rule", tone === "card" && "bg-paper-warm")} aria-labelledby={`${id}-h`}>
+      <div className="container py-12 md:py-16">
+        <Eyebrow>{n}</Eyebrow>
+        <h2 id={`${id}-h`} className="mt-3 max-w-[20ch] font-display text-[26px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[32px]">
+          {title}
+        </h2>
+        <div className="mt-4 max-w-[35rem] space-y-3.5 text-[17px] leading-[1.6] text-ink-muted">{children}</div>
+        <Figure caption={caption} cap={cap} tone={tone} className="mt-8">
+          {art}
+        </Figure>
+      </div>
+    </section>
   );
 }
 
 function LatestRecord() {
   const q = useLatestEvents(10);
   if (q.isLoading) return <Spinner label="Loading the record" />;
+  // Without this the block is simply blank when the site cannot reach the
+  // record, which reads as "nothing has ever happened" rather than "we could
+  // not check". Say which it is.
+  if (q.isError) {
+    return (
+      <ErrorState
+        title="We could not load the record just now"
+        error={q.error}
+        onRetry={() => void q.refetch()}
+      />
+    );
+  }
+  if (!q.data?.length) {
+    return (
+      <Empty title="Nothing on the record yet" body="The first gift, check or update will show up here." />
+    );
+  }
   return (
-    <div className="my-6 rounded-2xl border border-rule bg-card p-4 sm:p-5">
+    <div className="rounded-2xl border border-rule bg-card p-4 sm:p-5">
       <Eyebrow>Latest events</Eyebrow>
       <ol className="mt-3 divide-y divide-rule">
         {(q.data ?? []).map((e, i) => {
-          const line = describeRecord(e, i);
+          const l = describeRecord(e, i);
           return (
-            <li key={line.key} className="grid gap-0.5 py-2.5 sm:grid-cols-[150px_1fr_auto] sm:items-baseline sm:gap-3 text-[14px]">
+            <li key={l.key} className="grid gap-0.5 py-2.5 text-[14px] sm:grid-cols-[150px_1fr_auto] sm:items-baseline sm:gap-3">
               <time dateTime={e.at} className="font-mono text-[11.5px] text-ink-subtle tnum">
                 {fmtDate(e.at, true)}
               </time>
@@ -138,16 +264,16 @@ function LatestRecord() {
                 <Link href={causeHref(e.causeId, e.causeSlug)} className="font-medium hover:text-sera-text">
                   {e.causeName}
                 </Link>
-                <span className="text-ink-muted">: {line.summary}</span>
-                {line.by && (
+                <span className="text-ink-muted">: {l.summary}</span>
+                {l.by && (
                   <span className="text-ink-muted">
                     {" "}
-                    by <Wallet address={line.by} you={false} />
+                    by <Wallet address={l.by} you={false} />
                   </span>
                 )}
               </span>
-              {line.txHash && (
-                <a href={`${EXPLORER}${line.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
+              {l.txHash && (
+                <a href={`${EXPLORER}${l.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-sera-text" aria-label="Transaction">
                   tx <ExternalLink className="h-3 w-3" aria-hidden />
                 </a>
               )}
