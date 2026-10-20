@@ -36,11 +36,15 @@ export function DashboardPage() {
   if (!ready) return <div className="container"><Spinner /></div>;
   if (!user) {
     return (
-      <div className="container container-tight py-16 text-center">
-        <Eyebrow>Dashboard</Eyebrow>
-        <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to manage your causes.</h1>
-        <p className="mt-2 measure mx-auto text-ink-muted">Your causes, what has arrived, your money, your sharing tools, your updates and your help requests.</p>
-        <SignInButton size="lg" className="mt-6" label="Sign in" />
+      // Nothing to put beside a sign-in prompt, so the block is centred and
+      // the whitespace around it reads as a choice.
+      <div className="container py-16 text-center">
+        <div className="mx-auto max-w-[36rem]">
+          <Eyebrow>Dashboard</Eyebrow>
+          <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to manage your causes.</h1>
+          <p className="mt-2 measure mx-auto text-ink-muted">Your causes, what has arrived, your money, your sharing tools, your updates and your help requests.</p>
+          <SignInButton size="lg" className="mt-6" label="Sign in" />
+        </div>
       </div>
     );
   }

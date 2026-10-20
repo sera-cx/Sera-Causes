@@ -117,6 +117,30 @@ describe("the measure", () => {
   });
 });
 
+/**
+ * One page spine. Readability is capped on the text, never by shrinking the
+ * container, so the nav, the hero and the body all start on the same left
+ * edge on every route.
+ */
+describe("the page container", () => {
+  const css = readFileSync(join(__dirname, "..", "index.css"), "utf8");
+
+  it("defines one container width and no narrower variants", () => {
+    expect(css).toContain("@utility container {");
+    expect(css).not.toMatch(/@utility container-\w+/);
+    expect(css).not.toContain("--container-max");
+  });
+
+  it("is never narrowed at a call site", () => {
+    const bad: string[] = [];
+    for (const f of files) {
+      if (!/\.tsx$/.test(f)) continue;
+      for (const m of readFileSync(f, "utf8").matchAll(/\bcontainer-[a-z]+\b/g)) bad.push(`${f}: ${m[0]}`);
+    }
+    expect(bad).toEqual([]);
+  });
+});
+
 /** The scope of the first run is written once and shown in the right places. */
 describe("the trial scope", () => {
   it("names the stablecoins and the country in the footer, the home page, the give sheet and the rules", () => {

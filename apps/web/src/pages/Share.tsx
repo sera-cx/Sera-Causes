@@ -27,8 +27,10 @@ export function SharePage() {
   if (q.isLoading) return <div className="container"><Spinner label="Loading" /></div>;
   if (q.isError)
     return (
-      <div className="container container-tight py-14">
-        <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()} />
+      <div className="container py-14">
+        <div className="mx-auto max-w-[36rem]">
+          <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()} />
+        </div>
       </div>
     );
   if (!cause) return <NotFoundPage />;
@@ -39,60 +41,74 @@ function ShareTools({ cause }: { cause: CauseDetail }) {
   const url = shareUrlFor(cause.id, cause.slug);
   const { copied, copy } = useCopy();
   return (
-    <div className="container container-reading py-8 md:py-12">
+    <div className="container py-8 md:py-12">
       <Link href={causeHref(cause.id, cause.slug)} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink sm:min-h-0">
         <ArrowLeft className="h-4 w-4" aria-hidden /> {cause.name}
       </Link>
-      <Eyebrow className="mt-4">Share</Eyebrow>
-      <h1 className="mt-1 font-display text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">Share {cause.name}.</h1>
-      <p className="mt-2 measure-lede text-[16px] text-ink-muted">A link with a preview card, buttons for chat apps, a button for any website, and a printable poster with a QR code to the cause's page and its address.</p>
 
-      <section className="mt-10" aria-labelledby="link-h">
-        <h2 id="link-h" className="font-display text-[22px] font-semibold tracking-tight">Link</h2>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-paper-warm px-3 py-2.5 font-mono text-[13.5px]">{url}</code>
-          <Button variant="outline" onClick={() => { void copy(url); void recordShare(cause.id, "copy"); }}>
-            {copied ? <Check className="h-4 w-4 text-sera-text" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
-            {copied ? "Copied" : "Copy link"}
-          </Button>
+      {/* The page keeps the nav's width. The headline takes the measure, and
+          the room it leaves goes to the preview card, which is the one thing
+          a reader wants to see before they share anything. */}
+      <div className="mt-4 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-12">
+        <div className="min-w-0">
+          <Eyebrow>Share</Eyebrow>
+          <h1 className="mt-1 font-display text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">Share {cause.name}.</h1>
+          <p className="mt-2 measure-lede text-[16px] text-ink-muted">A link with a preview card, buttons for chat apps, a button for any website, and a printable poster with a QR code to the cause's page and its address.</p>
+
+          <section className="mt-8" aria-labelledby="link-h">
+            <h2 id="link-h" className="font-display text-[22px] font-semibold tracking-tight">Link</h2>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <code className="flex-1 min-w-0 truncate rounded-md border border-rule bg-paper-warm px-3 py-2.5 font-mono text-[13.5px]">{url}</code>
+              <Button variant="outline" onClick={() => { void copy(url); void recordShare(cause.id, "copy"); }}>
+                {copied ? <Check className="h-4 w-4 text-sera-text" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+            <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} className="mt-4" size="md" />
+          </section>
         </div>
-        <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} className="mt-4" size="md" />
         <OgPreview cause={cause} />
-      </section>
+      </div>
 
       <EmbedSnippet cause={cause} />
 
-      <section className="mt-12" aria-labelledby="poster-h">
-        <h2 id="poster-h" className="font-display text-[22px] font-semibold tracking-tight">QR poster</h2>
-        <p className="mt-1.5 measure text-[15px] text-ink-muted">A4, with the cause photo, its name, a QR code to its page and the cause's own address. Print it, or save it as a PDF from the print window.</p>
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <div className="rounded-xl border border-rule bg-white p-2 w-fit">
-            <QrCode text={url} size={120} alt={`QR code linking to ${cause.name}`} />
-          </div>
-          <Button asChild>
-            <Link href={`/c/${cause.id}/poster`}>
-              <Printer className="h-4 w-4" aria-hidden /> Open the poster
-            </Link>
-          </Button>
-          {API_URL && (
-            <Button asChild variant="outline">
-              <a href={cause.posterUrl} target="_blank" rel="noopener noreferrer">
-                A4 PDF from the API
-              </a>
+      {/* Poster text on the measure, the code itself in the width that
+          leaves, so the band is not half empty. */}
+      <section className="mt-12 grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12" aria-labelledby="poster-h">
+        <div className="min-w-0">
+          <h2 id="poster-h" className="font-display text-[22px] font-semibold tracking-tight">QR poster</h2>
+          <p className="mt-1.5 measure text-[15px] text-ink-muted">A4, with the cause photo, its name, a QR code to its page and the cause's own address. Print it, or save it as a PDF from the print window.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button asChild>
+              <Link href={`/c/${cause.id}/poster`}>
+                <Printer className="h-4 w-4" aria-hidden /> Open the poster
+              </Link>
             </Button>
-          )}
+            {API_URL && (
+              <Button asChild variant="outline">
+                <a href={cause.posterUrl} target="_blank" rel="noopener noreferrer">
+                  A4 PDF from the API
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="w-fit rounded-xl border border-rule bg-white p-3 lg:justify-self-end">
+          <QrCode text={url} size={180} alt={`QR code linking to ${cause.name}`} />
         </div>
       </section>
     </div>
   );
 }
 
+/* The preview card. It is the second column of the page's hero, so it takes
+   the width it is given rather than capping itself. */
 function OgPreview({ cause }: { cause: CauseDetail }) {
   if (API_URL) {
     return (
-      <div className="mt-6">
+      <div>
         <Eyebrow>Preview card (how the link looks in chat apps)</Eyebrow>
-        <div className="mt-2 max-w-md overflow-hidden rounded-xl border border-rule bg-card">
+        <div className="mt-2 overflow-hidden rounded-xl border border-rule bg-card">
           <img src={cause.ogImageUrl} alt={`Preview card for ${cause.name}`} className="aspect-[1200/630] w-full object-cover bg-paper-warm" />
           <div className="px-4 py-2.5 font-mono text-[11px] text-ink-subtle">causes.sera.cx</div>
         </div>
@@ -101,9 +117,9 @@ function OgPreview({ cause }: { cause: CauseDetail }) {
     );
   }
   return (
-    <div className="mt-6">
+    <div>
       <Eyebrow>Preview card (how the link looks in chat apps)</Eyebrow>
-      <div className="mt-2 max-w-md overflow-hidden rounded-xl border border-rule bg-card">
+      <div className="mt-2 overflow-hidden rounded-xl border border-rule bg-card">
         <div className="relative aspect-[1200/630] bg-paper-warm">
           <img src={causeImage(cause).src} alt="" className="h-full w-full object-cover" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0B1426]/90 to-transparent p-4 pt-10 text-white">
@@ -117,7 +133,7 @@ function OgPreview({ cause }: { cause: CauseDetail }) {
         </div>
         <div className="px-4 py-2.5 font-mono text-[11px] text-ink-subtle">causes.sera.cx</div>
       </div>
-      <p className="mt-2 text-[12.5px] text-ink-muted">Rendered server-side as /og/cause/{cause.id}.png once the API is live. This is a mock of the same layout.</p>
+      <p className="mt-2 measure text-[12.5px] text-ink-muted">Rendered server-side as /og/cause/{cause.id}.png once the API is live. This is a mock of the same layout.</p>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { GfCard, GreenField } from "@/components/GreenField";
 import { Wallet } from "@/components/Wallet";
 import {
   BuildOnIt,
+  CloseToHome,
   CoinAndBadge,
   Figure,
   HowChecked,
@@ -147,33 +148,64 @@ export function TechnologyPage() {
         </ul>
       </Scene>
 
+      {/* The last word, and the way out of the page. The text takes the
+          measure on the left and the room it leaves goes to the shortcuts
+          into the rules, which is where a reader who got this far is
+          heading anyway. */}
       <section id="safety" className="border-t border-rule bg-paper-warm" aria-labelledby="safety-h">
-        <div className="container py-12 md:py-16">
-          <Eyebrow>08</Eyebrow>
-          <h2 id="safety-h" className="mt-3 max-w-[20ch] font-display text-[26px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[32px]">
-            Safety
-          </h2>
-          <div className="mt-4 max-w-[35rem] text-[17px] leading-[1.6] text-ink-muted">
-            <p>Outside experts review the code before launch. Every gift and every voter is screened. Found a problem? Write to <a href="mailto:security@sera.cx" className="text-sera-text underline underline-offset-[3px]">security@sera.cx</a>.</p>
+        <div className="container grid items-start gap-8 py-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
+          <div>
+            <Eyebrow>08</Eyebrow>
+            <h2 id="safety-h" className="mt-3 max-w-[20ch] font-display text-[26px] font-semibold leading-[1.1] tracking-[-0.025em] sm:text-[32px]">
+              Safety
+            </h2>
+            <div className="mt-4 measure text-[17px] leading-[1.6] text-ink-muted">
+              <p>Outside experts review the code before launch. Every gift and every voter is screened. Found a problem? Write to <a href="mailto:security@sera.cx" className="text-sera-text underline underline-offset-[3px]">security@sera.cx</a>.</p>
+            </div>
+            <Link href="/rules" className="mt-6 inline-flex items-center gap-1.5 text-[16px] font-semibold text-ink hover:text-sera-text">
+              Every number is on the rules page <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
-          <Link href="/rules" className="mt-6 inline-flex items-center gap-1.5 text-[16px] font-semibold text-ink hover:text-sera-text">
-            Every number is on the rules page <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+          <nav className="rounded-2xl border border-rule bg-card p-5" aria-label="Straight to a rule">
+            <Eyebrow>Straight to a rule</Eyebrow>
+            <ul className="mt-3 space-y-2.5 text-[15px]">
+              {[
+                ["/rules#gsera", "What a gift earns"],
+                ["/rules#verification", "How a claim is checked"],
+                ["/rules#challenges", "Challenging a check"],
+                ["/rules#data", "Personal data"],
+              ].map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href} className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-sera-text">
+                    {label} <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </section>
     </>
   );
 }
 
+/* The hero. The words are capped at the lede measure, which on a monitor
+   leaves most of the container empty, so the drawing takes that half rather
+   than nothing taking it. Two columns only from xl, where the container is
+   already at its 1180px cap: below that the text keeps its full measure and
+   the drawing sits under it. */
 function Hero() {
   return (
     <section className="border-b border-rule">
-      <div className="container py-10 md:py-16">
-        <Eyebrow>How it works</Eyebrow>
-        <h1 className="mt-4 max-w-[16ch] font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
-          How it works, <em>in pictures</em>.
-        </h1>
-        <p className="mt-5 max-w-[36rem] text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">One open list of charities. You give, the gift goes straight there, and everyone can see what happened.</p>
+      <div className="container grid items-center gap-10 py-10 md:py-16 xl:grid-cols-[minmax(0,1fr)_440px] xl:gap-12">
+        <div>
+          <Eyebrow>How it works</Eyebrow>
+          <h1 className="mt-4 max-w-[16ch] font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
+            How it works, <em>in pictures</em>.
+          </h1>
+          <p className="mt-5 max-w-[36rem] text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">One open list of charities. You give, the gift goes straight there, and everyone can see what happened.</p>
+        </div>
+        <CloseToHome className="mx-auto h-auto w-full max-w-[420px] xl:mx-0 xl:max-w-none" />
       </div>
     </section>
   );

@@ -24,11 +24,14 @@ export function MePage() {
   if (!ready) return <div className="container"><Spinner /></div>;
   if (!user)
     return (
-      <div className="container container-tight py-16 text-center">
-        <Eyebrow>My gSera and XP</Eyebrow>
-        <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to see your balance.</h1>
-        <p className="mt-2 measure mx-auto text-ink-muted">The same gSera balance as g.sera.cx for giving, your Care XP on {COMMUNITY_SITE} for helping, plus your reputation, your gifts and your checks.</p>
-        <SignInButton size="lg" className="mt-6" label="Sign in" />
+      // Nothing to put beside a sign-in prompt, so the block is centred.
+      <div className="container py-16 text-center">
+        <div className="mx-auto max-w-[36rem]">
+          <Eyebrow>My gSera and XP</Eyebrow>
+          <h1 className="mt-2 font-display text-[32px] font-semibold tracking-tight">Sign in to see your balance.</h1>
+          <p className="mt-2 measure mx-auto text-ink-muted">The same gSera balance as g.sera.cx for giving, your Care XP on {COMMUNITY_SITE} for helping, plus your reputation, your gifts and your checks.</p>
+          <SignInButton size="lg" className="mt-6" label="Sign in" />
+        </div>
       </div>
     );
   if (me.isError)

@@ -53,22 +53,28 @@ export function GivePage() {
   if (q.isLoading) return <div className="container"><Spinner label="Loading" /></div>;
   if (q.isError)
     return (
-      <div className="container container-tight py-14">
-        <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()}>
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/causes">Back to all causes</Link>
-          </Button>
-        </ErrorState>
+      // One short message with nothing to put beside it, so it is centred
+      // rather than pinned to the left of an empty monitor.
+      <div className="container py-14">
+        <div className="mx-auto max-w-[36rem]">
+          <ErrorState title="We could not load this cause" error={q.error} onRetry={() => void q.refetch()}>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/causes">Back to all causes</Link>
+            </Button>
+          </ErrorState>
+        </div>
       </div>
     );
   if (!cause) return <NotFoundPage />;
   if (cause.stage === "paused" || cause.stage === "closed") {
     return (
-      <div className="container container-tight py-14">
-        <Notice tone="bad">{cause.name} is not taking gifts at the moment. {cause.pausedReason}</Notice>
-        <Button asChild variant="link" className="mt-4">
-          <Link href={causeHref(cause.id, cause.slug)}>Back to the cause</Link>
-        </Button>
+      <div className="container py-14">
+        <div className="mx-auto max-w-[36rem]">
+          <Notice tone="bad">{cause.name} is not taking gifts at the moment. {cause.pausedReason}</Notice>
+          <Button asChild variant="link" className="mt-4">
+            <Link href={causeHref(cause.id, cause.slug)}>Back to the cause</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -85,7 +91,7 @@ function GiveSheet({ cause }: { cause: CauseDetail }) {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   if (receipt) return <ThankYou cause={cause} receipt={receipt} />;
   return (
-    <div className="container container-narrow py-8 md:py-12">
+    <div className="container py-8 md:py-12">
       <Link href={causeHref(cause.id, cause.slug)} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink sm:min-h-0">
         <ArrowLeft className="h-4 w-4" aria-hidden /> {cause.name}
       </Link>
@@ -101,19 +107,61 @@ function GiveSheet({ cause }: { cause: CauseDetail }) {
         </div>
       </div>
 
-      <Tabs defaultValue="site" className="mt-8">
-        <TabsList aria-label="Ways to give">
-          <TabsTrigger value="site">Give from this site</TabsTrigger>
-          <TabsTrigger value="direct">Send directly</TabsTrigger>
-        </TabsList>
-        <TabsContent value="site">
-          <FromSite cause={cause} onDone={setReceipt} />
-        </TabsContent>
-        <TabsContent value="direct">
-          <SendDirectly cause={cause} />
-        </TabsContent>
-      </Tabs>
+      {/* The giving steps keep the measure, so on a monitor the room left
+          over carries what the cause says it will do with the money and where
+          exactly the gift lands. */}
+      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 xl:gap-12">
+        <div className="min-w-0">
+          <Tabs defaultValue="site">
+            <TabsList aria-label="Ways to give">
+              <TabsTrigger value="site">Give from this site</TabsTrigger>
+              <TabsTrigger value="direct">Send directly</TabsTrigger>
+            </TabsList>
+            <TabsContent value="site">
+              <FromSite cause={cause} onDone={setReceipt} />
+            </TabsContent>
+            <TabsContent value="direct">
+              <SendDirectly cause={cause} />
+            </TabsContent>
+          </Tabs>
+        </div>
+        <GiftFacts cause={cause} />
+      </div>
     </div>
+  );
+}
+
+/** What the money pays for, and where the gift actually lands. */
+function GiftFacts({ cause }: { cause: CauseDetail }) {
+  const summary = profileOf(cause).summary;
+  const kept = keptToken(cause);
+  return (
+    <aside className="space-y-5 lg:self-start" aria-label="About this gift">
+      {summary && (
+        <div className="rounded-2xl border border-rule bg-card p-5">
+          <Eyebrow>What the money pays for</Eyebrow>
+          <p className="mt-2 measure text-[14.5px] leading-[1.55] text-ink-muted">{summary}</p>
+        </div>
+      )}
+      <div className="rounded-2xl border border-rule bg-paper-warm p-5">
+        <Eyebrow>Where it goes</Eyebrow>
+        <ul className="mt-3 measure space-y-2.5 text-[14px] leading-[1.5] text-ink-muted">
+          <li>Straight to this cause's own address. Nothing is held back on the way.</li>
+          <li>{kept ? `${cause.name} keeps its money in ${kept.symbol}. A gift in another currency is swapped on Sera.cx first, at a rate you see before you confirm.` : `${cause.name} keeps whatever arrives.`}</li>
+          <li>A gift is final once it is sent.</li>
+        </ul>
+        <p className="mt-3 break-all font-mono text-[11.5px] text-ink-subtle">{cause.wallet.address}</p>
+      </div>
+      <div className="rounded-2xl border border-rule bg-card p-5">
+        <Eyebrow>Checked so far</Eyebrow>
+        <p className="mt-2 measure text-[14px] leading-[1.5] text-ink-muted">
+          {cause.checksDone} of {cause.checksTotal} claims verified. A check tells you what has been found. It does not control the money.
+        </p>
+        <Link href={causeHref(cause.id, cause.slug)} className="mt-3 inline-flex text-[14px] font-semibold text-ink hover:text-sera-text">
+          See the checks and the record
+        </Link>
+      </div>
+    </aside>
   );
 }
 
@@ -234,7 +282,7 @@ function FromSite({ cause, onDone }: { cause: CauseDetail; onDone: (r: Receipt) 
               })}
             </div>
             <Input id="amount" inputMode="decimal" type="number" min="0" step="any" value={amount} onChange={(e) => setAmount(e.target.value)} className="font-mono text-[18px] h-12" aria-describedby="amount-hint" />
-            <p id="amount-hint" className="mt-1.5 font-mono text-[12.5px] text-ink-muted tnum">
+            <p id="amount-hint" className="mt-1.5 measure font-mono text-[12.5px] text-ink-muted tnum">
               About {fmtUsdWithRm(usd, { cents: true })}. You would earn about {fmtGsera(previewGsera)}{user ? " before your multipliers" : ""}.
             </p>
           </div>
@@ -409,45 +457,53 @@ function ThankYou({ cause, receipt }: { cause: CauseDetail; receipt: Receipt }) 
     "The gift is on the public record. Updates and receipts from the organisation appear on the cause page.",
   ];
   return (
-    <div className="container container-narrow py-8 md:py-12">
-      <figure className="overflow-hidden rounded-2xl">
-        <img src={img.src} alt={img.alt} className="aspect-[16/9] w-full object-cover" />
-        <figcaption className="mt-2">
-          <PhotoCredit image={p.image} />
-        </figcaption>
-      </figure>
-      <Eyebrow className="mt-6">Thank you</Eyebrow>
-      <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">
-        Thank you. Your gift is {settled ? "with" : "on its way to"} <em>{cause.name}</em>.
-      </h1>
-      <p className="mt-3 font-mono text-[14px] tnum text-ink-muted">
-        {receipt.units.toLocaleString("en-GB")} {receipt.token} ({fmtUsdWithRm(receipt.usd, { cents: true })})
-      </p>
-      <h2 className="mt-8 font-display text-[18px] font-semibold">What happens next</h2>
-      <ol className="mt-2 measure space-y-2 text-[15px] text-ink-muted">
-        {next.map((n, i) => (
-          <li key={i} className="flex gap-3">
-            <span className="font-mono text-[12px] text-ink-subtle mt-1">{i + 1}</span>
-            {n}
-          </li>
-        ))}
-      </ol>
-      <div className="mt-8 rounded-2xl p-5" style={{ background: "var(--give)", color: "var(--give-foreground)" }}>
-        <p className="font-display text-[18px] font-semibold">Tell someone about {cause.name}</p>
-        <p className="mt-1 measure text-[14px] opacity-90">A link that shows the cause photo, its name and how far the checks have got.</p>
-        <div className="mt-3 [&_a]:bg-white [&_a]:text-[#0B1426] [&_a]:border-transparent [&_button]:bg-white [&_button]:text-[#0B1426] [&_button]:border-transparent">
-          <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} />
+    /* The thank you keeps the measure on the left and gives the room it
+       leaves to the cause's own photograph, so the page closes on the thing
+       the gift was for rather than on empty paper. */
+    <div className="container py-8 md:py-12">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-12 xl:grid-cols-[minmax(0,1fr)_440px]">
+        <div className="min-w-0">
+          <Eyebrow>Thank you</Eyebrow>
+          <h1 className="mt-2 font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] sm:text-[40px]">
+            Thank you. Your gift is {settled ? "with" : "on its way to"} <em>{cause.name}</em>.
+          </h1>
+          <p className="mt-3 font-mono text-[14px] tnum text-ink-muted">
+            {receipt.units.toLocaleString("en-GB")} {receipt.token} ({fmtUsdWithRm(receipt.usd, { cents: true })})
+          </p>
+          <h2 className="mt-8 font-display text-[18px] font-semibold">What happens next</h2>
+          <ol className="mt-2 measure space-y-2 text-[15px] text-ink-muted">
+            {next.map((n, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="font-mono text-[12px] text-ink-subtle mt-1">{i + 1}</span>
+                {n}
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 rounded-2xl p-5" style={{ background: "var(--give)", color: "var(--give-foreground)" }}>
+            <p className="font-display text-[18px] font-semibold">Tell someone about {cause.name}</p>
+            <p className="mt-1 measure text-[14px] opacity-90">A link that shows the cause photo, its name and how far the checks have got.</p>
+            <div className="mt-3 [&_a]:bg-white [&_a]:text-[#0B1426] [&_a]:border-transparent [&_button]:bg-white [&_button]:text-[#0B1426] [&_button]:border-transparent">
+              <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} />
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <Button asChild variant="outline">
+              <Link href={causeHref(cause.id, cause.slug)}>Back to {cause.name}</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link href="/me">
+                <ArrowRightLeft className="h-4 w-4" aria-hidden /> My gSera
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        <Button asChild variant="outline">
-          <Link href={causeHref(cause.id, cause.slug)}>Back to {cause.name}</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link href="/me">
-            <ArrowRightLeft className="h-4 w-4" aria-hidden /> My gSera
-          </Link>
-        </Button>
+        {/* On a phone the photograph still comes first, as it did before. */}
+        <figure className="order-first overflow-hidden rounded-2xl lg:order-none">
+          <img src={img.src} alt={img.alt} className="aspect-[16/9] w-full object-cover" />
+          <figcaption className="mt-2">
+            <PhotoCredit image={p.image} />
+          </figcaption>
+        </figure>
       </div>
     </div>
   );

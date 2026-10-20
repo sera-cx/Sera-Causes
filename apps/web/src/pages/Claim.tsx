@@ -50,12 +50,14 @@ export function ClaimPage() {
   if (q.isLoading) return <div className="container"><Spinner label="Loading the claim" /></div>;
   if (q.isError)
     return (
-      <div className="container container-tight py-14">
-        <ErrorState title="We could not load this claim" error={q.error} onRetry={() => void q.refetch()}>
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/verify">Back to the hub</Link>
-          </Button>
-        </ErrorState>
+      <div className="container py-14">
+        <div className="mx-auto max-w-[36rem]">
+          <ErrorState title="We could not load this claim" error={q.error} onRetry={() => void q.refetch()}>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/verify">Back to the hub</Link>
+            </Button>
+          </ErrorState>
+        </div>
       </div>
     );
   if (!data) return <NotFoundPage />;
@@ -93,7 +95,7 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
   const offer = xpOnOffer(ws);
 
   return (
-    <div className="container container-wide py-8 md:py-12">
+    <div className="container py-8 md:py-12">
       <Link href={causeHref(ws.cause.id, ws.cause.slug)} className="inline-flex min-h-11 items-center gap-1.5 text-[14px] text-ink-muted hover:text-ink sm:min-h-0">
         <ArrowLeft className="h-4 w-4" aria-hidden /> {ws.cause.name}
       </Link>
@@ -118,14 +120,16 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
             </span>
           )}
         </div>
+        {/* Two columns of running prose in a full-width box, so each one
+            takes the measure rather than the whole half. */}
         <div className="mt-4 grid gap-3 rounded-xl border border-rule bg-paper-warm p-4 text-[14px] sm:grid-cols-2">
           <div>
             <Eyebrow>What counts as proof</Eyebrow>
-            <p className="mt-1 text-ink-muted">{info.proof}</p>
+            <p className="mt-1 measure text-ink-muted">{info.proof}</p>
           </div>
           <div>
             <Eyebrow>Where to check</Eyebrow>
-            <p className="mt-1 text-ink-muted">{info.whereToCheck}</p>
+            <p className="mt-1 measure text-ink-muted">{info.whereToCheck}</p>
             {ws.cause.registration && (
               <p className="mt-1 font-mono text-[12.5px] tnum">
                 Registration on the profile: {ws.cause.registration}
@@ -135,7 +139,7 @@ function Workspace({ ws }: { ws: ClaimWorkspace }) {
           </div>
         </div>
         {ws.decidedBy === "stewards" && (
-          <Notice tone="info" className="mt-3">
+          <Notice tone="info" className="mt-3 measure">
             <span className="inline-flex items-center gap-2">
               <Shield className="h-4 w-4" aria-hidden /> Advisory mode. The votes and the tally are shown, and Sera.cx stewards settle this claim.
             </span>
