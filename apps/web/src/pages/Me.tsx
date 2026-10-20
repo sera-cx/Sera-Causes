@@ -98,15 +98,15 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
           {displayName} <span className="font-mono text-[16px] font-normal text-ink-muted tnum align-middle">{me.wallet.slice(0, 6)}…{me.wallet.slice(-4)}</span>
         </h1>
         <p className="mt-2 measure text-[15.5px] text-ink-muted">
-          One balance with{" "}
+          Giving earns gSera, the same balance you carry on{" "}
           <a href={LINKS.gsera} target="_blank" rel="noopener noreferrer" className="text-sera-text underline underline-offset-2">
             g.sera.cx
           </a>
-          . gSera earned from giving cannot buy Lucky Draw tickets. Helping earns Care XP on {COMMUNITY_SITE} instead, which is a standing and not a balance.
+          . Helping earns Care XP on {COMMUNITY_SITE} instead, which is a standing rather than a balance.
         </p>
       </div>
 
-      <GreenField className="mt-8" kicker="gSera balance, from giving" title="Spend it, stake it, keep your rank.">
+      <GreenField className="mt-8" kicker="gSera balance, from giving" title="What you have earned by giving.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <GfCard label="Spendable" ticker="gSera" figure={fmtInt(spendable)} meta={m ? [{ label: "volume tier", value: fmtMultiplier(m.volumeTier) }, { label: "streak", value: fmtMultiplier(m.streak) }] : [{ label: "staked", value: fmtInt(Math.abs(me.ledger.staked)) }]} />
           <GfCard label="From giving" ticker="Charity-tagged" figure={fmtInt(charityTagged)} meta={[{ label: "of everything credited", value: me.ledger.credited ? `${Math.round((charityTagged / me.ledger.credited) * 100)}%` : "0%" }]} tab="#59E39A" />

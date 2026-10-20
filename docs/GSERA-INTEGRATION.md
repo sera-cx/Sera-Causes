@@ -284,12 +284,21 @@ path rather than widening the existing one. For a well-formed address gSera
 has never seen, return zeros and default multipliers (1.0 each,
 `heat_index: null`) rather than 404: a first-time donor is the common case.
 
-## 4. `source` tag on grants, and the Lucky Draw rule
+## 4. `source` tag on grants, and the draw rule
+
+**The Lucky Draw is retired**, so the rule below changes nothing today. It is
+worth keeping for two reasons: the `source` tag is what makes gSera earned by
+giving legible as such, separately from gSera earned by trading, and if a draw
+or anything like it ever returns, "give to charity, win a prize" is a problem
+nobody should have to remember to prevent. The rule is a latch, not a feature.
 
 Brief section 6.6, option 1: "Charity gSera goes back to charity." gSera
-earned from gifts and helping can be spent on boosts and challenges but not
-on Lucky Draw tickets. This keeps "give to charity, win in a draw" off the
-table and keeps CSD clear of gaming and lottery rules.
+earned from gifts and helping must never buy a draw ticket, which keeps Care
+Share Donate clear of gaming and lottery rules.
+
+Care Share Donate itself does not rely on this. On that side gSera has one
+use, staking an objection to a check, and the user-facing copy no longer
+mentions a draw or spending on g.sera.cx.
 
 ### 4.1 Schema
 

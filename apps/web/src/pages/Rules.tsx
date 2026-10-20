@@ -104,7 +104,10 @@ export function RulesPage() {
             the gift, not the swap.
           </p>
           <h3>Charity gSera</h3>
-          <p>gSera earned from a gift is tagged by where it came from. You can spend it on g.sera.cx and stake it on a challenge, but it cannot buy Lucky Draw tickets. Spending never lowers your lifetime rank.</p>
+          <p>
+            gSera earned from a gift is tagged by where it came from, so it is always clear what was earned by giving. On this site it has one use: staking it to object to a check you believe is wrong.
+            Staking never lowers your lifetime rank, and an objection that is upheld returns the stake with more on top.
+          </p>
           <h3>Stopping people gaming it</h3>
           <ul>
             <li>A wallet linked to a cause's owner or its payout wallet earns no gSera on that cause. Linked means the same address, funded straight from it within 30 days, or grouped with it by Sera.cx screening.</li>

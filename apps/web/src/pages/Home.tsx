@@ -384,15 +384,15 @@ function HowGseraWorks() {
   const steps = [
     { n: "01", title: "Give to a cause", body: "Give in stablecoins to any cause on the list, either from this site or straight to the cause's own address." },
     { n: "02", title: "Earn gSera", body: `${fmtInt(GSERA.perUsd)} gSera for every US$1, the same rate as a swap on Sera.cx. It reaches your wallet as soon as the gift arrives.` },
-    { n: "03", title: "Use it, keep your rank", body: "Spend it on g.sera.cx, or stake it to challenge a check you think is wrong. gSera earned from giving goes back to charity and never into the Lucky Draw." },
+    { n: "03", title: "Use it to keep us honest", body: "On this site gSera does one job: stake it to object to a check you think is wrong. Get it right and you earn it back with more. Giving never costs you your standing." },
   ];
   return (
     <section className="border-t border-rule bg-paper-warm" aria-labelledby="gsera-heading">
       <div className="container py-12 md:py-16">
         <SectionHeader
           kicker="How gSera works"
-          title={<span id="gsera-heading">One balance with g.sera.cx.</span>}
-          lede="gSera is the reward points balance you share with the rest of Sera.cx. Giving earns it."
+          title={<span id="gsera-heading">Giving earns you gSera.</span>}
+          lede="gSera is how Sera.cx recognises what you give. It is the same balance you carry everywhere else on Sera.cx, so giving here counts the same as trading there."
           action={
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
