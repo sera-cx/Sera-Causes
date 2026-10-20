@@ -247,7 +247,12 @@ export interface CauseList {
 }
 
 export interface CauseFilters {
-  cat?: string;
+  /**
+   * Category slugs, as a union: a cause in any one of them is kept. An empty
+   * list means every category. The API route takes one category at a time,
+   * so a union of several is narrowed in the browser (see listCauses).
+   */
+  cat?: string[];
   /** Malaysian state name; filtered on the client. */
   state?: string;
   status?: CauseStage | "";

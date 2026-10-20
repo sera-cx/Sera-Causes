@@ -233,12 +233,21 @@ async function hashFile(file: File): Promise<Hex> {
 export const getStats = (): Promise<StatsResponse> => (USING_MOCK ? mock.getStats() : http("/stats"));
 export const getHome = (): Promise<HomeData> => (USING_MOCK ? mock.getHome() : http("/home"));
 
-/** The API filters by category, stage, text and sorts by activity, newest or given; state and the other sorts are applied here. */
+/** The API filters by category, stage, text and sorts by activity, newest or given; state, several categories and the other sorts are applied here. */
 export async function listCauses(f: CauseFilters = {}): Promise<CauseView[]> {
   if (USING_MOCK) return mock.listCauses(f);
   const apiSort = f.sort === "activity" || f.sort === "newest" || f.sort === "given" ? f.sort : "activity";
-  const { causes } = await http<CauseList>(`/causes${qs({ cat: f.cat, state: f.status || undefined, q: f.q, sort: apiSort, limit: 200 })}`);
+  const cats = f.cat ?? [];
+  // GET /api/v1/causes takes a single `cat`, so one chosen category is
+  // filtered by the API. A union of several is fetched unfiltered and
+  // narrowed here, which is safe at this size because the route is capped at
+  // 200 causes anyway.
+  // TODO: teach GET /api/v1/causes (indexer, the /causes read route) to take
+  // a list of categories, repeated or comma separated, and drop the client
+  // side pass below.
+  const { causes } = await http<CauseList>(`/causes${qs({ cat: cats.length === 1 ? cats[0] : undefined, state: f.status || undefined, q: f.q, sort: apiSort, limit: 200 })}`);
   let list = causes;
+  if (cats.length > 1) list = list.filter((c) => cats.includes(c.category));
   if (f.state) list = list.filter((c) => c.profile?.location.state === f.state || (f.state !== "Nationwide" && !!c.profile?.location.state.includes(f.state!)));
   if (f.sort === "checks") list = [...list].sort((a, b) => b.checksDone / Math.max(1, b.checksTotal) - a.checksDone / Math.max(1, a.checksTotal) || Number(b.givenUsd) - Number(a.givenUsd));
   if (f.sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));

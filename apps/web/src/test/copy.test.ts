@@ -95,6 +95,15 @@ describe("the measure", () => {
     expect(css).toMatch(/--measure-lede:\s*\d+ch/);
   });
 
+  /* A standfirst is one to three lines under a big headline, scanned rather
+     than read, so it may run wider than body copy. It used to be narrower,
+     which wrapped a short page introduction early and left a hole beside it. */
+  it("gives the lede a wider cap than the body", () => {
+    const body = Number(/--measure:\s*(\d+)ch/.exec(css)?.[1]);
+    const lede = Number(/--measure-lede:\s*(\d+)ch/.exec(css)?.[1]);
+    expect(lede).toBeGreaterThan(body);
+  });
+
   it("exposes it as utilities rather than a per-page max-width", () => {
     expect(css).toContain("@utility measure");
     expect(css).toContain("@utility measure-lede");

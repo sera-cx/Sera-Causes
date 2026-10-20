@@ -17,6 +17,20 @@ describe("mock world built from the seed, in the API's shapes", () => {
     expect(DEMO_WALLET).toBe("0x95ced938f7991cd0dfcb48f0a06a40fa1af46ebc");
   });
 
+  /** The category filter is a union: a cause in any chosen category is kept, and none chosen means all. */
+  it("filters by one category, by several at once, and by none", async () => {
+    const all = await api.listCauses({});
+    const turtles = await api.listCauses({ cat: ["turtles"] });
+    const marine = await api.listCauses({ cat: ["marine"] });
+    const both = await api.listCauses({ cat: ["turtles", "marine"] });
+    expect(turtles.length).toBeGreaterThan(0);
+    expect(marine.length).toBeGreaterThan(0);
+    expect(turtles.every((c) => c.category === "turtles")).toBe(true);
+    expect(both).toHaveLength(turtles.length + marine.length);
+    expect(both.every((c) => c.category === "turtles" || c.category === "marine")).toBe(true);
+    expect(await api.listCauses({ cat: [] })).toHaveLength(all.length);
+  });
+
   it("verifies free-tree-society and make-a-wish-malaysia with C1 to C4 and the C5 badge", async () => {
     for (const id of [14, 25]) {
       const c = (await api.getCause(id))!;

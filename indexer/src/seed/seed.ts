@@ -59,16 +59,19 @@ const tx = (s: string) => keccak256(toBytes(`seed:${s}`));
 
 export function needsFor(m: CauseProfile): { kind: string; title: string; detail: string }[] {
   const where = m.location.town || m.location.state;
+  // A help request is the organisation asking for something it needs, because
+  // the organisation is the one that listed the cause. It is not a stranger
+  // being asked to track the charity down.
   if (m.slug.startsWith('kasih')) {
     return [
-      { kind: 'intro', title: 'Confirm who runs Kasih', detail: 'Know the team at the Chendor hatchery? Connect us so they can claim this listing and send their registration certificate.' },
-      { kind: 'visit', title: 'Film a release night', detail: 'Visit Pantai Chendor at dusk during a hatchling release and post a dated video or photos.' },
-      { kind: 'translate', title: 'Translate this profile', detail: 'Bahasa Malaysia, Chinese or Tamil.' },
+      { kind: 'visit', title: 'Come to a release night', detail: 'Join us at Pantai Chendor at dusk when the hatchlings go out, and post a dated photo or video. It helps others see the work is real.' },
+      { kind: 'translate', title: 'Translate our profile', detail: 'Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are.' },
+      { kind: 'items', title: 'Hatchery baskets', detail: 'We need baskets for the hatchery each season. Tell us if you can supply or pay for some.' },
     ];
   }
   return [
-    { kind: 'intro', title: `Introduce us to ${m.name}`, detail: 'Know someone there? Connect us so they can claim this listing and send their documents.' },
-    { kind: 'visit', title: `Visit and confirm in ${where}`, detail: 'Post a dated photo or note showing the work is active. It becomes a public attestation.' },
+    { kind: 'visit', title: `Visit us in ${where}`, detail: 'Come and see the work, then post a dated photo or a short note. It helps others check that we are real.' },
+    { kind: 'translate', title: 'Translate our profile', detail: 'Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are.' },
   ];
 }
 

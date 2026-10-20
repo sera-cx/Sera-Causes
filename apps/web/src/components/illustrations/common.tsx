@@ -94,7 +94,10 @@ export function Figure({
       )}
     >
       <div className={cn("mx-auto w-full", cap)}>{children}</div>
-      {caption && <figcaption className="mx-auto mt-5 max-w-[46ch] text-center font-mono text-[11px] leading-[1.5] uppercase tracking-[0.1em] text-ink-muted">{caption}</figcaption>}
+      {/* The caption takes the width of the drawing it belongs to, not a
+          reading measure. It is one short line of mono uppercase, so a cap
+          of its own only broke it over two lines under a far wider figure. */}
+      {caption && <figcaption className={cn("mx-auto mt-5 w-full text-balance text-center font-mono text-[11px] leading-[1.5] uppercase tracking-[0.1em] text-ink-muted", cap)}>{caption}</figcaption>}
     </figure>
   );
 }

@@ -83,11 +83,15 @@
      is set: use the `measure` and `measure-lede` utilities, never a
      per-page max-width.
      `ch` is the width of a zero, about 1.27x the average letter in IBM Plex
-     Sans, so 57ch measures at about 72 characters on screen and 52ch, used
-     for the larger standfirst, at about 66. Both were measured in the
-     browser, not guessed. */
+     Sans, so 57ch measures at about 72 characters on screen. Both caps were
+     measured in the browser, not guessed.
+     The lede is wider than the body, not narrower. A standfirst is one to
+     three lines under a big headline, which is scanned rather than read, so
+     the strict reading measure only makes it wrap early and leaves a hole
+     beside it on a monitor. 68ch lands at about 86 characters. Long prose
+     keeps the 57ch body measure. */
   --measure: 57ch;
-  --measure-lede: 52ch;
+  --measure-lede: 68ch;
 
   /* Brand palette from sera.cx/brand */
   --paper: #FFFFFF;
@@ -338,7 +342,11 @@
   .prose-csd a { color: var(--sera-text); text-decoration: underline; text-underline-offset: 3px; }
   .prose-csd table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 15px; }
   .prose-csd th, .prose-csd td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  .prose-csd th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-subtle); }
+  /* A header is two or three words of small mono. It stays on one line and
+     the column takes the width it needs, which the body cells, which are
+     prose, can give up. A table that still will not fit scrolls inside
+     `.table-scroll` rather than pushing the page sideways. */
+  .prose-csd th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-subtle); white-space: nowrap; }
   .prose-csd td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 }
 

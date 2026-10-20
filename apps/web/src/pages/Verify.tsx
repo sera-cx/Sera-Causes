@@ -245,7 +245,11 @@ function SidePanel() {
       </div>
       <div className="rounded-2xl border border-rule bg-card p-5">
         <Eyebrow>Path template</Eyebrow>
-        <dl className="mt-3 space-y-1.5 text-[13px]">
+        {/* The panel is about 300px wide. Splitting it again into a 120px
+            label and a 170px value broke nearly every line of both columns
+            in two, so the label sits above its value and each one gets the
+            full width of the panel. */}
+        <dl className="mt-3 space-y-2.5 text-[13px]">
           {[
             ["Claim", "C1: The organisation exists and is registered"],
             ["Source", "Registrar of Societies public search"],
@@ -259,7 +263,7 @@ function SidePanel() {
             ["Caveats", "What the source does not show"],
             ["Conflict of interest", "None, or say what it is"],
           ].map(([k, v]) => (
-            <div key={k} className="grid grid-cols-[120px_1fr] gap-2">
+            <div key={k}>
               <dt className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-subtle">{k}</dt>
               <dd className="text-ink-muted">{v}</dd>
             </div>

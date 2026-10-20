@@ -12,7 +12,10 @@ export function GreenField({ children, className, title, kicker, footer = true }
         {(kicker || title) && (
           <div className="mb-6 md:mb-8">
             {kicker && <div className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[#06120C]">{kicker}</div>}
-            {title && <h2 className="mt-1.5 font-display text-[26px] sm:text-[32px] md:text-[38px] font-bold leading-[1.05] tracking-[-0.03em] text-[#06120C] max-w-[18ch]">{title}</h2>}
+            {/* No character cap on the headline: these titles are six or
+                seven words and were breaking over two lines on a monitor
+                with the whole container free beside them. */}
+            {title && <h2 className="mt-1.5 font-display text-[26px] sm:text-[32px] md:text-[38px] font-bold leading-[1.05] tracking-[-0.03em] text-balance text-[#06120C]">{title}</h2>}
           </div>
         )}
         {children}

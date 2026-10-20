@@ -13,7 +13,11 @@ const buttonVariants = cva(
         give: "bg-give text-give-foreground hover:opacity-90",
         outline: "border border-ink/30 bg-transparent text-ink hover:bg-ink/5",
         ghost: "bg-transparent text-ink hover:bg-ink/5",
-        link: "text-sera-text underline-offset-4 hover:underline rounded-none px-0 h-auto",
+        // A link is a run of text, not a pill, so it may wrap. A long one
+        // ("All the sharing tools, the website button and the poster") ran
+        // off the side of a 360px screen while the pill variants, which are
+        // short by design, keep their nowrap.
+        link: "text-sera-text underline-offset-4 hover:underline rounded-none px-0 h-auto whitespace-normal text-left",
       },
       size: {
         default: "h-11 px-5 text-[15px]",

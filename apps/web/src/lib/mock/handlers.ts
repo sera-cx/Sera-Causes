@@ -158,7 +158,7 @@ export async function listCauses(f: CauseFilters = {}): Promise<CauseView[]> {
   await delay();
   const w = getWorld();
   let list = w.causes.slice();
-  if (f.cat) list = list.filter((c) => c.category === f.cat);
+  if (f.cat?.length) list = list.filter((c) => f.cat!.includes(c.category));
   if (f.state) list = list.filter((c) => c.profile?.location.state === f.state || (f.state !== "Nationwide" && !!c.profile?.location.state.includes(f.state!)));
   if (f.status) list = list.filter((c) => c.stage === f.status);
   if (f.q) {

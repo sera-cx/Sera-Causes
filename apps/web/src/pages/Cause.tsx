@@ -143,7 +143,14 @@ export function CausePage() {
         </div>
       </section>
 
-      <div className="container grid gap-10 py-10 lg:grid-cols-[1fr_380px] lg:gap-14 lg:py-14">
+      {/* Two columns only for as long as there is something in both of them.
+          The trust card runs about as deep as the story at the top of the
+          page, so those two sit side by side; everything after it is a list,
+          a table or a record, and those take the full container below. The
+          old layout kept the whole page in a 664px column and left a dead
+          380px band down the right of five sections. Prose inside the wide
+          sections is still capped by `measure`, so no line gets longer. */}
+      <div className="container grid gap-10 pt-10 lg:grid-cols-[1fr_380px] lg:gap-14 lg:pt-14">
         {/* Trust card: straight under the hero on a phone, sticky in the
             narrow right-hand column on a wide screen. It is first in the
             source so a phone and a screen reader meet it before the story,
@@ -160,22 +167,25 @@ export function CausePage() {
           <LiveBlock cause={cause} />
           <WhatTheyDo cause={cause} />
           <HelpSection cause={cause} />
-          <Organisation cause={cause} />
-          {cause.media.length > 0 && (
-            <Section id="media" title="Photos and video" lede="Posted by the organisation. A video only loads when you ask for it.">
-              <MediaGallery items={cause.media} />
-            </Section>
-          )}
-          <Updates cause={cause} />
-          <Record cause={cause} />
-          <Sources cause={cause} />
-          <Section id="share" title="Share this cause" lede="A link with a preview card, a button for any website, and a printable poster with a QR code.">
-            <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} size="md" />
-            <Button asChild variant="link" className="mt-3">
-              <Link href={`/c/${cause.id}/share`}>All the sharing tools, the website button and the poster</Link>
-            </Button>
-          </Section>
         </div>
+      </div>
+
+      <div className="container space-y-12 pb-10 pt-12 lg:pb-14">
+        <Organisation cause={cause} />
+        {cause.media.length > 0 && (
+          <Section id="media" title="Photos and video" lede="Posted by the organisation. A video only loads when you ask for it.">
+            <MediaGallery items={cause.media} />
+          </Section>
+        )}
+        <Updates cause={cause} />
+        <Record cause={cause} />
+        <Sources cause={cause} />
+        <Section id="share" title="Share this cause" lede="A link with a preview card, a button for any website, and a printable poster with a QR code.">
+          <ShareButtons causeId={cause.id} slug={cause.slug} name={cause.name} size="md" />
+          <Button asChild variant="link" className="mt-3">
+            <Link href={`/c/${cause.id}/share`}>All the sharing tools, the website button and the poster</Link>
+          </Button>
+        </Section>
       </div>
     </article>
   );
@@ -452,7 +462,7 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
                 <div className="mt-3">
                   {h.state === "open" ? (
                     ONCHAIN_ONLY ? (
-                      <span className="text-[13px] text-ink-muted">Offer to help from your own wallet on the registry (pledgeHelp #{h.id}).</span>
+                      <span className="text-[13px] text-ink-muted">Offer from your own wallet. Your offer is recorded in public, so the organisation can see it and reply.</span>
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => void onHelp(h)} disabled={busy === h.id}>
                         {busy === h.id ? "Saving" : "I can help"}
@@ -492,9 +502,13 @@ function Organisation({ cause }: { cause: CauseDetail }) {
   ];
   return (
     <Section id="organisation" title="Organisation" lede="Organisation contacts only. Nothing about private people goes on the record.">
-      <dl className="divide-y divide-rule border-y border-rule">
+      {/* Ten short pairs. In one column across the full container each value
+          sat on a line of its own with most of the width empty, so they run
+          in two columns from lg, five pairs each. Each row carries its own
+          rule, which keeps the two columns reading as two lists. */}
+      <dl className="grid border-t border-rule lg:grid-cols-2 lg:gap-x-12">
         {rows.map(([k, v]) => (
-          <div key={k} className="grid gap-1 py-2.5 sm:grid-cols-[180px_1fr]">
+          <div key={k} className="grid gap-1 border-b border-rule py-2.5 sm:grid-cols-[180px_1fr]">
             <dt className="eyebrow">{k}</dt>
             <dd className="text-[14.5px] leading-snug">{v}</dd>
           </div>

@@ -1,12 +1,12 @@
 /* Top navigation, restrained and left-anchored, after sera.cx's Nav.tsx.
    Links: Causes, Verify, Add a cause, Technology. Signed in: Dashboard.
-   Right: the connected wallet as a short address, the gSera chip and Sign in.
+   Right: the gSera chip, which opens /me, and Sign in.
    With no sign-in configured there is no Sign in button at all. Mobile:
    hamburger. */
 import { LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { shortAddress, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { fmtInt } from "@/lib/format";
 import { useMe } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -77,11 +77,11 @@ export function Nav() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {user && (
-            <span className="hidden sm:inline-flex h-9 min-h-11 items-center rounded-full border border-rule px-3 font-mono text-[12.5px] text-ink-muted lg:min-h-9" title={user.displayName}>
-              {shortAddress(user.wallet)}
-            </span>
-          )}
+          {/* The wallet address used to sit here as a pill. Once signed in the
+              row carries the wordmark, five links, the gSera pill and sign
+              out, and the address ran into the Dashboard link between about
+              1024 and 1200px. It is the least useful of them, because the
+              full address is on /me, which the gSera pill opens. */}
           {user && (
             <Link href="/me" className="inline-flex h-9 min-h-11 items-center gap-2 rounded-full border border-rule bg-paper-warm px-3 font-mono text-[12.5px] tnum text-ink hover:border-ink/40 lg:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={gsera !== null ? `${fmtInt(gsera)} gSera, open My gSera` : "My gSera"}>
               <span className="h-1.5 w-1.5 rounded-full bg-sera" aria-hidden />

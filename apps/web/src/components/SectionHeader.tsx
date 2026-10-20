@@ -31,9 +31,11 @@ export function SectionHeader({
   return (
     <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}>
       {/* The headline may run wider than the measure because display type is
-          scanned, not read. The lede is running prose, so it takes the
-          shared lede measure. */}
-      <div className="min-w-0 max-w-[60ch]">
+          scanned, not read, and so may the lede: a page introduction of one
+          to three lines is not long-form reading. The cap here only stops a
+          headline from running the whole 1100px of the container, and it is
+          wide enough to leave the lede measure in charge of the lede. */}
+      <div className="min-w-0 max-w-[46rem]">
         {kicker && <Eyebrow className="mb-3">{kicker}</Eyebrow>}
         <Heading id={id} className={cn("font-display font-semibold tracking-[-0.025em]", h)}>
           {title}
