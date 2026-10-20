@@ -67,29 +67,46 @@ only one hostname is needed.
 
 ## Deploys
 
-`.github/workflows/deploy.yml` runs every package's check and test, then SSHes
-to the box, resets to `origin/main`, tags the current images for rollback and
-runs `docker compose up -d --build`. It waits for `/health` and fails the run
-if the API does not come up.
+The server pulls; CI never reaches the server.
 
-A pull request runs the checks only and never touches the server.
+`.github/workflows/checks.yml` runs every package's check and test on a
+GitHub-hosted runner, on pushes to `main` and on pull requests. That is all it
+does. It has no access to the box and holds no deployment secrets.
 
-### Secrets the workflow needs
+Deployment is triggered by a webhook on the server, which runs the same update
+by hand or on a push event:
 
-| Secret | What |
-| --- | --- |
-| `DEPLOY_HOST` | the box |
-| `DEPLOY_USER` | ssh user |
-| `DEPLOY_SSH_KEY` | private key for that user |
-| `DEPLOY_PORT` | ssh port, defaults to 22 |
-| `CAUSES_DEPLOY_PATH` | absolute path of the checkout on the box |
+```bash
+cd /path/to/Sera-Causes
+git fetch origin main
+git reset --hard origin/main
+docker compose up -d --build
+curl -fsS http://127.0.0.1:3001/health
+```
 
-The first four are the same names sera.cx uses. The path is separate so the
-two deployments cannot overwrite each other.
+### Why there is no self-hosted runner
 
-The deploy job runs on a `self-hosted` runner, matching sera.cx. If this
-repository has no runner attached, either attach one or change `runs-on` to
-`ubuntu-latest` and open the box's ssh port to GitHub.
+This repository is public. A self-hosted runner attached to a public
+repository lets anyone who opens a pull request run code on that machine, with
+whatever credentials it holds, and the runner persists between jobs, so
+anything they leave behind stays. GitHub's own guidance is to use self-hosted
+runners only with private repositories. The webhook keeps the trigger on the
+server's side of the fence.
+
+### Securing the webhook
+
+Whatever receives the hook is a remote code execution endpoint, so treat it as
+one:
+
+- Verify GitHub's `X-Hub-Signature-256` HMAC against a webhook secret on every
+  request, and compare in constant time. Reject anything unsigned.
+- Act only on `push` events whose ref is exactly `refs/heads/main`, and ignore
+  every other event and branch.
+- Never pass any field from the payload into a shell command. The update is a
+  fixed script that takes no arguments.
+- Run it as a user that can do the deploy and nothing else, and rate limit it
+  so a flood of pushes cannot queue a hundred rebuilds.
+- Log every invocation with the commit it deployed.
 
 ## Rollback
 
