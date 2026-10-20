@@ -19,6 +19,7 @@ import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
 import { ROUTE_SEO } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import { causeListSchema, organizationSchema, websiteSchema } from "@/lib/seoSchemas";
 import type { HomeData } from "@/lib/types";
 
@@ -29,10 +30,15 @@ const HERO_IMAGE = {
   licence: "Supplied",
 };
 
+/** How many causes the home page shows before sending you to /causes. */
+const HOME_FEED_LIMIT = 6;
+
 export function HomePage() {
   useSeo(ROUTE_SEO.home);
   const home = useHome();
   const data = home.data;
+  // Only once the data has arrived, so the page does not flip layout mid-load.
+  const empty = data?.stats.causes === 0;
   useJsonLdMany([
     { id: "organization", node: organizationSchema() },
     { id: "website", node: websiteSchema() },
@@ -41,19 +47,27 @@ export function HomePage() {
 
   return (
     <>
-      <Hero />
+      <Hero empty={empty} />
       {data?.urgent && <UrgentAppeal urgent={data.urgent} />}
       <NumbersStrip stats={data?.stats} />
-      <Feed query={home} />
-      <NewRail data={data} />
-      <BrowseBy data={data} />
+      {/* Nothing listed yet: the hero already asks organisations to list, so a
+          list of nothing, a rail of nothing and a row of empty categories only
+          repeat it. /causes keeps its own empty state for anyone who goes
+          looking. */}
+      {!empty && (
+        <>
+          <Feed query={home} />
+          <NewRail data={data} />
+          <BrowseBy data={data} />
+        </>
+      )}
       <HelpWithoutMoney />
       <HowGseraWorks />
     </>
   );
 }
 
-function Hero() {
+function Hero({ empty }: { empty: boolean }) {
   return (
     <section className="relative overflow-hidden border-b border-rule">
       <img src="/brand/mark/sera-mark-color.svg" alt="" aria-hidden className="pointer-events-none absolute -right-16 -top-10 h-[420px] w-auto opacity-[0.045] select-none hidden md:block" />
@@ -61,22 +75,57 @@ function Hero() {
         <div className="rise-in">
           <Eyebrow>Care. Share. Donate.</Eyebrow>
           <h1 className="mt-4 font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
-            Give to the causes <em>you</em> care about.
+            {empty ? (
+              <>
+                Giving to Malaysian charities, <em>in the open</em>.
+              </>
+            ) : (
+              <>
+                Give to the causes <em>you</em> care about.
+              </>
+            )}
           </h1>
-          <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
-            Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. You give in stablecoins, which are digital money that holds a steady value, and the gift goes
-            straight to the charity.
-          </p>
-          <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">You can also help check a charity, and anyone can see where every gift went.</p>
+          {empty ? (
+            <>
+              <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
+                We are building one open list of Malaysian charities. A charity lists itself and sets its own address for money. You give in stablecoins, which are digital money that holds a steady
+                value, and the gift goes straight there. Nothing is held back.
+              </p>
+              <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">
+                Anyone can help check a charity, and anyone can read every gift, check and update. The list is empty today, so we are looking for the first charities to join.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
+                Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. You give in stablecoins, which are digital money that holds a steady value, and the gift
+                goes straight to the charity.
+              </p>
+              <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">You can also help check a charity, and anyone can see where every gift went.</p>
+            </>
+          )}
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/causes">
-                <Search className="h-4 w-4" aria-hidden /> Find a cause
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/rules#verification">How we check charities</Link>
-            </Button>
+            {empty ? (
+              <>
+                <Button asChild size="lg">
+                  <Link href="/add">List your cause</Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/technology">How it works</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild size="lg">
+                  <Link href="/causes">
+                    <Search className="h-4 w-4" aria-hidden /> Find a cause
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/rules#verification">How we check charities</Link>
+                </Button>
+              </>
+            )}
           </div>
           <p className="mt-6 measure text-[13.5px] leading-[1.5] text-ink-subtle">{TRIAL.home}</p>
         </div>
@@ -137,16 +186,49 @@ function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
 }
 
 function NumbersStrip({ stats }: { stats?: HomeData["stats"] }) {
-  const givenUsd = Number(stats?.givenUsd ?? 0);
-  const showGiven = givenUsd >= 1000;
+  // A wall of zeros says less than no wall at all, so each card has to earn
+  // its place and the band only appears once at least two of them have.
+  if (!stats) return null;
+  const givenUsd = Number(stats.givenUsd ?? 0);
+  const cards = [
+    stats.causes > 0 && (
+      <GfCard
+        key="causes"
+        label="Causes listed"
+        ticker="Malaysia"
+        figure={fmtInt(stats.causes)}
+        meta={[
+          { label: "verified", value: fmtInt(stats.verified) },
+          { label: "givers", value: fmtInt(stats.givers) },
+        ]}
+      />
+    ),
+    stats.verified > 0 && (
+      <GfCard key="verified" label="Verified" ticker="All required checks done" figure={fmtInt(stats.verified)} meta={[{ label: "of", value: fmtInt(stats.causes) }]} tab="#00E676" />
+    ),
+    givenUsd >= 1000 && (
+      <GfCard
+        key="given"
+        label="Given so far"
+        ticker="Stablecoins"
+        figure={fmtCompactUsd(givenUsd)}
+        meta={[
+          { label: "about", value: fmtRm(givenUsd) },
+          { label: "givers", value: fmtInt(stats.givers) },
+        ]}
+        tab="#59E39A"
+      />
+    ),
+    stats.helpers > 0 && (
+      <GfCard key="helpers" label="Helpers" ticker="Checks written" figure={fmtInt(stats.helpers)} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per check` }]} tab="#FFFFFF" />
+    ),
+  ].filter(Boolean);
+
+  if (cards.length < 2) return null;
+
   return (
     <GreenField kicker="Care Share Donate" title="Every gift, every check, in the open." footer={false} className="border-b border-rule">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-busy={!stats}>
-        <GfCard label="Causes listed" ticker="Malaysia" figure={stats ? fmtInt(stats.causes) : "…"} meta={[{ label: "verified", value: stats ? fmtInt(stats.verified) : "" }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} />
-        <GfCard label="Verified" ticker="All required checks done" figure={stats ? fmtInt(stats.verified) : "…"} meta={[{ label: "of", value: stats ? fmtInt(stats.causes) : "" }]} tab="#00E676" />
-        {showGiven && <GfCard label="Given so far" ticker="Stablecoins" figure={stats ? fmtCompactUsd(givenUsd) : "…"} meta={[{ label: "about", value: fmtRm(givenUsd) }, { label: "givers", value: stats ? fmtInt(stats.givers) : "" }]} tab="#59E39A" />}
-        <GfCard label="Helpers" ticker="Checks written" figure={stats ? fmtInt(stats.helpers) : "…"} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per check` }]} tab="#FFFFFF" />
-      </div>
+      <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", cards.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>{cards}</div>
     </GreenField>
   );
 }
@@ -176,17 +258,45 @@ function Feed({ query }: { query: ReturnType<typeof useHome> }) {
           ))}
         </div>
       ) : data && data.feed.length === 0 ? (
-        <Empty className="mt-8" title="No causes on the list yet" body="This is a new site, so the list starts empty. If you run a charity in Malaysia, yours could be the first on it.">
-          <Button asChild>
-            <Link href="/add">List your cause</Link>
-          </Button>
-        </Empty>
+        // Nothing here means one of two different things, and saying the wrong
+        // one is worse than saying nothing: the site may have no causes at
+        // all, or it may have plenty that simply have not chosen the home page.
+        data.stats.causes > 0 ? (
+          <Empty className="mt-8" title="No cause has chosen the home page yet" body="A charity decides whether its cause shows here. They are all on the causes page.">
+            <Button asChild variant="outline">
+              <Link href="/causes">
+                See all {fmtInt(data.stats.causes)} causes <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </Button>
+          </Empty>
+        ) : (
+          <Empty className="mt-8" title="No causes on the list yet" body="This is a new site, so the list starts empty. If you run a charity in Malaysia, yours could be the first on it.">
+            <Button asChild>
+              <Link href="/add">List your cause</Link>
+            </Button>
+          </Empty>
+        )
       ) : (
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {data?.feed.map((c) => (
-            <CauseCard key={c.id} cause={c} />
-          ))}
-        </div>
+        <>
+          {/* A taste, not the whole list: /causes is where you browse and
+              filter. Six fills two rows of three and one of two on a tablet. */}
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {data?.feed.slice(0, HOME_FEED_LIMIT).map((c) => (
+              <CauseCard key={c.id} cause={c} />
+            ))}
+          </div>
+          {/* The count is every cause on the site, not just the ones that chose
+              the home page, because that is what /causes will show you. */}
+          {(data?.stats.causes ?? 0) > HOME_FEED_LIMIT && (
+            <div className="mt-8">
+              <Button asChild variant="outline" size="lg">
+                <Link href="/causes">
+                  See all {fmtInt(data!.stats.causes)} causes <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
