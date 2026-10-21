@@ -104,25 +104,26 @@ export interface Helper {
   wallet: Address;
   reputation: number;
   acceptedPaths: number;
-  helpFulfilled: number;
   /** Paths accepted in the last 30 days. */
   recentPaths: number;
 }
 
-const HELPER_SEEDS: [Address, number, number, number, number][] = [
-  ["0x8c1d9f3b7a2e4c6d8e0f1a3b5c7d9e1f2a4b6c8d", 14, 18, 3, 6],
-  ["0x3f9a71bc2d4e6f8a9b0c1d2e3f4a5b6c7d8e9f0a", 9, 11, 1, 4],
-  ["0xa7b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0", 6, 7, 2, 3],
-  ["0x1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f", 4, 5, 0, 2],
-  ["0x9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e", 3, 3, 4, 1],
-  ["0x6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c", 2, 2, 1, 2],
-  ["0xc4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3", 1, 1, 0, 1],
-  ["0xe2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1", 0, 0, 1, 0],
-  ["0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b", 7, 8, 0, 2],
-  ["0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c", 5, 6, 2, 3],
+/* Confirmed help requests used to sit here too, because they used to earn XP.
+   They earn a badge now, and badges are not ranked, so the board is checks. */
+const HELPER_SEEDS: [Address, number, number, number][] = [
+  ["0x8c1d9f3b7a2e4c6d8e0f1a3b5c7d9e1f2a4b6c8d", 14, 18, 6],
+  ["0x3f9a71bc2d4e6f8a9b0c1d2e3f4a5b6c7d8e9f0a", 9, 11, 4],
+  ["0xa7b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0", 6, 7, 3],
+  ["0x1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f", 4, 5, 2],
+  ["0x9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e", 3, 3, 1],
+  ["0x6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c", 2, 2, 2],
+  ["0xc4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3", 1, 1, 1],
+  ["0xe2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1", 0, 0, 0],
+  ["0x7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b", 7, 8, 2],
+  ["0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c", 5, 6, 3],
 ];
 
-export const HELPERS: Helper[] = HELPER_SEEDS.map(([wallet, reputation, acceptedPaths, helpFulfilled, recentPaths]) => ({ wallet, reputation, acceptedPaths, helpFulfilled, recentPaths }));
+export const HELPERS: Helper[] = HELPER_SEEDS.map(([wallet, reputation, acceptedPaths, recentPaths]) => ({ wallet, reputation, acceptedPaths, recentPaths }));
 
 const GIVER_WALLETS: Address[] = Array.from({ length: 18 }, (_, i) => fakeAddress(5000 + i));
 
@@ -798,7 +799,7 @@ export function buildWorld(): MockWorld {
   return { causes, evidence, paths, votes, challenges, record, gifts, ledger, xpEvents, reputation, shares, pathsOpened: new Set(), nextId: seq + 1 };
 }
 
-/** The demo wallet's own history: two gifts, a swap, a held vote, three agreed paths. */
+/** The demo wallet's own history: two gifts, a swap, a held vote, three agreed paths, one confirmed help request. */
 function seedDemoWallet(causes: CauseDetail[], gifts: GiftView[], ledger: LedgerView[], xpEvents: XpEventView[], paths: PathView[], votes: VoteView[], nextSeq: () => number): void {
   const mercy = causes.find((c) => c.slug === "mercy-malaysia")!;
   const hospis = causes.find((c) => c.slug === "hospis-malaysia")!;
@@ -847,6 +848,20 @@ function seedDemoWallet(causes: CauseDetail[], gifts: GiftView[], ledger: Ledger
   for (const p of paths.filter((p) => p.author === DEMO_WALLET)) xpEvents.push(xpEvent("care_path_agreed", p.id, p.causeId, p.createdAt));
   ledger.push(entry(g1, "gift", "charity", gift1.id, mercy.id, "credited", g1At, { heat: GSERA.heat.urgent, volumeTier: multipliers.volumeTier, streak: multipliers.streak, compound: GSERA.heat.urgent * multipliers.volumeTier * multipliers.streak }));
   ledger.push(entry(g2, "gift", "charity", gift2.id, hospis.id, "credited", g2At, { heat: 1, volumeTier: multipliers.volumeTier, streak: multipliers.streak, compound: multipliers.volumeTier * multipliers.streak }));
+
+  // One help request a cause has confirmed, the way the indexer seed does it,
+  // so /me has a badge to show. Help earns a badge and nothing else, so there
+  // is no XP event to go with it.
+  const confirmedAt = ago(24 * 6);
+  const need = causes.flatMap((c) => c.helpRequests).find((h) => h.kind === "translate" && h.state === "open");
+  if (need) {
+    need.state = "fulfilled";
+    need.open = false;
+    need.helper = DEMO_WALLET;
+    need.confirmedHelper = DEMO_WALLET;
+    need.confirmedAt = confirmedAt;
+    need.closedAt = confirmedAt;
+  }
 
   // A vote on WWF C4 (open for votes), reward held until the claim is final.
   const vAt = ago(24 * 2);

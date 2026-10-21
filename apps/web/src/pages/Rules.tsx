@@ -9,6 +9,8 @@ import {
   COMMUNITY_SITE,
   DEFAULT_VERIFICATION_MODE,
   GSERA,
+  HELPER_BADGES,
+  HELPER_BADGE_SLUGS,
   LINKS,
   REPUTATION,
   TRIAL,
@@ -58,7 +60,7 @@ export function RulesPage() {
         <nav aria-label="On this page" className="xl:order-2 xl:sticky xl:top-20 xl:self-start">
           <p className="eyebrow hidden xl:block">On this page</p>
           <ul className="flex flex-wrap gap-2 font-mono text-[11.5px] uppercase tracking-[0.1em] xl:mt-3 xl:flex-col xl:gap-0 xl:border-l xl:border-rule xl:pl-4">
-            {[["scope", "What this covers"], ["gsera", "gSera"], ["xp", "Care XP"], ["listing", "Who lists a cause"], ["verification", "Verification"], ["challenges", "Challenges"], ["stewards", "Stewards"], ["reports", "Reports"], ["data", "Personal data"], ["faq", "FAQ"]].map(([id, label]) => (
+            {[["scope", "What this covers"], ["gsera", "gSera"], ["xp", "Care XP"], ["badges", "Badges"], ["listing", "Who lists a cause"], ["verification", "Verification"], ["challenges", "Challenges"], ["stewards", "Stewards"], ["reports", "Reports"], ["data", "Personal data"], ["faq", "FAQ"]].map(([id, label]) => (
               <li key={id}>
                 <a href={`#${id}`} className="inline-flex min-h-11 items-center rounded-full border border-rule px-3 text-ink-muted hover:text-ink xl:w-full xl:rounded-none xl:border-0 xl:px-0 xl:leading-[1.3]">
                   {label}
@@ -112,7 +114,10 @@ export function RulesPage() {
           <ul>
             <li>A wallet linked to a cause's owner or its payout wallet earns no gSera on that cause. Linked means the same address, funded straight from it within 30 days, or grouped with it by Sera.cx screening.</li>
             <li>Gifts earn gSera up to US${fmtInt(GSERA.giftCapUsdPerWalletPerCausePer30d)} per wallet, per cause, per {GSERA.giftCapWindowDays} days. A gift above that is still recorded, but earns 0x. Proposed.</li>
-            <li>To vote you need a wallet that has passed screening and has made one gift or had one contribution accepted.</li>
+            <li>
+              To vote you need a wallet that has passed screening and has either made one gift with gSera credited, or written and signed one verification path. A help request a cause confirmed does not count,
+              because only that cause can say it happened.
+            </li>
             <li>Vote rewards are small. Voting against the final result costs you reputation.</li>
             <li>Every gift passes Sera.cx screening. A flagged gift earns no gSera.</li>
           </ul>
@@ -141,9 +146,37 @@ export function RulesPage() {
           </ScrollTable>
           <p>Every XP number here is proposed, pending the community team's assessment.</p>
           <p>
-            Each event is recorded on causes.sera.cx the moment you earn it: once per listing, path, vote, piece of evidence, help request or challenge. It is credited on {COMMUNITY_SITE} once the link between the
-            two sites is live. Until then your XP is held here and nothing is lost.
+            Each event is recorded on causes.sera.cx the moment you earn it: once per listing, path, vote, piece of evidence or challenge. It is credited on {COMMUNITY_SITE} once the link between the two sites
+            is live. Until then your XP is held here and nothing is lost.
           </p>
+          <p>
+            Every event on that table rests on something a stranger can check: a path or a vote the final result agrees with, a listing that reaches Verified, a challenge that was upheld. Help a cause confirms
+            is not like that, so it earns no XP. It earns a badge, which is the next section.
+          </p>
+
+          <h2 id="badges" className="scroll-mt-24">Badges, for the rest</h2>
+          <p>
+            Some work cannot be checked by anyone but the cause: a translation, a visit, an introduction. Paying points for it would mean paying on one organisation's word, and a charity could hand points to a
+            friend all day long. So that work earns a badge instead.
+          </p>
+          <p>
+            A badge is a mark on your profile and nothing more. Badges are not ranked, they carry no amount, they cannot be spent, and they unlock nothing: not voting, not vote weight, not XP. Each one is
+            earned once.
+          </p>
+          <ScrollTable>
+            <thead>
+              <tr><th>Badge</th><th>How it is earned</th></tr>
+            </thead>
+            <tbody>
+              {HELPER_BADGE_SLUGS.map((slug) => (
+                <tr key={slug}>
+                  <td>{HELPER_BADGES[slug].label}</td>
+                  <td>{HELPER_BADGES[slug].earnedBy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </ScrollTable>
+          <p>Your badges are on your own page, under your reputation.</p>
 
           <h2 id="listing" className="scroll-mt-24">Who lists a cause</h2>
           <p>

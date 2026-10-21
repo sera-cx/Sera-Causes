@@ -20,6 +20,7 @@ import type {
   Conversion,
   Evidence,
   Gift,
+  HelperBadgeSlug,
   HelpKind,
   HelpState,
   Hex,
@@ -66,6 +67,9 @@ export type {
   Gift,
   GiftMultipliers,
   GiftSource,
+  HelperBadge,
+  HelperBadgeInfo,
+  HelperBadgeSlug,
   HelpKind,
   HelpState,
   Hex,
@@ -329,6 +333,7 @@ export interface Eligibility {
   canVote: boolean;
   kytState: KytState | string;
   vestedGifts: number;
+  /** Signed verification paths. A confirmed help request is not one. */
   contributions: number;
   reasons: string[];
 }
@@ -468,6 +473,16 @@ export interface XpSummary {
   events: XpEventView[];
 }
 
+/** One earned helper badge, as GET /me returns it. Recognition, not a score. */
+export interface BadgeView {
+  slug: HelperBadgeSlug;
+  label: string;
+  /** One line on how it was earned. */
+  earnedBy: string;
+  causeId: number | null;
+  awardedAt: string;
+}
+
 export interface NotificationView {
   id: string;
   wallet: Address;
@@ -496,6 +511,8 @@ export interface Me {
   ledger: { credited: number; queued: number; cancelled: number; staked: number; entries: LedgerView[] };
   /** Care XP on community.sera.cx. A standing, not a balance: it cannot be spent. */
   xp: XpSummary;
+  /** Earned helper badges. Not ranked, not spendable, and they gate nothing. */
+  badges: BadgeView[];
   reputation: number;
   gifts: GiftView[];
   paths: PathView[];

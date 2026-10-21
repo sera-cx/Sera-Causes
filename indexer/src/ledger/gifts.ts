@@ -12,6 +12,7 @@ import { db } from '../db.js';
 import { getGsera } from '../services/gsera.js';
 import { logger } from '../log.js';
 import { creditEntry } from './credit.js';
+import { awardBadge } from './badges.js';
 import { notify } from '../notify.js';
 
 export type GiftLedgerNote = 'ok' | 'owner_or_payout' | 'kyt_flagged' | 'kyt_pending' | 'cap_reached' | 'zero' | 'exists';
@@ -57,6 +58,10 @@ export async function recordGiftLedger(giftId: string): Promise<GiftLedgerResult
   if (excluded.has(sender)) return finish('owner_or_payout', 0);
   if (gift.kytState === 'flagged') return finish('kyt_flagged', 0);
   if (gift.kytState !== 'clear') return finish('kyt_pending', 0);
+
+  // The gift has arrived and passed screening, so it counts as a gift whether
+  // or not it earns gSera. The badge marks the act, never the amount.
+  await awardBadge({ wallet: sender, slug: 'first_gift', causeId: gift.causeId, sourceRef: gift.id });
 
   const prior = await db().gift.findMany({
     where: { causeId: gift.causeId, sender, id: { not: gift.id }, createdAt: { lte: gift.createdAt } },

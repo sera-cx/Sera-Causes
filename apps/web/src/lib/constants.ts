@@ -21,6 +21,9 @@ export {
   GIFT_PRESETS_USD,
   COMMUNITY_SITE,
   GSERA,
+  HELPER_BADGES,
+  HELPER_BADGE_SLUGS,
+  HELPER_BADGE_THRESHOLDS,
   HOME_NEW_RAIL,
   LAUNCH_STABLECOINS,
   MALAYSIAN_STATES,
@@ -39,9 +42,10 @@ export {
   claimCodeOf,
   claimTypeIndex,
   findCategory,
+  helpBadgeFor,
   xpFor,
 } from "@sera-causes/shared";
-export type { Category, CauseStage, ClaimCode, ClaimInfo, ClaimRequirement, StatusTone, VerificationMode, XpEventType, XpReward } from "@sera-causes/shared";
+export type { Category, CauseStage, ClaimCode, ClaimInfo, ClaimRequirement, HelperBadge, HelperBadgeInfo, HelperBadgeSlug, StatusTone, VerificationMode, XpEventType, XpReward } from "@sera-causes/shared";
 
 /** Short claim names for tight spaces (select options, chips). */
 export const CLAIM_SHORT: Readonly<Record<ClaimCode, string>> = {

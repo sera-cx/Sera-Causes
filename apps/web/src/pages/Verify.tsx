@@ -314,6 +314,10 @@ function WhatHelpersDo() {
         A check that agrees with the final result earns {fmtInt(XP.care_path_agreed.amount)} XP on {COMMUNITY_SITE}, and a vote that agrees earns {fmtInt(XP.care_vote_agreed.amount)} XP. Nothing you do here
         moves anyone's money: a cause can receive gifts whether or not it has been checked. What you are building is the record a giver reads before deciding.
       </p>
+      <p className="mt-3 measure-lede text-[15px] leading-[1.55] text-ink-muted">
+        A cause can also post a help request: a visit, a translation, an introduction. That is coordination between a cause and a helper, not a way to earn, because nobody outside the cause can check it. One
+        you finish earns a badge on your profile, and no points. Only a check or a vote the final result agrees with earns XP, and only a check or a vote lets you vote on other claims.
+      </p>
       <p className="mt-3 measure-lede text-[15px] leading-[1.55] text-ink-muted">While we are new, a Sera.cx steward settles every claim. Votes are shown and counted, and they decide once the programme opens up.</p>
     </div>
   );

@@ -22,7 +22,7 @@ shapes below are what it sends and expects.
 | 1 | `CAUSES_HMAC_KEY` env var | `src/config/env.ts` |
 | 2 | `spendGsera()` extracted from `buyTickets` | `src/services/gseraLedger.ts`, `src/services/sweepstakes.ts` |
 | 3 | `source` column on `GSeraGrant`, draw exclusion rule | `prisma/schema.prisma`, `prisma/migrations/<ts>_causes_grant_source/migration.sql`, `src/services/gseraLedger.ts` |
-| 4 | Six new `grant_type` values | comment in `prisma/schema.prisma`, `src/routes/causes.ts` |
+| 4 | Five new `grant_type` values | comment in `prisma/schema.prisma`, `src/routes/causes.ts` |
 | 5 | Four routes under `/v1/causes` | `src/routes/causes.ts` (new), `src/server.ts` |
 | 6 | Tests | `__tests__/causesRoutes.test.ts`, `__tests__/spendGsera.test.ts` (new) |
 | 7 | Optional: gifts count towards volume tier and streak | `src/routes/causes.ts`, `src/services/streakService.ts` |
@@ -408,10 +408,14 @@ not needed for this change.
 | `causes_listing` | A cause the wallet added reaches Verified | 2,500 |
 | `causes_path` | A verification path the final outcome agrees with, after the challenge window closes | 1,000 |
 | `causes_vote` | A vote in line with the final outcome, same timing | 100 |
-| `causes_help` | A help request fulfilled and confirmed by the charity | 500 |
 | `causes_challenge` | A challenge upheld: the returned stake plus 2,000 | stake + 2,000 |
 
-All six carry `source = 'charity'`. `reference_id` is CSD's `LedgerEntry.id`
+There is no grant type for a fulfilled help request. A charity's confirmation
+of help is the only thing behind that work, so it pays no gSera and no XP; it
+earns a badge on causes.sera.cx, which is not ranked and cannot be spent. See
+`docs/PLAN.md` section 7.
+
+All five carry `source = 'charity'`. `reference_id` is CSD's `LedgerEntry.id`
 (a ULID, 26 characters), so it is unique per wallet and per event on our side
 and the `(grant_type, reference_id, wallet)` key gives exactly-once credit.
 The existing `getEarnedGsera` aggregate picks them up without change, so they
@@ -540,8 +544,10 @@ the edges:
 3. **Refund before vesting.** The entry moves to `cancelled`. gSera never
    hears about it.
 4. **Helper rewards** (`causes_path`, `causes_vote`, `causes_listing`,
-   `causes_help`, `causes_challenge`) are written as `vested` straight away
-   when the triggering event is final, and credited the same way.
+   `causes_challenge`) are written as `vested` straight away when the
+   triggering event is final, and credited the same way. Each of those is
+   checkable against a final claim outcome or a Verified listing, which is why
+   there is no grant type for owner-confirmed help.
 5. **Boosts and challenge stakes.** CSD validates the signed boost or
    challenge, then calls `POST /v1/causes/spend` with the boost or challenge
    id as `reference_id`. On 402 the boost is rejected and nothing is written.

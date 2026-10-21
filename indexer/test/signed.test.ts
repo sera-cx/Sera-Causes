@@ -78,7 +78,7 @@ describe('signed writes', () => {
   describe('POST /votes', () => {
     beforeEach(async () => {
       await setClaim(1, 'C1', { state: 'voting', votingStart: new Date(), votingEnd: new Date(Date.now() + 5 * 86400e3) });
-      // Eligibility: one accepted contribution (a path) from the voter.
+      // Eligibility: one signed verification path from the voter. A confirmed help request would not do.
       await request(app).post('/api/v1/paths').set('X-Dev-Wallet', addr('helper')).send(await pathPayload(accounts.helper, 1));
     });
 

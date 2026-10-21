@@ -148,10 +148,10 @@ conversion.
 ## 7. Helpers earn XP, not gSera (decision 19 October 2026, pending community assessment)
 
 Douglas's decision: gSera is for gifts only. Every helper action (listing,
-evidence, verification paths, votes, help requests, translations, visits,
-upheld challenges) earns XP on community.sera.cx instead, and the community
-programme collapses to two tracks, Care (helping causes) and Build (building
-for Sera), retiring Earn and Evangelise.
+evidence, verification paths, votes, visits, upheld challenges) earns XP on
+community.sera.cx instead, and the community programme collapses to two
+tracks, Care (helping causes) and Build (building for Sera), retiring Earn and
+Evangelise.
 
 The proposal, XP table and integration contract are in the brief sent to the
 community team: "Cause helpers on community.sera.cx". Until they respond:
@@ -162,3 +162,43 @@ community team: "Cause helpers on community.sera.cx". Until they respond:
 - gSera on Sera Causes: credited on gifts only, spent on challenge stakes only.
 - Nothing is implemented on either side until the XP amounts and the partner
   route are agreed.
+
+The XP table, from `XP` in `packages/shared/src/constants.ts`:
+
+| Event key | XP | Credited |
+| --- | --- | --- |
+| `care_cause_listed` | 100 | On listing, once the duplicate check passes |
+| `care_cause_verified` | 1,500 | Last required claim final, to the lister |
+| `care_evidence_accepted` | 100 | The claim the evidence supports is final |
+| `care_path_agreed` | 400 | Claim final, window closed, path result agrees |
+| `care_site_visit` | 400 | Added, for a C4 path with a dated photo |
+| `care_vote_agreed` | 25 | Same timing as a path |
+| `care_charity_claimed` | 500 | Cause ownership transfers to the charity |
+| `care_challenge_upheld` | 1,000 | The challenge resolves upheld |
+| `community_referral` | 500 | A referred member's first credited Care event |
+
+### Why help and translations became badges (21 October 2026)
+
+Two events, `care_help_fulfilled` and `care_translation`, paid 250 XP each on
+nothing but a cause owner's signed confirmation, which meant a charity and a
+friend could trade 500 XP between themselves for as long as they liked. Worse,
+a confirmed help request also counted as an accepted contribution in
+`voterEligibility`, and one of those was enough to vote, so farmed help bought
+real influence over verification outcomes. Every other event on the table above
+is anchored to something a stranger can check: a path or a vote the final
+outcome agrees with, a listing that reaches Verified, a challenge that was
+upheld.
+
+So both events are retired and that work earns a badge instead. Badges are
+recognition only: not ranked, no amount, not spendable, and they gate nothing.
+`HELPER_BADGES` in `packages/shared/src/constants.ts` holds the table
+(`helper`, `translator`, `first_gift`, `path_finder`, `steady_hand`,
+`witness`), the indexer stores them as `HelperBadge` rows unique on
+`(wallet, slug)`, and `GET /me` returns them.
+
+Voting eligibility narrows with it, which narrows brief section 7.5: a wallet
+qualifies on one credited gift or one signed verification path, and a confirmed
+help request no longer counts. A gift costs money and a path is checked against
+the claim's final outcome, so a bad one costs reputation. A help request is
+coordination between a cause and a helper, and we say so on the cause page, on
+the helpers hub and on /rules.

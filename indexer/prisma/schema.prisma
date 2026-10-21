@@ -349,8 +349,9 @@ model XpEvent {
   id        String    @id @default(cuid())
   wallet    String
   /// care_cause_listed | care_cause_verified | care_evidence_accepted | care_path_agreed |
-  /// care_site_visit | care_vote_agreed | care_help_fulfilled | care_translation |
-  /// care_charity_claimed | care_challenge_upheld | community_referral
+  /// care_site_visit | care_vote_agreed | care_charity_claimed | care_challenge_upheld |
+  /// community_referral. Every one is checkable against a final claim outcome or a
+  /// Verified listing. Owner-confirmed help earns a HelperBadge instead.
   eventType String
   xp        Int
   /// The row this event came from: a cause, claim, path, vote, evidence, need or challenge id.
@@ -367,6 +368,24 @@ model XpEvent {
   @@unique([eventType, sourceRef])
   @@index([wallet])
   @@index([state])
+}
+
+/// Recognition for a helper, carrying no amount and no rank. A badge gates
+/// nothing: not voting, not vote weight, not XP. See HELPER_BADGES in
+/// packages/shared. Unique on (wallet, slug), so each badge is earned once.
+model HelperBadge {
+  id        String   @id @default(cuid())
+  wallet    String
+  /// helper | translator | first_gift | path_finder | steady_hand | witness
+  slug      String
+  /// The cause it came from, when it came from one.
+  causeId   Int?
+  /// The row it came from, for provenance: a need, gift, path or vote id.
+  sourceRef String?
+  awardedAt DateTime @default(now())
+
+  @@unique([wallet, slug])
+  @@index([wallet])
 }
 
 model Reputation {
@@ -410,7 +429,7 @@ model Need {
   /// Helper the owner closed the need with on-chain.
   helper           String?
   closedAt         DateTime?
-  /// Off-chain HelpConfirm by the owner (brief 6.3: 500 gSera).
+  /// Off-chain HelpConfirm by the owner. It earns the helper a badge, never XP or gSera.
   confirmedHelper  String?
   confirmedAt      DateTime?
   confirmSignature String?

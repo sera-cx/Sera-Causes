@@ -342,7 +342,7 @@ function HelpWithoutMoney() {
   const cards = [
     { icon: Search, title: "Check a charity", body: "Pick a claim, follow the official source we point you at, write down what you did, and earn XP when the result agrees with you.", href: "/helpers", cta: "Open the hub" },
     { icon: MapPin, title: "Visit one near you", body: "Dated photos from a visit are one of the two sources the 'the work is real' check needs.", href: "/helpers?tab=needs_evidence", cta: "See who needs a visit" },
-    { icon: Languages, title: "Translate a profile", body: "Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are.", href: "/causes", cta: "Find a profile" },
+    { icon: Languages, title: "Translate a profile", body: "Into Bahasa Malaysia, Chinese or Tamil. Keep the names and the numbers exactly as they are. A cause that confirms your work marks you a Translator.", href: "/causes", cta: "Find a profile" },
   ];
   return (
     <section className="border-t border-rule" aria-labelledby="help-heading">
@@ -351,7 +351,7 @@ function HelpWithoutMoney() {
           <SectionHeader
             kicker="Help without money"
             title={<span id="help-heading">No wallet balance needed.</span>}
-            lede={`Organisations list themselves here. Checking them is open to everyone, and every bit of help earns XP on ${COMMUNITY_SITE}. A help request you finish earns ${fmtInt(XP.care_help_fulfilled.amount)} XP, an accepted check ${fmtInt(XP.care_path_agreed.amount)} XP.`}
+            lede={`Organisations list themselves here, and checking them is open to everyone. A check that agrees with the final result earns ${fmtInt(XP.care_path_agreed.amount)} XP on ${COMMUNITY_SITE}. A help request is different: it is how a cause and a helper arrange work, so finishing one earns a badge and no points.`}
           />
           <CheckACharity className="hidden h-auto w-full max-w-[340px] justify-self-end lg:block" />
         </div>

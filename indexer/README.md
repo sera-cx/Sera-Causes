@@ -156,10 +156,10 @@ startup.
 | POST | `/causes/prepare` | auth | Stores metadata JSON, returns `{ uri, hash, duplicates[] }`; the browser then calls `listCause` |
 | POST | `/evidence` | auth, multipart | `file` (pdf/png/jpg/webp/mp4, 10 MB) or a `link`; sha256 recorded |
 | POST | `/paths` | auth + Path signature | Opens voting at two independent paths |
-| POST | `/votes` | auth + Vote signature | Needs KYT clear plus one credited gift or one accepted contribution |
+| POST | `/votes` | auth + Vote signature | Needs KYT clear plus one credited gift or one signed verification path. A confirmed help request does not count |
 | POST | `/causes/:id/homepage` | auth + HomepageToggle signature | Owner only; older or repeated toggles are rejected |
 | POST | `/challenges` | auth + Challenge signature | Spends the 5,000 gSera stake, reopens voting |
-| POST | `/needs/:id/confirm` | auth + HelpConfirm signature | Owner confirms a helper; 250 XP, or 250 XP for a translation |
+| POST | `/needs/:id/confirm` | auth + HelpConfirm signature | Owner confirms a helper; awards the Helper badge, or Translator for a translation. No XP |
 | POST | `/stewards/urgent-appeal` | steward | Pin one cause with a public reason (or `clear`) |
 | POST | `/stewards/hide` | steward | Take a cause off the homepage with a public reason (or restore) |
 | POST | `/gifts/quote` | optional | Same currency: transfer plan `{ to, token, amountRaw, eip681 }`. Different currency: Sera.cx quote with `recipient = causeAddress` and signing payloads |
@@ -211,9 +211,14 @@ challenge stake. Every helper action earns Care XP instead.
 
 Helpers earn XP on community.sera.cx, never gSera (docs/PLAN.md section 7).
 Each event is an `XpEvent` row, unique on `(eventType, sourceRef)` so one
-listing, path, vote, piece of evidence, help request or challenge can earn its
-XP only once. States are `queued`, `sent` and `unmatched` (no community member
-for that wallet). Amounts come from `XP` in `@sera-causes/shared`.
+listing, path, vote, piece of evidence or challenge can earn its XP only once.
+States are `queued`, `sent` and `unmatched` (no community member for that
+wallet). Amounts come from `XP` in `@sera-causes/shared`.
+
+Every event below is anchored to something a stranger can check: a path or a
+vote the final outcome agrees with, a listing that reaches Verified, a
+challenge that was upheld. Work that rests on a cause owner's word earns a
+badge instead, see "Helper badges" below.
 
 | Event key | XP | Credited | Created in |
 | --- | --- | --- | --- |
@@ -223,8 +228,6 @@ for that wallet). Amounts come from `XP` in `@sera-causes/shared`.
 | `care_path_agreed` | 400 | Claim final, challenge window closed, path result agrees | `ledger/rewards.ts` (`settleClaim`) |
 | `care_site_visit` | 400 | Added, for a C4 path with a dated photo | `ledger/rewards.ts` (`settleClaim`) |
 | `care_vote_agreed` | 25 | Same timing as a path | `ledger/rewards.ts` (`settleClaim`) |
-| `care_help_fulfilled` | 250 | The cause owner's signed confirmation | `ledger/rewards.ts` (`rewardHelp`) |
-| `care_translation` | 250 | The cause owner's confirmation | `ledger/rewards.ts` (`rewardHelp`) |
 | `care_charity_claimed` | 500 | Cause ownership transfers to the charity | `chain/listener.ts` (`OwnerChanged`) |
 | `care_challenge_upheld` | 1,000 | The challenge resolves upheld | `ledger/rewards.ts` (`resolveChallenge`) |
 | `community_referral` | 500 | A referred member's first credited Care event | Not triggered here yet |
@@ -234,6 +237,27 @@ it; `POST /api/partner/xp` with an `X-Sera-Signature` HMAC over the raw body,
 keyed by `COMMUNITY_HMAC_KEY`, is the proposed route and is not agreed. XP is a
 standing on community.sera.cx: it is not a balance, it cannot be spent and it
 has no cash value.
+
+## Helper badges
+
+`care_help_fulfilled` and `care_translation` used to pay 250 XP each on nothing
+but a cause owner's signed word, and a confirmed help request also counted
+towards voting eligibility. A charity and a friend could trade both between
+themselves without limit. Both events are gone. That work earns a
+`HelperBadge` row instead, written by `ledger/badges.ts`, unique on
+`(wallet, slug)` so each badge is earned once. A badge carries no amount, is
+not ranked, cannot be spent and gates nothing. `GET /me` returns a wallet's
+badges and `/me` on the web app shows them. The table is `HELPER_BADGES` in
+`@sera-causes/shared`.
+
+| Slug | Earned when | Awarded in |
+| --- | --- | --- |
+| `helper` | A cause confirms your help on one of its requests | `ledger/rewards.ts` (`rewardHelp`) |
+| `translator` | A cause confirms a translation | `ledger/rewards.ts` (`rewardHelp`) |
+| `first_gift` | Your first gift arrives and passes screening | `ledger/gifts.ts` (`recordGiftLedger`) |
+| `path_finder` | Ten paths the final outcome agreed with | `ledger/rewards.ts` (`settleClaim`) |
+| `steady_hand` | Twenty-five votes the final outcome agreed with | `ledger/rewards.ts` (`settleClaim`) |
+| `witness` | A C4 site visit path with a dated photo | `ledger/rewards.ts` (`settleClaim`) |
 
 ## Tests
 

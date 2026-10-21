@@ -2,8 +2,8 @@
  * Database rows to API shapes (packages/shared types plus a few derived fields
  * the web app shows: stage, checks, claim summaries, homepage and urgent state).
  */
-import type { Cause as CauseRow, ClaimState as ClaimRow, Gift as GiftRow, LedgerEntry as LedgerRow, XpEvent as XpEventRow, Media as MediaRow, CauseWallet as WalletRow, Conversion as ConversionRow, Withdrawal as WithdrawalRow, Evidence as EvidenceRow, Path as PathRow, Vote as VoteRow, Challenge as ChallengeRow, Need as NeedRow, UrgentAppeal as AppealRow, HomepageFlag as FlagRow } from '@prisma/client';
-import { XP, causeStage, requiredClaimsFor, type CauseProfile, type ClaimCode, type ClaimOutcomeName, type CauseStatus, type XpEventType } from '@sera-causes/shared';
+import type { Cause as CauseRow, ClaimState as ClaimRow, Gift as GiftRow, HelperBadge as BadgeRow, LedgerEntry as LedgerRow, XpEvent as XpEventRow, Media as MediaRow, CauseWallet as WalletRow, Conversion as ConversionRow, Withdrawal as WithdrawalRow, Evidence as EvidenceRow, Path as PathRow, Vote as VoteRow, Challenge as ChallengeRow, Need as NeedRow, UrgentAppeal as AppealRow, HomepageFlag as FlagRow } from '@prisma/client';
+import { HELPER_BADGES, XP, causeStage, requiredClaimsFor, type CauseProfile, type ClaimCode, type ClaimOutcomeName, type CauseStatus, type HelperBadgeSlug, type XpEventType } from '@sera-causes/shared';
 import { config } from '../config.js';
 
 export const iso = (d: Date | null | undefined): string | null => (d ? d.toISOString() : null);
@@ -214,6 +214,21 @@ export function serializeLedger(e: LedgerRow) {
 }
 
 /** One Care XP event, with the label the web app shows. */
+/**
+ * One earned badge. A badge carries no amount and no rank, so there is nothing
+ * to serialise but what it is and how it was earned.
+ */
+export function serializeHelperBadge(b: BadgeRow) {
+  const info = HELPER_BADGES[b.slug as HelperBadgeSlug];
+  return {
+    slug: b.slug,
+    label: info?.label ?? b.slug,
+    earnedBy: info?.earnedBy ?? '',
+    causeId: b.causeId,
+    awardedAt: b.awardedAt.toISOString(),
+  };
+}
+
 export function serializeXpEvent(e: XpEventRow) {
   return {
     id: e.id,

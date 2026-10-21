@@ -5,23 +5,30 @@
  * two jobs here: gifts (see ledger/gifts.ts) and the challenge stake, which is
  * spent to open a challenge and returned when the challenge is upheld.
  *
+ * Every XP event is anchored to something a stranger can check. Work that only
+ * the cause owner can confirm earns a helper badge instead, see ledger/badges.ts.
+ *
  * - Cause listed: 100 XP to the lister, on listing.
  * - Listing reaches Verified: 1,500 XP to the lister.
  * - Evidence the final claim rests on: 100 XP to the uploader.
  * - Path agreeing with the final outcome: 400 XP, 800 XP for a C4 site visit
  *   with a dated photo. Vote agreeing: 25 XP. Both still +1 reputation.
- * - Help confirmed by the cause owner: 250 XP, or 250 XP for a translation.
+ * - Help confirmed by the cause owner: the Helper badge, or Translator for a
+ *   translation. No XP, because nobody outside the cause can check it.
+ * - Milestones, settled with the claim: Witness for a C4 site visit, Path
+ *   finder at ten agreeing paths, Steady hand at twenty-five agreeing votes.
  * - Challenge upheld: the gSera stake back plus 1,000 XP; overturned paths and
  *   votes lose 3 reputation.
  * - Challenge rejected: the stake stays burned.
  */
-import { CHALLENGE_STAKE, VOTING, XP, requiredClaimsFor, type ClaimOutcomeName } from '@sera-causes/shared';
+import { CHALLENGE_STAKE, HELPER_BADGES, HELPER_BADGE_THRESHOLDS, VOTING, XP, helpBadgeFor, requiredClaimsFor, type ClaimOutcomeName } from '@sera-causes/shared';
 import { InsufficientSpendable } from '@sera-causes/gsera-client';
 import type { ClaimState, Path } from '@prisma/client';
 import { db } from '../db.js';
 import { getGsera } from '../services/gsera.js';
 import { adjustReputation } from './reputation.js';
 import { creditEntry } from './credit.js';
+import { awardBadge } from './badges.js';
 import { awardXp } from './xp.js';
 import { notify, notifyClaimParticipants } from '../notify.js';
 import { logger } from '../log.js';
@@ -95,26 +102,44 @@ export async function xpForCharityClaim(causeId: number, newOwner: string): Prom
   return !!row;
 }
 
-/** 250 XP to a helper once the cause owner confirms a help request. A translation earns its own event. */
+/**
+ * A badge to a helper once the cause owner confirms a help request, and no XP.
+ * A translation earns its own badge. There is nothing behind the confirmation
+ * but the owner's word, so it pays nothing and it unlocks nothing: a confirmed
+ * help request does not make a wallet eligible to vote (see api/eligibility.ts).
+ */
 export async function rewardHelp(needId: number, helper: string, _now: Date = new Date()): Promise<boolean> {
   const need = await db().need.findUnique({ where: { id: needId } });
-  const eventType = need?.kind === 'translate' ? 'care_translation' : 'care_help_fulfilled';
-  const row = await awardXp({ wallet: helper, eventType, sourceRef: `need:${needId}`, causeId: need?.causeId ?? null });
+  const slug = helpBadgeFor(need?.kind);
+  const row = await awardBadge({ wallet: helper, slug, causeId: need?.causeId ?? null, sourceRef: `need:${needId}` });
   if (row) {
     await notify({
       wallet: helper,
       kind: 'help_confirmed',
       title: 'Your help was confirmed',
-      body: `The cause owner confirmed help request #${needId}. ${XP[eventType].amount} XP is queued for community.sera.cx.`,
+      body: `The cause owner confirmed help request #${needId}. You have earned the ${HELPER_BADGES[slug].label} badge, which shows on your /me page. Help requests are how a cause and a helper arrange work, so they carry no XP.`,
       causeId: need?.causeId ?? null,
     });
   }
   return !!row;
 }
 
+/** Path finder, once a wallet has ten paths the final outcome agreed with. */
+async function badgeForAgreeingPaths(wallet: string, causeId: number, sourceRef: string): Promise<void> {
+  const agreed = await db().path.count({ where: { author: wallet, outcomeAgreed: true } });
+  if (agreed >= HELPER_BADGE_THRESHOLDS.path_finder) await awardBadge({ wallet, slug: 'path_finder', causeId, sourceRef });
+}
+
+/** Steady hand, once a wallet has twenty-five votes the final outcome agreed with. */
+async function badgeForAgreeingVotes(wallet: string, causeId: number, sourceRef: string): Promise<void> {
+  const agreed = await db().vote.count({ where: { voter: wallet, outcomeAgreed: true } });
+  if (agreed >= HELPER_BADGE_THRESHOLDS.steady_hand) await awardBadge({ wallet, slug: 'steady_hand', causeId, sourceRef });
+}
+
 /**
  * Settles one claim whose challenge window has closed: marks it final, pays
- * agreeing paths and votes, and updates reputation. Idempotent via settledAt.
+ * agreeing paths and votes, awards the milestone badges, and updates
+ * reputation. Idempotent via settledAt.
  */
 export async function settleClaim(cs: ClaimState, now: Date = new Date()): Promise<{ paths: number; votes: number } | null> {
   if (cs.settledAt) return null;
@@ -136,8 +161,12 @@ export async function settleClaim(cs: ClaimState, now: Date = new Date()): Promi
     await db().path.update({ where: { id: p.id }, data: { outcomeAgreed: agreed } });
     if (agreed) {
       if (await awardXp({ wallet: p.author, eventType: 'care_path_agreed', sourceRef: p.id, causeId: cs.causeId })) pathsPaid += 1;
-      if (await isSiteVisit(p)) await awardXp({ wallet: p.author, eventType: 'care_site_visit', sourceRef: p.id, causeId: cs.causeId });
+      if (await isSiteVisit(p)) {
+        await awardXp({ wallet: p.author, eventType: 'care_site_visit', sourceRef: p.id, causeId: cs.causeId });
+        await awardBadge({ wallet: p.author, slug: 'witness', causeId: cs.causeId, sourceRef: p.id });
+      }
       await adjustReputation(p.author, 1, 'path_agrees', p.id);
+      await badgeForAgreeingPaths(p.author, cs.causeId, p.id);
     }
   }
   for (const v of votes) {
@@ -146,6 +175,7 @@ export async function settleClaim(cs: ClaimState, now: Date = new Date()): Promi
     if (agreed) {
       if (await awardXp({ wallet: v.voter, eventType: 'care_vote_agreed', sourceRef: v.id, causeId: cs.causeId })) votesPaid += 1;
       await adjustReputation(v.voter, 1, 'vote_agrees', v.id);
+      await badgeForAgreeingVotes(v.voter, cs.causeId, v.id);
     }
   }
   // The claim the evidence supports is final, whichever way it went.

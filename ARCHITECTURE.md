@@ -101,11 +101,19 @@ export const CHALLENGE_STAKE = 5000;
 export const GSERA = { perUsd: 100, compoundCap: 10, heat: { urgent: 2.5, normal: 1 },
   giftCapUsdPerWalletPerCausePer30d: 1000, giftCapWindowDays: 30 };          // giving only
 // Helpers earn XP on community.sera.cx, not gSera (docs/PLAN.md section 7).
+// Every event is checkable against a final claim outcome or a Verified listing.
 export const XP = { care_cause_listed: 100, care_cause_verified: 1500, care_evidence_accepted: 100,
-  care_path_agreed: 400, care_site_visit: 400, care_vote_agreed: 25, care_help_fulfilled: 250,
-  care_translation: 250, care_charity_claimed: 500, care_challenge_upheld: 1000,
+  care_path_agreed: 400, care_site_visit: 400, care_vote_agreed: 25,
+  care_charity_claimed: 500, care_challenge_upheld: 1000,
   community_referral: 500 };                                                 // each with a label and when
 export function xpFor(eventType: XpEventType): number;
+
+// Work only the cause owner can confirm earns a badge, not XP. A badge is not
+// ranked, cannot be spent, and gates nothing (docs/PLAN.md section 7).
+export const HELPER_BADGES = { helper, translator, first_gift, path_finder,
+  steady_hand, witness };                                      // slug, label, how it is earned
+export const HELPER_BADGE_THRESHOLDS = { path_finder: 10, steady_hand: 25 };
+export function helpBadgeFor(kind: string): HelperBadgeSlug;                  // translate -> translator
 
 export function giftGsera(usd, { heat, volumeTier, streak }): number;        // usd*100*min(10, heat*volume*streak), floor
 export function voteWeight(reputation: number): number;                       // 1 + min(4, log2(1 + rep))
@@ -163,6 +171,7 @@ Postgres. Addresses lowercase. Amounts as `Decimal` or string of raw units.
 - `Media { id, causeId, kind (photo|video), url, embedUrl?, provider?, caption, credit, position, createdAt }`
 - `LedgerEntry { id, wallet, amount, reason (gift|path|vote|help|listing|challenge_win|challenge_stake), sourceTag (charity), sourceRef, multipliers Json, state (credited|cancelled|spent|burned), gseraRef (remote id), createdAt }`
 - `Reputation { wallet, score, @@id([wallet]) }` plus `ReputationEntry { id, wallet, delta, reason, sourceRef, createdAt }`
+- `HelperBadge { id, wallet, slug, causeId?, sourceRef?, awardedAt, @@unique([wallet, slug]) }`: recognition, earned once, gates nothing
 - `Wallet { address, kytState (unknown|clear|flagged), kytCheckedAt, privyUserId?, leaderboardOptOut }`
 - `Need`, `Pledge`, `Progress`, `Attestation`, `RecordEvent { id, causeId, type, block, txHash, at, data Json }` mirrored from chain (shapes from the v0.1 indexer).
 
@@ -230,6 +239,11 @@ Finaliser CLI (`indexer/src/finaliser`): `tally-claim <causeId> <claim>`,
   does anything: it records the event and logs it.
 - XP is a standing on community.sera.cx. It is not a balance, it cannot be
   spent and it has no cash value.
+- Every XP event is anchored to something a stranger can check. Work that rests
+  on a cause owner's word, namely a confirmed help request or translation,
+  earns a `HelperBadge` instead, written by `indexer/src/ledger/badges.ts`. A
+  badge is not ranked, cannot be spent, and gates nothing: in particular a
+  confirmed help request does not make a wallet eligible to vote.
 
 ## 8. Settlement adapter (`packages/sera-settlement`)
 

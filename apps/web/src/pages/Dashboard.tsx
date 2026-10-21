@@ -18,7 +18,7 @@ import { useCopy } from "@/hooks/useCopy";
 import { useSeo } from "@/hooks/useSeo";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { COMMUNITY_SITE, stablecoinUsd } from "@/lib/constants";
+import { stablecoinUsd } from "@/lib/constants";
 import { fmtDate, fmtInt, fmtRm, fmtUsd, timeAgo } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useDashboard, useInvalidateAll, useRecord } from "@/lib/queries";
@@ -730,7 +730,7 @@ function HelpRequests({ dc: cause }: { dc: DashboardCause }) {
     }
   };
   return (
-    <Panel title="Help requests" lede={`Confirm a request once it is done. Your confirmation, signed by your wallet, is what earns the helper XP on ${COMMUNITY_SITE}.`}>
+    <Panel title="Help requests" lede="Confirm a request once it is done. Your confirmation, signed by your wallet, is what earns the helper their badge. It carries no points, so confirming costs you nothing and buys them nothing.">
       {cause.helpRequests.length === 0 ? (
         <p className="text-[14px] text-ink-muted">None open.</p>
       ) : (

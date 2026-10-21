@@ -12,7 +12,7 @@ import { fmtDate, fmtGsera, fmtInt, fmtMultiplier, fmtRm, fmtUsd, fmtXp, timeAgo
 import { useDashboard, useMe } from "@/lib/queries";
 import { causeHref, claimHref, fromRaw, voteWeight } from "@/lib/rules";
 import { ROUTE_SEO } from "@/lib/seo";
-import type { ClaimCode, LedgerView, Me } from "@/lib/types";
+import type { BadgeView, ClaimCode, LedgerView, Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
@@ -57,7 +57,7 @@ interface Contribution {
   claim?: ClaimCode;
   at: string;
   outcome: "agreed" | "accepted" | "pending" | "overturned";
-  /** XP on community.sera.cx. */
+  /** XP on community.sera.cx. Help carries none: a badge instead. */
   xp: number;
 }
 
@@ -65,7 +65,7 @@ function contributions(me: Me): Contribution[] {
   const out: Contribution[] = [
     ...me.paths.map((p): Contribution => ({ id: `p-${p.id}`, kind: "path", causeId: p.causeId, claim: p.claimType, at: p.createdAt, outcome: p.outcomeAgreed === true ? "agreed" : p.outcomeAgreed === false ? "overturned" : "pending", xp: XP.care_path_agreed.amount })),
     ...me.votes.map((v): Contribution => ({ id: `v-${v.id}`, kind: "vote", causeId: v.causeId, claim: v.claimType, at: v.createdAt, outcome: v.outcomeAgreed === true ? "agreed" : v.outcomeAgreed === false ? "overturned" : "pending", xp: XP.care_vote_agreed.amount })),
-    ...me.helped.map((h): Contribution => ({ id: `h-${h.id}`, kind: "help", causeId: h.causeId, at: h.confirmedAt ?? h.postedAt, outcome: h.confirmedAt ? "accepted" : "pending", xp: h.kind === "translate" ? XP.care_translation.amount : XP.care_help_fulfilled.amount })),
+    ...me.helped.map((h): Contribution => ({ id: `h-${h.id}`, kind: "help", causeId: h.causeId, at: h.confirmedAt ?? h.postedAt, outcome: h.confirmedAt ? "accepted" : "pending", xp: 0 })),
   ];
   return out.sort((a, b) => b.at.localeCompare(a.at));
 }
@@ -83,13 +83,6 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
   const m = me.gsera?.multipliers;
   const contribs = contributions(me);
   const gseraForGift = (giftId: string) => entries.find((l) => l.reason === "gift" && l.sourceRef === giftId)?.amount ?? 0;
-  const badges = [
-    { id: "first-gift", label: "First gift", earned: me.gifts.length > 0, hint: "Give once" },
-    { id: "helper", label: "Helper", earned: contribs.some((c) => c.outcome === "agreed" || c.outcome === "accepted"), hint: "One accepted path or fulfilled help request" },
-    { id: "witness", label: "Witness", earned: me.helped.some((h) => h.kind === "visit" && !!h.confirmedAt), hint: "A site visit that a claim relied on" },
-    { id: "path-finder", label: "Path finder", earned: me.paths.filter((p) => p.outcomeAgreed).length >= 10, hint: "10 accepted paths" },
-    { id: "steady-hand", label: "Steady hand", earned: me.votes.filter((v) => v.outcomeAgreed).length >= 25, hint: "25 votes with the outcome" },
-  ];
   return (
     <div>
       <div className="container pt-8 md:pt-12">
@@ -170,7 +163,10 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
 
           <section aria-labelledby="contrib-h">
             <h2 id="contrib-h" className="font-display text-[22px] font-semibold tracking-tight">Contributions</h2>
-            <p className="mt-1 measure text-[14px] text-ink-muted">Your checks, votes and help, with how each one turned out. Each earns Care XP on {COMMUNITY_SITE}, not gSera.</p>
+            <p className="mt-1 measure text-[14px] text-ink-muted">
+              Your checks, votes and help, with how each one turned out. Checks and votes earn Care XP on {COMMUNITY_SITE}, not gSera. Help requests are how a cause and a helper arrange work, so they earn a
+              badge instead of XP.
+            </p>
             {contribs.length === 0 ? (
               <Empty className="mt-4" title="You have not helped yet" body="Check a claim on a charity, or vote on one that is open." />
             ) : (
@@ -206,7 +202,11 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
                           Awaiting outcome
                         </Pill>
                       )}
-                      <span className="font-mono text-[12px] tnum text-ink-muted" title={`XP on ${COMMUNITY_SITE}`}>{c.outcome === "agreed" || c.outcome === "accepted" ? "+" : ""}{fmtXp(c.xp)}</span>
+                      {c.kind === "help" ? (
+                        <span className="font-mono text-[12px] text-ink-muted" title="Help requests earn a badge, not XP">{c.outcome === "accepted" ? "badge" : "no XP"}</span>
+                      ) : (
+                        <span className="font-mono text-[12px] tnum text-ink-muted" title={`XP on ${COMMUNITY_SITE}`}>{c.outcome === "agreed" ? "+" : ""}{fmtXp(c.xp)}</span>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -227,21 +227,7 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
               {me.eligibility.canVote ? "You can vote." : `Not eligible to vote yet: ${me.eligibility.reasons.join("; ")}.`} Screening: {me.kytState}.
             </p>
           </div>
-          <div className="rounded-2xl border border-rule bg-card p-5">
-            <Eyebrow>Badges</Eyebrow>
-            <ul className="mt-3 space-y-2">
-              {badges.map((b) => (
-                <li key={b.id} className={cn("flex items-center gap-2.5 text-[14px]", !b.earned && "text-ink-subtle")}>
-                  <Award className={cn("h-4.5 w-4.5", b.earned ? "text-sera-text" : "text-ink-subtle")} aria-hidden />
-                  <span>
-                    {b.label}
-                    <span className="block text-[12px] text-ink-muted">{b.hint}</span>
-                  </span>
-                  {b.earned && <span className="sr-only">earned</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Badges badges={me.badges} />
           <div className="rounded-2xl border border-rule bg-paper-warm p-5 text-[13.5px] text-ink-muted">
             <p>
               Your causes: {dash.data ? dash.data.causes.length : "…"}.{" "}
@@ -254,6 +240,42 @@ function MeView({ me, displayName }: { me: Me; displayName: string }) {
           </div>
         </aside>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Earned badges, and nothing else. A badge is recognition: it is not ranked,
+ * it cannot be spent, and it gates nothing. So it is set small, in a line, and
+ * the ones you have not earned are not listed as things to go and collect.
+ */
+function Badges({ badges }: { badges: BadgeView[] | undefined }) {
+  // Undefined when the page is served against an API that predates badges.
+  const earned = badges ?? [];
+  return (
+    <div className="rounded-2xl border border-rule bg-card p-5">
+      <Eyebrow>Badges</Eyebrow>
+      {earned.length === 0 ? (
+        <p className="mt-2 text-[13.5px] text-ink-muted">
+          None yet. Check a claim, give, or finish a help request for a cause.{" "}
+          <Link href="/rules#badges" className="text-sera-text underline underline-offset-2">
+            What they are
+          </Link>
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {earned.map((b) => (
+            <li key={b.slug} className="flex items-start gap-2.5 text-[14px]">
+              <Award className="mt-0.5 h-4 w-4 shrink-0 text-sera-text" aria-hidden />
+              <span>
+                {b.label}
+                <span className="block text-[12px] text-ink-muted">{b.earnedBy}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 text-[12px] text-ink-muted">A badge is a mark of what you did. It is not ranked, it cannot be spent, and it unlocks nothing.</p>
     </div>
   );
 }
@@ -295,7 +317,7 @@ function CareXp({ me, causeName }: { me: Me; causeName: (id: number) => string }
         The link to {COMMUNITY_SITE} is not live yet. Every event is recorded here, and credited there as soon as it is.
       </Notice>
       {xp.events.length === 0 ? (
-        <Empty className="mt-4" title="No XP yet" body="Check a claim, vote on an open one, or finish a help request." />
+        <Empty className="mt-4" title="No XP yet" body="Check a claim, or vote on one that is open." />
       ) : (
         <ul className="mt-4 divide-y divide-rule border-y border-rule">
           {xp.events.map((e) => (

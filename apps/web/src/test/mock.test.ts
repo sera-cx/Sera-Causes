@@ -133,6 +133,31 @@ describe("mock world built from the seed, in the API's shapes", () => {
     expect(record.at(-1)?.type).toBe("GiftReceived");
   });
 
+  /* The mock carries its own copy of the voter rule, so it has to say the same
+     thing as indexer/src/api/eligibility.ts: a credited gift or a signed path,
+     and a confirmed help request is neither. */
+  it("counts only gifts and signed paths towards a vote, and says so", async () => {
+    const me = await api.getMe();
+    expect(me.eligibility.contributions).toBe(me.paths.length);
+    const confirmed = me.helped.filter((h) => !!h.confirmedAt).length;
+    expect(confirmed).toBeGreaterThan(0);
+    expect(me.eligibility.contributions).not.toBe(me.paths.length + confirmed);
+
+  });
+
+  it("gives a badge for confirmed help, once each, and never an XP event", async () => {
+    const me = await api.getMe();
+    const slugs = me.badges.map((b) => b.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(slugs).toContain("translator");
+    for (const b of me.badges) {
+      expect(b.label.length).toBeGreaterThan(2);
+      expect(b.earnedBy.length).toBeGreaterThan(10);
+    }
+    expect(me.xp.events.map((e) => e.eventType)).not.toContain("care_help_fulfilled");
+    expect(me.xp.events.map((e) => e.eventType)).not.toContain("care_translation");
+  });
+
   it("opens voting once two different wallets have signed paths, and the dashboard lists the owned causes", async () => {
     const before = (await api.getClaim(1, "C1"))!;
     expect(before.claim.state).toBe("open");

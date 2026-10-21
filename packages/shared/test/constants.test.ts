@@ -5,6 +5,9 @@ import {
   CLAIMS,
   CLAIM_INFO,
   GSERA,
+  HELPER_BADGES,
+  HELPER_BADGE_SLUGS,
+  HELPER_BADGE_THRESHOLDS,
   MALAYSIAN_STATES,
   REQUIRED_CLAIMS,
   STATUS,
@@ -16,6 +19,7 @@ import {
   claimDecidedBy,
   claimTypeIndex,
   findCategory,
+  helpBadgeFor,
   parseVerificationMode,
   xpFor,
 } from '../src/constants.js';
@@ -74,8 +78,6 @@ describe('Care XP (docs/PLAN.md section 7)', () => {
       care_path_agreed: 400,
       care_site_visit: 400,
       care_vote_agreed: 25,
-      care_help_fulfilled: 250,
-      care_translation: 250,
       care_charity_claimed: 500,
       care_challenge_upheld: 1000,
       community_referral: 500,
@@ -94,6 +96,51 @@ describe('Care XP (docs/PLAN.md section 7)', () => {
   it('never describes XP as spendable or as money', () => {
     const text = Object.values(XP).flatMap((x) => [x.label, x.when]).join('\n');
     expect(text).not.toMatch(/spend|cash|balance|worth|gSera per/i);
+  });
+
+  /* Owner-confirmed help used to pay 250 XP twice over, on nothing but the
+     owner's word. A cause and a friend could trade that forever, so it is a
+     badge now. Every event left has to be checkable against a final outcome. */
+  it('pays XP for nothing a cause owner can simply assert', () => {
+    expect(XP_EVENT_TYPES).not.toContain('care_help_fulfilled');
+    expect(XP_EVENT_TYPES).not.toContain('care_translation');
+    expect(XP).not.toHaveProperty('care_help_fulfilled');
+    expect(XP).not.toHaveProperty('care_translation');
+    expect(() => xpFor('care_help_fulfilled' as never)).toThrow(RangeError);
+  });
+});
+
+describe('helper badges', () => {
+  it('has a label and one line on how each one is earned', () => {
+    expect(HELPER_BADGE_SLUGS).toEqual(['helper', 'translator', 'first_gift', 'path_finder', 'steady_hand', 'witness']);
+    for (const slug of HELPER_BADGE_SLUGS) {
+      expect(HELPER_BADGES[slug].slug).toBe(slug);
+      expect(HELPER_BADGES[slug].label.length).toBeGreaterThan(2);
+      expect(HELPER_BADGES[slug].earnedBy.length).toBeGreaterThan(10);
+    }
+  });
+
+  it('names the badge a confirmed help request earns', () => {
+    expect(helpBadgeFor('translate')).toBe('translator');
+    expect(helpBadgeFor('visit')).toBe('helper');
+    expect(helpBadgeFor(null)).toBe('helper');
+  });
+
+  /* A badge is recognition, not a score. If it ever carries an amount or a
+     rank, it has become a thing worth farming. */
+  it('carries no amount, no rank and no promise of anything', () => {
+    for (const slug of HELPER_BADGE_SLUGS) {
+      expect(Object.keys(HELPER_BADGES[slug]).sort()).toEqual(['earnedBy', 'label', 'slug']);
+    }
+    const text = Object.values(HELPER_BADGES).flatMap((b) => [b.label, b.earnedBy]).join('\n');
+    expect(text).not.toMatch(/\bXP\b|gSera|spend|rank|points|worth/i);
+  });
+
+  it('states the milestone counts once', () => {
+    expect(HELPER_BADGE_THRESHOLDS.path_finder).toBe(10);
+    expect(HELPER_BADGE_THRESHOLDS.steady_hand).toBe(25);
+    expect(HELPER_BADGES.path_finder.earnedBy).toContain('10');
+    expect(HELPER_BADGES.steady_hand.earnedBy).toContain('25');
   });
 });
 

@@ -83,7 +83,7 @@ describe('mock client', () => {
   it('lowercases wallets so mixed-case input hits the same balance', async () => {
     const client = createGseraClient({ mode: 'mock' });
     const mixed = '0xAbCd000000000000000000000000000000000001';
-    await client.credit({ wallet: mixed, amountGsera: 10, grantType: 'causes_help', referenceId: 'h1', reason: 'r' });
+    await client.credit({ wallet: mixed, amountGsera: 10, grantType: 'causes_path', referenceId: 'h1', reason: 'r' });
     expect((await client.getWallet(mixed.toLowerCase())).spendable).toBe(10);
   });
 

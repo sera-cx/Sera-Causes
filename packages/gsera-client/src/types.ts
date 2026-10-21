@@ -8,11 +8,15 @@
  */
 import { z } from 'zod';
 
+/**
+ * What Care Share Donate can credit. There is deliberately no help type:
+ * help a cause confirms is rewarded with a badge, because an owner's say-so
+ * is not checkable and the pair could trade credits between themselves.
+ */
 export const GRANT_TYPES = [
   'causes_gift',
   'causes_path',
   'causes_vote',
-  'causes_help',
   'causes_listing',
   'causes_challenge',
 ] as const;

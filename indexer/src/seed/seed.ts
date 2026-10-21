@@ -90,7 +90,7 @@ export async function readSeed(seedDir: string): Promise<{ index: SeedIndex; cau
 export async function resetDatabase(): Promise<void> {
   const tables = [
     'EmailOutbox', 'Notification', 'MockGseraWallet', 'StoredProfile', 'ChainRole', 'Token', 'RecordEvent', 'Attestation', 'Progress', 'Pledge', 'Need',
-    'Wallet', 'ReputationEntry', 'Reputation', 'XpEvent', 'LedgerEntry', 'GiftTrade', 'Media', 'Withdrawal', 'Conversion', 'CauseWallet', 'Gift', 'ShareEvent',
+    'Wallet', 'ReputationEntry', 'Reputation', 'HelperBadge', 'XpEvent', 'LedgerEntry', 'GiftTrade', 'Media', 'Withdrawal', 'Conversion', 'CauseWallet', 'Gift', 'ShareEvent',
     'UrgentAppeal', 'HomepageFlag', 'Challenge', 'Vote', 'Path', 'Evidence', 'ClaimState', 'Cause', 'IndexerCursor',
   ];
   await db().$executeRawUnsafe(`TRUNCATE TABLE ${tables.map((t) => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE`);
@@ -213,7 +213,7 @@ export async function seedDatabase(opts: { withGifts?: boolean; log?: (s: string
   await finalise('make-a-wish-malaysia', 'C7');
   for (const slug of ['hospis-malaysia', 'mercy-malaysia', 'turtle-conservation-society-malaysia']) await finalise(slug, 'C1');
 
-  // One help request the owner has confirmed, so the demo wallet has Care XP on /me.
+  // One help request the owner has confirmed, so the demo wallet has a helper badge on /me.
   const helped = await db().need.findFirst({ where: { causeId: ids['make-a-wish-malaysia']!, kind: 'intro' } });
   if (helped) {
     await db().need.update({

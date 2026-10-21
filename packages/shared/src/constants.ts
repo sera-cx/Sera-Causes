@@ -220,9 +220,13 @@ export const GSERA_GRANT_TYPES = {
 // ---------------------------------------------------------------------------
 
 /**
- * Every helper action earns XP on community.sera.cx, not gSera. XP is a
- * standing in the community programme. It is not a balance, it cannot be
- * spent and it has no cash value.
+ * Every XP event is anchored to something a stranger can check: a path or a
+ * vote the final outcome agrees with, a listing that reaches Verified, a
+ * challenge that is upheld. XP is a standing in the community programme. It is
+ * not a balance, it cannot be spent and it has no cash value.
+ *
+ * Work that only the cause owner can confirm earns a helper badge instead,
+ * see `HELPER_BADGES` below.
  */
 export const XP_EVENT_TYPES = [
   'care_cause_listed',
@@ -231,8 +235,6 @@ export const XP_EVENT_TYPES = [
   'care_path_agreed',
   'care_site_visit',
   'care_vote_agreed',
-  'care_help_fulfilled',
-  'care_translation',
   'care_charity_claimed',
   'care_challenge_upheld',
   'community_referral',
@@ -293,18 +295,6 @@ export const XP: Readonly<Record<XpEventType, XpReward>> = {
     label: 'A vote in line with the final outcome',
     when: 'When the claim is final and the challenge window has closed',
   },
-  care_help_fulfilled: {
-    type: 'care_help_fulfilled',
-    amount: 250,
-    label: 'Help request fulfilled',
-    when: "On the cause owner's signed confirmation",
-  },
-  care_translation: {
-    type: 'care_translation',
-    amount: 250,
-    label: 'Translation',
-    when: "On the cause owner's confirmation",
-  },
   care_charity_claimed: {
     type: 'care_charity_claimed',
     amount: 500,
@@ -355,6 +345,93 @@ export interface XpEvent {
 
 /** Where Care XP lives. Nothing about XP is spendable on Sera.cx. */
 export const COMMUNITY_SITE = 'community.sera.cx';
+
+// ---------------------------------------------------------------------------
+// Helper badges (docs/PLAN.md section 7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Badges are recognition and nothing else. They are not ranked, they carry no
+ * amount, they cannot be spent, and they never gate anything: not voting, not
+ * vote weight, not XP.
+ *
+ * Two of them, `helper` and `translator`, stand in for the XP that
+ * owner-confirmed help used to pay. Nobody outside the cause can check that
+ * work, so a cause and a friend could have traded XP between themselves
+ * forever. A badge is worth nothing to trade.
+ */
+export const HELPER_BADGE_SLUGS = [
+  'helper',
+  'translator',
+  'first_gift',
+  'path_finder',
+  'steady_hand',
+  'witness',
+] as const;
+
+export type HelperBadgeSlug = (typeof HELPER_BADGE_SLUGS)[number];
+
+/** How many agreeing paths or votes a milestone badge asks for. */
+export const HELPER_BADGE_THRESHOLDS = {
+  path_finder: 10,
+  steady_hand: 25,
+} as const;
+
+export interface HelperBadgeInfo {
+  slug: HelperBadgeSlug;
+  /** Short label shown beside the mark. */
+  label: string;
+  /** One line on how it is earned. */
+  earnedBy: string;
+}
+
+export const HELPER_BADGES: Readonly<Record<HelperBadgeSlug, HelperBadgeInfo>> = {
+  helper: {
+    slug: 'helper',
+    label: 'Helper',
+    earnedBy: 'A cause confirmed your help on one of its requests.',
+  },
+  translator: {
+    slug: 'translator',
+    label: 'Translator',
+    earnedBy: 'A cause confirmed a translation you did for it.',
+  },
+  first_gift: {
+    slug: 'first_gift',
+    label: 'First gift',
+    earnedBy: 'You gave to a cause for the first time.',
+  },
+  path_finder: {
+    slug: 'path_finder',
+    label: 'Path finder',
+    earnedBy: `${HELPER_BADGE_THRESHOLDS.path_finder} verification paths that agreed with the final outcome.`,
+  },
+  steady_hand: {
+    slug: 'steady_hand',
+    label: 'Steady hand',
+    earnedBy: `${HELPER_BADGE_THRESHOLDS.steady_hand} votes that agreed with the final outcome.`,
+  },
+  witness: {
+    slug: 'witness',
+    label: 'Witness',
+    earnedBy: 'A site visit path, with a dated photo, on the "the work is real" check.',
+  },
+};
+
+/** The badge a confirmed help request earns, by the kind of request it was. */
+export function helpBadgeFor(kind: string | null | undefined): HelperBadgeSlug {
+  return kind === 'translate' ? 'translator' : 'helper';
+}
+
+/** One earned badge, as the API returns it. */
+export interface HelperBadge {
+  slug: HelperBadgeSlug;
+  label: string;
+  earnedBy: string;
+  awardedAt: string;
+  /** The cause it came from, when it came from one. */
+  causeId?: number | null;
+}
 
 // ---------------------------------------------------------------------------
 // Categories and places

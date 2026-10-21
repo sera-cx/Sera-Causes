@@ -104,7 +104,7 @@ describe('registry event folding', () => {
     expect(await db().xpEvent.count({ where: { eventType: 'care_cause_verified' } })).toBe(1);
   });
 
-  it('mirrors needs, pledges and a closed need with the help XP', async () => {
+  it('mirrors needs, pledges and a closed need with the helper badge', async () => {
     await makeCause(1);
     const need = { kind: 'visit', title: 'Visit', detail: 'Go there' };
     await applyLog(log('NeedPosted', { needId: 1n, causeId: 1n, uri: `data:application/json,${encodeURIComponent(JSON.stringify(need))}` }), ctx);
@@ -114,9 +114,10 @@ describe('registry event folding', () => {
     expect(row.title).toBe('Visit');
     expect(row.open).toBe(false);
     expect(row.pledges[0]?.note).toBe('I can go');
-    const reward = await db().xpEvent.findFirstOrThrow({ where: { eventType: 'care_help_fulfilled' } });
-    expect(reward.xp).toBe(250);
-    expect(reward.wallet).toBe(addr('helper'));
-    expect(reward.state).toBe('queued');
+    // A cause owner's word is not checkable, so a confirmed need pays a badge and no XP.
+    const badge = await db().helperBadge.findFirstOrThrow({ where: { slug: 'helper' } });
+    expect(badge.wallet).toBe(addr('helper'));
+    expect(badge.sourceRef).toBe('need:1');
+    expect(await db().xpEvent.count()).toBe(0);
   });
 });

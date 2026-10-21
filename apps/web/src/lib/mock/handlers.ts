@@ -3,9 +3,10 @@
  * in memory for the session. Every write mutates the world and returns the
  * same shapes the real API does (indexer/src/api/routes/*.ts).
  */
-import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, COMMUNITY_SITE, GSERA, VOTING, XP, contentHash, embedFor, giftGsera, tallyClaim, voteWeight, votingCanOpen, type ClaimCode, type PathBody } from "@sera-causes/shared";
+import { CATEGORIES, CHALLENGE_STAKE, CLAIMS, CLAIM_INFO, COMMUNITY_SITE, GSERA, HELPER_BADGES, HELPER_BADGE_THRESHOLDS, VOTING, XP, contentHash, embedFor, giftGsera, helpBadgeFor, tallyClaim, voteWeight, votingCanOpen, type ClaimCode, type HelperBadgeSlug, type PathBody } from "@sera-causes/shared";
 import { slugify } from "../rules";
 import type {
+  BadgeView,
   CauseDetail,
   CauseFilters,
   CauseRef,
@@ -95,12 +96,44 @@ function stats(w: MockWorld): StatsResponse {
   };
 }
 
+/**
+ * The same rule as indexer/src/api/eligibility.ts, and it has to stay the same:
+ * a credited gift or a signed verification path. A help request the cause owner
+ * confirmed counts for nothing here, because nothing but their word is behind it.
+ */
 function eligibilityOf(w: MockWorld, wallet: string): Eligibility {
   const vestedGifts = w.ledger.filter((l) => l.wallet === wallet && l.reason === "gift" && l.state === "credited").length;
-  const contributions = w.paths.filter((p) => p.author === wallet).length + w.causes.reduce((s, c) => s + c.helpRequests.filter((h) => h.confirmedHelper === wallet).length, 0);
+  const contributions = w.paths.filter((p) => p.author === wallet).length;
   const reasons: string[] = [];
-  if (vestedGifts === 0 && contributions === 0) reasons.push("needs one gift with credited gSera or one accepted contribution");
+  if (vestedGifts === 0 && contributions === 0)
+    reasons.push("needs one gift with credited gSera, or one verification path you have written and signed; a help request a cause confirmed does not count");
   return { canVote: reasons.length === 0, kytState: "clear", vestedGifts, contributions, reasons };
+}
+
+/**
+ * Badges from the same facts the indexer awards them from, so the mock and the
+ * live API show the same marks. Earned once each, oldest first.
+ */
+function badgesOf(w: MockWorld, wallet: string): BadgeView[] {
+  const out: BadgeView[] = [];
+  const add = (slug: HelperBadgeSlug, at: string | null | undefined, causeId: number | null) => {
+    if (!at || out.some((b) => b.slug === slug)) return;
+    out.push({ slug, label: HELPER_BADGES[slug].label, earnedBy: HELPER_BADGES[slug].earnedBy, causeId, awardedAt: at });
+  };
+  const byDate = <T extends { createdAt: string }>(rows: T[]) => rows.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  for (const h of w.causes.flatMap((c) => c.helpRequests.filter((r) => r.confirmedHelper === wallet))) add(helpBadgeFor(h.kind), h.confirmedAt, h.causeId);
+  const firstGift = byDate(w.gifts.filter((g) => g.sender === wallet))[0];
+  if (firstGift) add("first_gift", firstGift.createdAt, firstGift.causeId);
+  const agreedPaths = byDate(w.paths.filter((p) => p.author === wallet && p.outcomeAgreed));
+  const finder = agreedPaths[HELPER_BADGE_THRESHOLDS.path_finder - 1];
+  if (finder) add("path_finder", finder.createdAt, finder.causeId);
+  const agreedVotes = byDate(w.votes.filter((v) => v.voter === wallet && v.outcomeAgreed));
+  const steady = agreedVotes[HELPER_BADGE_THRESHOLDS.steady_hand - 1];
+  if (steady) add("steady_hand", steady.createdAt, steady.causeId);
+  const visit = agreedPaths.find((p) => p.claimType === "C4");
+  if (visit) add("witness", visit.createdAt, visit.causeId);
+  return out.sort((a, b) => a.awardedAt.localeCompare(b.awardedAt));
 }
 
 function ownedCause(causeId: number): CauseDetail {
@@ -283,6 +316,7 @@ export async function getMe(): Promise<Me> {
       mode: "queue",
       events: xpEvents,
     },
+    badges: badgesOf(w, wallet),
     reputation: w.reputation.get(wallet) ?? 0,
     gifts,
     paths,
@@ -317,9 +351,10 @@ export async function getLeaderboards(board: LeaderboardBoard, period: Leaderboa
   if (board === "helpers") {
     // Helpers rank by Care XP on community.sera.cx, not by gSera.
     const entries = HELPERS.map((h) => {
+      // Only checks that agreed with a final outcome earn XP. Confirmed help
+      // requests earn a badge, and badges are not ranked, so they are not here.
       const paths = period === "all" ? h.acceptedPaths : h.recentPaths;
-      const helps = period === "all" ? h.helpFulfilled : Math.min(1, h.helpFulfilled);
-      return { wallet: h.wallet, xp: paths * XP.care_path_agreed.amount + helps * XP.care_help_fulfilled.amount, events: paths + helps, reputation: h.reputation };
+      return { wallet: h.wallet, xp: paths * XP.care_path_agreed.amount, events: paths, reputation: h.reputation };
     })
       .concat([{ wallet: DEMO_WALLET, xp: w.xpEvents.filter((e) => e.wallet === DEMO_WALLET && e.createdAt >= since).reduce((s, e) => s + e.xp, 0), events: w.xpEvents.filter((e) => e.wallet === DEMO_WALLET && e.createdAt >= since).length, reputation: w.reputation.get(DEMO_WALLET) ?? 0 }])
       .filter((e) => e.xp > 0)

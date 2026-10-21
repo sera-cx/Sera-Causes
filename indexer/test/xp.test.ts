@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { XP, xpFor } from '@sera-causes/shared';
+import { xpFor } from '@sera-causes/shared';
 import { db } from '../src/db.js';
 import { createQueueCommunityClient } from '../src/community/client.js';
 import { awardXp, xpTotals } from '../src/ledger/xp.js';
-import { isSiteVisit, rewardHelp, settleClaim } from '../src/ledger/rewards.js';
+import { isSiteVisit, settleClaim } from '../src/ledger/rewards.js';
 import { addr, makeCause, reset, setClaim } from './helpers.js';
 
 const closed = { state: 'challenge_window', outcome: 'verified', challengeWindowEnd: new Date(Date.now() - 1000) };
@@ -37,8 +37,8 @@ describe('Care XP events', () => {
 
   it('totals XP by state for a wallet', async () => {
     await awardXp({ wallet: addr('helper'), eventType: 'care_cause_listed', sourceRef: 'cause:1', causeId: 1 });
-    await awardXp({ wallet: addr('helper'), eventType: 'care_help_fulfilled', sourceRef: 'need:1', causeId: 1 });
-    expect(await xpTotals(addr('helper'))).toEqual({ total: 350, queued: 350, sent: 0, unmatched: 0 });
+    await awardXp({ wallet: addr('helper'), eventType: 'care_evidence_accepted', sourceRef: 'ev:1', causeId: 1 });
+    expect(await xpTotals(addr('helper'))).toEqual({ total: 200, queued: 200, sent: 0, unmatched: 0 });
   });
 
   it('pays evidence 100 XP when the claim it supports is final, whichever way it went', async () => {
@@ -66,15 +66,6 @@ describe('Care XP events', () => {
     expect(await xpTotals(addr('helper2'))).toMatchObject({ total: xpFor('care_path_agreed') });
   });
 
-  it('tells a translation apart from any other help request', async () => {
-    await db().need.create({ data: { id: 1, causeId: 1, uri: 'data:,', kind: 'translate', title: 'Translate', postedAt: new Date() } });
-    await db().need.create({ data: { id: 2, causeId: 1, uri: 'data:,', kind: 'visit', title: 'Visit', postedAt: new Date() } });
-    await rewardHelp(1, addr('helper'));
-    await rewardHelp(2, addr('helper'));
-    const types = (await db().xpEvent.findMany({ orderBy: { sourceRef: 'asc' } })).map((e) => e.eventType);
-    expect(types).toEqual(['care_translation', 'care_help_fulfilled']);
-    expect(await xpTotals(addr('helper'))).toMatchObject({ total: XP.care_translation.amount + XP.care_help_fulfilled.amount });
-  });
 
   it('queue mode sends nothing and knows no members', async () => {
     const client = createQueueCommunityClient();

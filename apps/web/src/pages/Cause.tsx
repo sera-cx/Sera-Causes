@@ -17,8 +17,8 @@ import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { ONCHAIN_ONLY, pledgeHelp } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { CLAIM_INFO, COMMUNITY_SITE, XP, categoryLabel, type ClaimCode } from "@/lib/constants";
-import { fmtDate, fmtInt, fmtRm, fmtUsd, fmtXp, plural, timeLeft } from "@/lib/format";
+import { CLAIM_INFO, HELPER_BADGES, categoryLabel, helpBadgeFor, type ClaimCode } from "@/lib/constants";
+import { fmtDate, fmtInt, fmtRm, fmtUsd, plural, timeLeft } from "@/lib/format";
 import { causeImage } from "@/lib/images";
 import { useCause, useInvalidateAll, useRecord } from "@/lib/queries";
 import { recordLines } from "@/lib/record";
@@ -440,7 +440,11 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
     }
   };
   return (
-    <Section id="help" title="Help this cause" lede={`Open requests, posted by the organisation. A request you finish, once the organisation confirms it, earns ${fmtXp(XP.care_help_fulfilled.amount)} on ${COMMUNITY_SITE}.`}>
+    <Section
+      id="help"
+      title="Help this cause"
+      lede="Open requests, posted by the organisation. These are how a cause and a helper arrange work between them, not a way to earn: a request you finish earns a badge on your profile once the organisation confirms it, and no points of any kind."
+    >
       {cause.helpRequests.length === 0 ? (
         <Empty title="No open requests" body="This organisation has not asked for anything yet. You can still help by checking one of its claims." >
           <Button asChild variant="outline" size="sm">
@@ -455,7 +459,7 @@ function HelpSection({ cause }: { cause: CauseDetail }) {
               <li key={h.id} className="rounded-xl border border-rule bg-card p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Eyebrow>{h.kind}</Eyebrow>
-                  <span className="font-mono text-[11px] text-ink-muted tnum" title={`XP on ${COMMUNITY_SITE}`}>{fmtXp(h.kind === "translate" ? XP.care_translation.amount : XP.care_help_fulfilled.amount)}</span>
+                  <span className="font-mono text-[11px] text-ink-muted" title="Finishing this earns a badge, not points">{HELPER_BADGES[helpBadgeFor(h.kind)].label} badge</span>
                 </div>
                 <h3 className="mt-2 font-display text-[16.5px] font-semibold leading-snug">{h.title}</h3>
                 <p className="mt-1 text-[14px] leading-snug text-ink-muted">{h.detail}</p>

@@ -77,7 +77,7 @@ and `setMultipliers(wallet, partial)`.
 
 ### Types
 
-- `GrantType`: `causes_gift | causes_path | causes_vote | causes_help | causes_listing | causes_challenge`
+- `GrantType`: `causes_gift | causes_path | causes_vote | causes_listing | causes_challenge`
 - `SpendReason`: `cause_boost | cause_challenge_stake`
 - `WalletInfo`: `{ wallet, spendable, earned, spent, multipliers }`
 - `Multipliers`: `{ heat?, volumeTier, streak, powerHour, compound }`. `heat` is the

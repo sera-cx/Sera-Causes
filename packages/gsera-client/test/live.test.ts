@@ -120,7 +120,7 @@ describe('live client', () => {
     const { fetch, calls } = fetchStub(() => jsonResponse(502, { error: { code: 'BAD_GATEWAY', message: 'upstream' } }));
     const client = createGseraClient({ mode: 'live', baseUrl: BASE, hmacKey: KEY, fetch, retryBackoffMs: 0, creditRetries: 1 });
 
-    await expect(client.credit({ wallet: WALLET, amountGsera: 1, grantType: 'causes_help', referenceId: 'h1', reason: 'r' })).rejects.toMatchObject({ status: 502 });
+    await expect(client.credit({ wallet: WALLET, amountGsera: 1, grantType: 'causes_path', referenceId: 'h1', reason: 'r' })).rejects.toMatchObject({ status: 502 });
     expect(calls).toHaveLength(2);
   });
 
@@ -139,7 +139,7 @@ describe('live client', () => {
     const { fetch, calls } = fetchStub(() => jsonResponse(401, { error: { code: 'BAD_SIGNATURE', message: 'Invalid or missing X-Sera-Signature' } }));
     const client = createGseraClient({ mode: 'live', baseUrl: BASE, hmacKey: KEY, fetch, retryBackoffMs: 0 });
 
-    const p = client.credit({ wallet: WALLET, amountGsera: 1, grantType: 'causes_help', referenceId: 'h1', reason: 'r' });
+    const p = client.credit({ wallet: WALLET, amountGsera: 1, grantType: 'causes_path', referenceId: 'h1', reason: 'r' });
     await expect(p).rejects.toMatchObject({ status: 401, code: 'BAD_SIGNATURE' });
     expect(calls).toHaveLength(1);
   });

@@ -22,10 +22,11 @@ import { notFound, parseQuery, wrap } from '../errors.js';
 import { optionalAuth, requireAuth } from '../auth.js';
 import { reputationMap } from '../../ledger/reputation.js';
 import { xpTotals } from '../../ledger/xp.js';
+import { badgesFor } from '../../ledger/badges.js';
 import { tallyFor } from '../tally.js';
 import { getGsera } from '../../services/gsera.js';
 import { voterEligibility } from '../eligibility.js';
-import { causeName, serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, serializeXpEvent, iso } from '../serializers.js';
+import { causeName, serializeChallenge, serializeConversion, serializeEvidence, serializeGift, serializeHelperBadge, serializeLedger, serializeMedia, serializeNeed, serializePath, serializeVote, serializeWallet, serializeWithdrawal, serializeXpEvent, iso } from '../serializers.js';
 import { listStablecoins } from '../../chain/stablecoins.js';
 
 export const reads: Router = Router();
@@ -295,11 +296,12 @@ reads.get(
   requireAuth,
   wrap(async (req, res) => {
     const wallet = req.wallet!;
-    const [walletRow, ledger, xpEvents, xp, reputation, gifts, paths, votes, notifications, needsHelped] = await Promise.all([
+    const [walletRow, ledger, xpEvents, xp, badges, reputation, gifts, paths, votes, notifications, needsHelped] = await Promise.all([
       db().wallet.findUnique({ where: { address: wallet } }),
       db().ledgerEntry.findMany({ where: { wallet }, orderBy: { createdAt: 'desc' }, take: 200 }),
       db().xpEvent.findMany({ where: { wallet }, orderBy: { createdAt: 'desc' }, take: 100 }),
       xpTotals(wallet),
+      badgesFor(wallet),
       db().reputation.findUnique({ where: { wallet } }),
       db().gift.findMany({ where: { sender: wallet }, orderBy: { createdAt: 'desc' }, take: 200 }),
       db().path.findMany({ where: { author: wallet }, orderBy: { createdAt: 'desc' }, take: 100 }),
@@ -336,6 +338,8 @@ reads.get(
       ledger: { credited: sum('credited'), queued: sum('queued'), cancelled: sum('cancelled'), staked, entries: ledger.map(serializeLedger) },
       // Care XP lives on community.sera.cx. It is a standing, not a balance, and it is not spendable here.
       xp: { total: xp.total, queued: xp.queued, sent: xp.sent, unmatched: xp.unmatched, site: COMMUNITY_SITE, mode: config().COMMUNITY_MODE, events: xpEvents.map(serializeXpEvent) },
+      // Badges are recognition, not a score. They are not ranked and they gate nothing.
+      badges: badges.map(serializeHelperBadge),
       reputation: reputation?.score ?? 0,
       gifts: gifts.map(serializeGift),
       paths: paths.map(serializePath),
