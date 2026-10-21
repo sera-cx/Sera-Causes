@@ -8,6 +8,7 @@ export { CheckACharity } from "./CheckACharity";
 export { CloseToHome } from "./CloseToHome";
 export { CoinAndBadge } from "./CoinAndBadge";
 export { Figure, type IllustrationProps } from "./common";
+export { GiftInTheOpen } from "./GiftInTheOpen";
 export { GiveEarnUse } from "./GiveEarnUse";
 export { HowChecked } from "./HowChecked";
 export { OpenList } from "./OpenList";

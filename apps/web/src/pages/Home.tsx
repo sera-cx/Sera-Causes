@@ -4,29 +4,21 @@ import { CauseCard, CauseCardSkeleton } from "@/components/CauseCard";
 import { ChecksBar } from "@/components/ChecksBar";
 import { Empty, ErrorState } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
-import { PhotoCredit } from "@/components/PhotoCredit";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
-import { CategoryMark, CheckACharity, CloseToHome, GiveEarnUse } from "@/components/illustrations";
+import { CategoryMark, CheckACharity, CloseToHome, Figure, GiftInTheOpen, GiveEarnUse } from "@/components/illustrations";
 import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
 import { COMMUNITY_SITE, GSERA, LINKS, TRIAL, XP } from "@/lib/constants";
 import { fmtInt, fmtMultiplier } from "@/lib/format";
-import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
+import { causeImage } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
 import { ROUTE_SEO } from "@/lib/seo";
 import { causeListSchema, organizationSchema, websiteSchema } from "@/lib/seoSchemas";
 import type { HomeData } from "@/lib/types";
-
-const HERO_IMAGE = {
-  src: imageUrl(HERO_IMAGE_SRC),
-  alt: "A green turtle hatchling resting in a coconut shell on the sand at Pantai Chendor, Pahang",
-  credit: "Kasih Turtle Conservation Project, Pantai Chendor",
-  licence: "Supplied",
-};
 
 /** How many causes the home page shows before sending you to /causes. */
 const HOME_FEED_LIMIT = 6;
@@ -64,74 +56,77 @@ export function HomePage() {
   );
 }
 
+/**
+ * The hero. A stranger should leave it knowing two things: what this is, and
+ * where we are starting from.
+ *
+ * Laid out as an opening spread rather than a column of text beside a
+ * picture. The headline and the explanation sit side by side so the type
+ * block stays short, the drawing then runs the full width of the page as the
+ * one thing worth looking at, and the scope of the first run closes the band
+ * as a quiet footnote under a hairline.
+ */
 function Hero({ empty }: { empty: boolean }) {
   return (
-    <section className="relative overflow-hidden border-b border-rule">
-      <img src="/brand/mark/sera-mark-color.svg" alt="" aria-hidden className="pointer-events-none absolute -right-16 -top-10 hidden h-[420px] w-auto select-none opacity-[0.045] md:block" />
-      <div className="container grid gap-10 py-10 md:grid-cols-[1.05fr_1fr] md:items-center md:py-16 lg:py-20">
-        <div className="rise-in">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <section className="border-b border-rule">
+      <div className="container pt-10 md:pt-12">
+        <div className="rise-in grid gap-6 lg:grid-cols-[1.12fr_1fr] lg:items-start lg:gap-14">
+          <div>
             <Eyebrow>Care. Share. Donate.</Eyebrow>
-            {/* "New" belongs next to the name, where a reader forms their first
-                impression, not in a panel they reach after the buttons. */}
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-sera/40 bg-sera/10 px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-sera-text">
-              <span className="h-1.5 w-1.5 rounded-full bg-sera" aria-hidden />
-              New. First run in Malaysia
-            </span>
+            <h1 className="mt-4 font-display text-[36px] font-semibold leading-[1.03] tracking-[-0.03em] sm:text-[48px] lg:text-[56px]">
+              {empty ? (
+                <>
+                  Malaysian charities, listed <em>in the open</em>.
+                </>
+              ) : (
+                <>
+                  Give straight to a charity, <em>in the open</em>.
+                </>
+              )}
+            </h1>
           </div>
-          <h1 className="mt-4 font-display text-[38px] font-semibold leading-[1.02] tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
-            {empty ? (
-              <>
-                Giving to Malaysian charities, <em>in the open</em>.
-              </>
-            ) : (
-              <>
-                Give to the causes <em>you</em> care about.
-              </>
-            )}
-          </h1>
-          <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
-            {empty
-              ? "A charity lists itself and sets its own address for money. You give in stablecoins, digital money that holds a steady value, and the gift goes straight there. Anyone can check a charity, and anyone can read every gift."
-              : "Turtle hatcheries, animal shelters, children's homes, food banks and flood relief. You give in stablecoins, digital money that holds a steady value, and the gift goes straight to the charity. Anyone can check a charity, and anyone can read every gift."}
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            {empty ? (
-              <>
-                <Button asChild size="lg">
-                  <Link href="/add">List your cause</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                  <Link href="/technology">How it works</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button asChild size="lg">
-                  <Link href="/causes">
-                    <Search className="h-4 w-4" aria-hidden /> Find a cause
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                  <Link href="/rules#verification">How we check charities</Link>
-                </Button>
-              </>
-            )}
+          {/* The explanation carries the whole idea in three sentences: who
+              lists, how the money travels, and who gets to see it. */}
+          <div className="lg:pt-2">
+            <p className="measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[18.5px]">
+              {empty
+                ? "Your organisation lists itself and sets its own address for money. People give in stablecoins, digital money that holds a steady value, and it arrives straight at that address. Every gift and every check is public, and anyone can help check a charity."
+                : "A charity lists itself here and sets its own address for money. You give in stablecoins, digital money that holds a steady value, and it goes straight to that address. Every gift and every check is public, and anyone can help check a charity."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {empty ? (
+                <>
+                  <Button asChild size="lg">
+                    <Link href="/add">List your cause</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/technology">How it works</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild size="lg">
+                    <Link href="/causes">
+                      <Search className="h-4 w-4" aria-hidden /> Find a cause
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/rules#verification">How we check charities</Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <FirstRunNote />
         </div>
-        <figure className="relative">
-          <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-paper-warm">
-            <img src={HERO_IMAGE.src} alt={HERO_IMAGE.alt} className="h-full w-full object-cover" fetchPriority="high" decoding="async" width={1200} height={900} />
-          </div>
-          <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <PhotoCredit image={HERO_IMAGE} />
-            <Link href={causeHref(1, "kasih-turtle-conservation-project")} className="inline-flex min-h-11 items-center font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-subtle hover:text-ink sm:min-h-0">
-              Kasih, Cherating
-            </Link>
-          </figcaption>
-        </figure>
+        <Figure
+          className="mt-9 md:mt-10"
+          cap="max-w-[800px]"
+          caption="A charity posts itself. Your gift goes straight to it. Every gift stays on the record."
+        >
+          <GiftInTheOpen />
+        </Figure>
       </div>
+      <FirstRunNote />
     </section>
   );
 }
@@ -379,22 +374,40 @@ function HowGseraWorks() {
 }
 
 /**
- * The scope, as a quiet line rather than a panel. The badge by the title
- * already says we are new; this says what that means in practice and carries
- * the YouApp mark beside MYRT, the ringgit stablecoin YouApp issues.
+ * Where we are starting from: the last band of the hero, under a hairline, so
+ * it reads as a footnote to the idea rather than a claim of its own. Two
+ * facts, each under a mono label, and the YouApp mark sits beside MYRT, the
+ * ringgit stablecoin YouApp issues, rather than floating somewhere else.
+ *
+ * The scope itself comes from TRIAL, so it is written in one place and only
+ * split here, where the mark has to land in the middle of the sentence.
  */
 function FirstRunNote() {
   return (
-    <div className="mt-7 border-t border-rule pt-5 text-[14px] leading-[1.6] text-ink-subtle">
-      <p className="measure">{TRIAL.heroWhy}</p>
-      <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <span>Give in</span>
-        <a href="https://youapp.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-ink-muted hover:text-sera-text">
-          MYRT
-          <img src="/brand/youapp-logo.svg" alt="from YouApp" className="h-[14px] w-auto" width={118} height={30} />
-        </a>
-        <span>{TRIAL.heroCurrenciesAfterMyrt}</span>
-      </p>
+    <div className="mt-9 border-t border-rule md:mt-10">
+      <div className="container grid gap-x-12 gap-y-6 py-7 md:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] md:py-8">
+        <div>
+          <p className="eyebrow flex items-center gap-2">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sera" aria-hidden />
+            <span className="whitespace-nowrap">The first run</span>
+          </p>
+          <p className="mt-2.5 measure text-[14.5px] leading-[1.6] text-ink-muted">{TRIAL.heroWhy}</p>
+        </div>
+        <div>
+          <p className="eyebrow whitespace-nowrap">What you give in</p>
+          <p className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14.5px] leading-[1.6] text-ink-muted">
+            <a href="https://youapp.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-sera-text">
+              MYRT
+              {/* The mark is drawn in near-black, so in dark mode it needs a
+                  light chip of its own to stay visible. */}
+              <span className="inline-flex items-center rounded-[4px] px-1 py-0.5 dark:bg-white">
+                <img src="/brand/youapp-logo.svg" alt="from YouApp" className="h-[14px] w-auto" width={118} height={30} />
+              </span>
+            </a>
+            <span>{TRIAL.heroCurrenciesAfterMyrt}</span>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
