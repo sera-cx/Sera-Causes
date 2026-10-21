@@ -1,5 +1,21 @@
-/* Every tunable number is rendered from src/lib/constants.ts and shown only here. */
+/* The rules, and every tunable number, in one place.
+   ------------------------------------------------------------------
+   How this page is built, so it stays readable as rules are added:
+   - Every number is rendered from src/lib/constants.ts, which re-exports
+     @sera-causes/shared. Nothing on this page is typed in by hand.
+   - Each section leads with the answer in one sentence, before any table
+     or detail, so a reader who stops after the heading still leaves with
+     the right idea.
+   - Tables are for looking a number up. Mechanisms are drawn instead: how
+     a cause is checked, where gSera comes from, how XP and badges differ,
+     what a steward may touch, what happens when somebody objects.
+   - Each thing is said once, in the section it belongs to, and cross
+     linked from anywhere else that needs it.
+   - Section ids are a public interface: other pages deep link to #gsera,
+     #verification, #badges, #reports and #data. Do not rename them. */
+import { type ReactNode } from "react";
 import { SectionHeader } from "@/components/SectionHeader";
+import { CoinAndBadge, Figure, HowChecked, ListedByTheCharity, WhatStewardsCanDo, WhenSomeoneObjects, XpOrBadge } from "@/components/illustrations";
 import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import {
@@ -25,12 +41,55 @@ import { giftGsera, voteWeight } from "@/lib/rules";
 import { RULES_FAQS, ROUTE_SEO } from "@/lib/seo";
 import { breadcrumbSchema, faqSchema } from "@/lib/seoSchemas";
 
-/** A table that scrolls inside its own box instead of pushing the page sideways. */
-function ScrollTable({ children }: { children: React.ReactNode }) {
+/** The contents rail, and the order the sections are written in below. */
+const SECTIONS: readonly (readonly [string, string])[] = [
+  ["scope", "What this covers"],
+  ["listing", "Who lists a cause"],
+  ["verification", "How a cause is checked"],
+  ["gsera", "gSera"],
+  ["xp", "Care XP"],
+  ["badges", "Badges"],
+  ["challenges", "Challenges"],
+  ["stewards", "Stewards"],
+  ["reports", "Reports"],
+  ["data", "Personal data"],
+  ["faq", "FAQ"],
+];
+
+/**
+ * A table that scrolls inside its own box instead of pushing the page
+ * sideways. `min` raises the width the table asks for before it starts to
+ * scroll: wide enough that a column of sentences is never squeezed down to
+ * breaking words in half, which is what happens otherwise once the page
+ * drops to one column.
+ */
+function ScrollTable({ children, min }: { children: React.ReactNode; min?: string }) {
   return (
     <div className="table-scroll" role="region" tabIndex={0} aria-label="Table, scrolls sideways on a narrow screen">
-      <table>{children}</table>
+      <table className={min}>{children}</table>
     </div>
+  );
+}
+
+/**
+ * One rule section: a rule above the heading so the page reads as a stack
+ * of separate answers, then the answer itself in one sentence, then the
+ * detail. The id stays on the heading, because that is what other pages
+ * link to.
+ */
+function Section({ id, title, lead, children }: { id: string; title: string; lead: ReactNode; children: ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="mt-14 border-t border-rule pt-9 first:mt-0 first:border-t-0 first:pt-0">
+      <h2 id={id} className="mt-0 scroll-mt-24">
+        {title}
+      </h2>
+      {/* The answer, before any detail. Balanced from the small breakpoint
+          up, where a one sentence answer would otherwise leave a short
+          second line; left alone on a phone, where every character of the
+          width is wanted. */}
+      <p className="mt-3 measure text-[18px] font-medium leading-[1.5] text-ink sm:text-balance">{lead}</p>
+      {children}
+    </section>
   );
 }
 
@@ -49,7 +108,7 @@ export function RulesPage() {
         level={1}
         kicker="Rules"
         title="The rules, with every number in one place."
-        lede="Written so a 15 year old can follow it. Any number marked proposed may still change before community mode. We change it here and nowhere else."
+        lede="Every rule and every number is set here and nowhere else. Anything marked proposed may still change before community mode."
         size="lg"
       />
       {/* The page keeps the full container, so the prose starts on the same
@@ -60,7 +119,7 @@ export function RulesPage() {
         <nav aria-label="On this page" className="xl:order-2 xl:sticky xl:top-20 xl:self-start">
           <p className="eyebrow hidden xl:block">On this page</p>
           <ul className="flex flex-wrap gap-2 font-mono text-[11.5px] uppercase tracking-[0.1em] xl:mt-3 xl:flex-col xl:gap-0 xl:border-l xl:border-rule xl:pl-4">
-            {[["scope", "What this covers"], ["gsera", "gSera"], ["xp", "Care XP"], ["badges", "Badges"], ["listing", "Who lists a cause"], ["verification", "Verification"], ["challenges", "Challenges"], ["stewards", "Stewards"], ["reports", "Reports"], ["data", "Personal data"], ["faq", "FAQ"]].map(([id, label]) => (
+            {SECTIONS.map(([id, label]) => (
               <li key={id}>
                 <a href={`#${id}`} className="inline-flex min-h-11 items-center rounded-full border border-rule px-3 text-ink-muted hover:text-ink xl:w-full xl:rounded-none xl:border-0 xl:px-0 xl:leading-[1.3]">
                   {label}
@@ -71,253 +130,353 @@ export function RulesPage() {
         </nav>
 
         <div className="prose-csd min-w-0 xl:order-1">
-          <h2 id="scope" className="scroll-mt-24">What this first run covers</h2>
-          <p>{TRIAL.rules}</p>
-          <p>
-            Gifts arrive at the cause's own address on Ethereum. Nothing is held back on the way. We do not take a cut of a gift, and the only cost is the network fee your wallet pays to send it, which the wallet
-            shows you first.
-          </p>
+          <Section
+            id="scope"
+            title="What this first run covers"
+            lead="Causes in Malaysia, gifts in four stablecoins, and more countries from 2027."
+          >
+            <p>{TRIAL.rules}</p>
+            <p>A stablecoin is digital money that holds a steady value against a currency. MYRT follows the ringgit, XSGD the Singapore dollar, USDT and USDC the US dollar.</p>
+            <p>
+              Your gift goes to the cause's own address on Ethereum. Nothing is held back on the way, and we do not take a cut of a gift. The only cost is the network fee your wallet pays to send it, which the
+              wallet shows you before you confirm.
+            </p>
+          </Section>
 
-          <h2 id="gsera" className="scroll-mt-24">gSera points, for giving</h2>
-          <p>
-            gSera is the reward points balance you share with g.sera.cx. Giving earns it. It reaches your wallet when the gift arrives and passes screening. There is nothing to refund, so there is no waiting
-            period. Helping earns Care XP on {COMMUNITY_SITE} instead, which is the next section.
-          </p>
-          <h3>Gifts</h3>
-          <p>gSera per gift = the gift in US$ x {GSERA.perUsd} x heat x volume tier x streak, up to {GSERA.compoundCap}x in total.</p>
-          <ScrollTable>
-            <thead>
-              <tr><th>Multiplier</th><th>Range</th><th>Note</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Base</td><td className="num">{GSERA.perUsd} per US$1</td><td>Measured at the value the cause receives. The same as a taker on Sera.cx.</td></tr>
-              <tr><td>Heat</td><td className="num">{fmtMultiplier(GSERA.heat.normal)} to {fmtMultiplier(GSERA.heat.urgent)}</td><td>An urgent appeal chosen by Sera.cx: {fmtMultiplier(GSERA.heat.urgent)}. Every other cause: {fmtMultiplier(GSERA.heat.normal)}. Proposed.</td></tr>
-              <tr><td>Volume tier</td><td className="num">{fmtMultiplier(GSERA.volumeTier.min)} to {fmtMultiplier(GSERA.volumeTier.max)}</td><td>The same season ladder as swaps. Gifts count towards it.</td></tr>
-              <tr><td>Streak</td><td className="num">{fmtMultiplier(GSERA.streak.min)} to {fmtMultiplier(GSERA.streak.max)}</td><td>Weekly, Monday to Sunday UTC. A gift keeps a streak alive.</td></tr>
-              <tr><td>Power Hour</td><td className="num">1.0x</td><td>Not used on gifts.</td></tr>
-            </tbody>
-          </ScrollTable>
-          <p>
-            An example. You give US$50, about {fmtRm(50)}, to an urgent appeal. You are on a 1.2x volume tier and a 1.1x streak. That earns 50 x {GSERA.perUsd} x {GSERA.heat.urgent} x 1.2 x 1.1 ={" "}
-            {fmtInt(example)} gSera.
-          </p>
-          <p>
-            A gift that settles through a Sera.cx swap earns once, at the giver's rate. The swap leg does not also earn taker gSera. A gift already in the cause's own stablecoin still earns, because the point is
-            the gift, not the swap.
-          </p>
-          <h3>Charity gSera</h3>
-          <p>
-            gSera earned from a gift is tagged by where it came from, so it is always clear what was earned by giving. On this site it has one use: staking it to object to a check you believe is wrong.
-            Staking never lowers your lifetime rank, and an objection that is upheld returns the stake with more on top.
-          </p>
-          <h3>Stopping people gaming it</h3>
-          <ul>
-            <li>A wallet linked to a cause's owner or its payout wallet earns no gSera on that cause. Linked means the same address, funded straight from it within 30 days, or grouped with it by Sera.cx screening.</li>
-            <li>Gifts earn gSera up to US${fmtInt(GSERA.giftCapUsdPerWalletPerCausePer30d)} per wallet, per cause, per {GSERA.giftCapWindowDays} days. A gift above that is still recorded, but earns 0x. Proposed.</li>
-            <li>
-              To vote you need a wallet that has passed screening and has either made one gift with gSera credited, or written and signed one verification path. A help request a cause confirmed does not count,
-              because only that cause can say it happened.
-            </li>
-            <li>Vote rewards are small. Voting against the final result costs you reputation.</li>
-            <li>Every gift passes Sera.cx screening. A flagged gift earns no gSera.</li>
-          </ul>
+          <Section
+            id="listing"
+            title="Who lists a cause"
+            lead="The organisation lists itself, and it sets the wallet its gifts arrive at."
+          >
+            <Figure
+              className="mt-6"
+              caption="The charity pins up its own listing. Change the address on it and the tick comes off."
+            >
+              <ListedByTheCharity />
+            </Figure>
+            <p>
+              A charity writes its own listing, in its own words, and sets the address that receives the gifts. So you never have to wonder whose wallet your gift lands in. It is the organisation's own, by
+              design.
+            </p>
+            <p>
+              Change that address and the cause loses Verified at once. The payout wallet claim (C3) then has to be checked again, with a new message signed by the new wallet. Verified means every required
+              check has passed. See <a href="#verification">how a cause is checked</a>.
+            </p>
+            <p>
+              Somebody may list a cause for an organisation that agrees to it, for example a volunteer helping a group that is not online. They are asked to use the organisation's own payout wallet, and to send
+              the organisation an invite link so it can take the listing over.
+            </p>
+            <p>Listing is the organisation's job. Checking the listing is open to everyone, which is the next section.</p>
+          </Section>
 
-          <h2 id="xp" className="scroll-mt-24">Care XP, for helping</h2>
-          <p>
-            Helping earns XP on{" "}
-            <a href={LINKS.community} target="_blank" rel="noopener noreferrer">
-              {COMMUNITY_SITE}
-            </a>
-            , not gSera. XP is your standing in the Care track of the Sera.cx community programme. It is not a balance, you cannot spend it, and it has no cash value.
-          </p>
-          <ScrollTable>
-            <thead>
-              <tr><th>Action</th><th>XP</th><th>When it is credited</th></tr>
-            </thead>
-            <tbody>
-              {XP_EVENT_TYPES.map((t) => (
-                <tr key={t}>
-                  <td>{XP[t].label}</td>
-                  <td className="num">{fmtInt(XP[t].amount)}</td>
-                  <td>{XP[t].when}</td>
-                </tr>
-              ))}
-            </tbody>
-          </ScrollTable>
-          <p>Every XP number here is proposed, pending the community team's assessment.</p>
-          <p>
-            Each event is recorded on causes.sera.cx the moment you earn it: once per listing, path, vote, piece of evidence or challenge. It is credited on {COMMUNITY_SITE} once the link between the two sites
-            is live. Until then your XP is held here and nothing is lost.
-          </p>
-          <p>
-            Every event on that table rests on something a stranger can check: a path or a vote the final result agrees with, a listing that reaches Verified, a challenge that was upheld. Help a cause confirms
-            is not like that, so it earns no XP. It earns a badge, which is the next section.
-          </p>
+          <Section
+            id="verification"
+            title="How a cause is checked"
+            lead="One claim at a time, in the open, by anyone who wants to check it."
+          >
+            <Figure className="mt-6" tone="card" cap="max-w-[680px]" caption="One claim at a time: evidence, a written path back to the source, a vote, then time to object.">
+              <HowChecked />
+            </Figure>
+            <p>
+              A claim is one fact with a clear yes or no. A cause is Verified when C1, C2, C3 and C4 are all verified, plus C6 where the law needs a care licence. C5 and C7 are badges on the cause and are not
+              part of Verified.
+            </p>
+            <p>A check is a signal, not a lock. It tells you what has been found about the organisation. The gift reaches the cause either way.</p>
+            <ScrollTable min="min-w-[48rem]">
+              <thead>
+                <tr><th>Claim</th><th>Needed for Verified</th><th>What counts as proof</th><th>Where to check</th></tr>
+              </thead>
+              <tbody>
+                {CLAIMS.map((c) => {
+                  const i = CLAIM_INFO[c];
+                  return (
+                    <tr key={c}>
+                      <td><span className="font-mono">{c}</span>. {i.label}</td>
+                      <td>{i.required === "always" ? "Yes" : i.required === "when_flagged" ? "Children's homes and care centres" : `No, badge: ${i.badge}`}</td>
+                      <td>{i.proof}</td>
+                      <td>{i.whereToCheck}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </ScrollTable>
 
-          <h2 id="badges" className="scroll-mt-24">Badges, for the rest</h2>
-          <p>
-            Some work cannot be checked by anyone but the cause: a translation, a visit, an introduction. Paying points for it would mean paying on one organisation's word, and a charity could hand points to a
-            friend all day long. So that work earns a badge instead.
-          </p>
-          <p>
-            A badge is a mark on your profile and nothing more. Badges are not ranked, they carry no amount, they cannot be spent, and they unlock nothing: not voting, not vote weight, not XP. Each one is
-            earned once.
-          </p>
-          <ScrollTable>
-            <thead>
-              <tr><th>Badge</th><th>How it is earned</th></tr>
-            </thead>
-            <tbody>
-              {HELPER_BADGE_SLUGS.map((slug) => (
-                <tr key={slug}>
-                  <td>{HELPER_BADGES[slug].label}</td>
-                  <td>{HELPER_BADGES[slug].earnedBy}</td>
-                </tr>
-              ))}
-            </tbody>
-          </ScrollTable>
-          <p>Your badges are on your own page, under your reputation.</p>
+            <h3>Evidence</h3>
+            <p>
+              Anyone can upload evidence: a document, a link, a photo, a video, or a message signed by a wallet. Personal details are blacked out first. We take a fingerprint of every file and record it, so
+              nobody can swap a file later. Each piece shows who uploaded it and when.
+            </p>
 
-          <h2 id="listing" className="scroll-mt-24">Who lists a cause</h2>
-          <p>
-            The organisation does. A charity lists itself, in its own words, and sets the wallet that receives the gifts. That is the whole point of listing: whoever lists a cause sets that wallet, so it has to be
-            the organisation's own.
-          </p>
-          <p>
-            So you never have to wonder whose wallet your gift lands in. It is the organisation's, by design. If that wallet is ever changed, the cause loses Verified at once, and the payout wallet claim (C3) has
-            to be checked again with a new signed message.
-          </p>
-          <p>
-            Checking a cause is the opposite: it is open to everyone. Anyone can upload evidence, write down how they checked a claim, and vote on the result. The organisation says who it is. The community checks
-            whether that is true.
-          </p>
-          <p>
-            Someone can still list a cause for an organisation, with their agreement, for example a volunteer helping a group that is not online. They are asked to use the organisation's own payout wallet and to
-            send the organisation an invite link so it can take the listing over.
-          </p>
+            <h3>Verification paths</h3>
+            <p>
+              A path is a written note of exactly how one person checked one claim. It uses a fixed form: the source, the steps, the exact search, what they found, whether it matches the profile, a dated
+              screenshot, the result, anything the source does not show, and a line about any connection the writer has to the organisation.
+            </p>
+            <p>
+              One claim per path. A path with no source, no steps and no dated screenshot cannot be sent. Paths are public, permanent and signed. Paths that agree, written by different helpers, count for more.
+              "Not verified" and "Could not check" are useful results, and they earn the same as "Verified" when the final result agrees.
+            </p>
 
-          <h2 id="verification" className="scroll-mt-24">Verification</h2>
-          <p>
-            A cause is verified one claim at a time. A claim is a single fact with a clear yes or no. Verified means C1, C2, C3 and C4 are all verified, plus C6 where the law needs a care licence. C5 and C7 are
-            separate badges. Verification is a trust signal. It does not control the money, which goes straight to the cause.
-          </p>
-          <ScrollTable>
-            <thead>
-              <tr><th>Claim</th><th>Needed for Verified</th><th>What counts as proof</th><th>Where to check</th></tr>
-            </thead>
-            <tbody>
-              {CLAIMS.map((c) => {
-                const i = CLAIM_INFO[c];
-                return (
-                  <tr key={c}>
-                    <td><span className="font-mono">{c}</span>. {i.label}</td>
-                    <td>{i.required === "always" ? "Yes" : i.required === "when_flagged" ? "Children's homes and care centres" : `No, badge: ${i.badge}`}</td>
-                    <td>{i.proof}</td>
-                    <td>{i.whereToCheck}</td>
+            <h3>Voting</h3>
+            <ScrollTable>
+              <thead>
+                <tr><th>Rule</th><th>Value</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Independent paths before voting opens</td><td className="num">{VOTING.minPaths}</td></tr>
+                <tr><td>Voting period</td><td className="num">{VOTING.periodDays} days</td></tr>
+                <tr><td>Earliest close once quorum and threshold are met</td><td className="num">{VOTING.minHours} hours</td></tr>
+                <tr><td>Least total vote weight needed (quorum)</td><td className="num">{VOTING.quorumWeight}</td></tr>
+                <tr><td>Share of that weight saying Verified (threshold)</td><td className="num">{VOTING.thresholdPct}%</td></tr>
+                <tr><td>Time to object after a claim passes</td><td className="num">{VOTING.challengeWindowHours} hours</td></tr>
+                <tr><td>Choices</td><td>Verified, Not verified, Needs more evidence</td></tr>
+              </tbody>
+            </ScrollTable>
+            <p>
+              You have to open the paths first. The vote button sits under them and unlocks only once you have opened one. A "Needs more evidence" result reopens the claim, and is not a fail. Once a claim
+              passes, anyone can still <a href="#challenges">object to the result</a> inside that window.
+            </p>
+
+            <h3>Who can vote</h3>
+            <p>
+              You need a wallet that has passed screening, and that has either made one gift with <a href="#gsera">gSera</a> credited, or written and signed one verification path. Screening is the Sera.cx check
+              that money is not linked to crime. Help that a cause confirmed does not count, because only that cause can say it happened.
+            </p>
+
+            <h3>Vote weight and reputation</h3>
+            <p>
+              Vote weight is how much one vote counts. Reputation is what you have built up by being right. Neither gSera nor XP adds vote weight, so points cannot buy verification.
+            </p>
+            <p>
+              weight = 1 + min({VOTE_WEIGHT.max - VOTE_WEIGHT.min}, log2(1 + reputation)), so it sits between {VOTE_WEIGHT.min} and {VOTE_WEIGHT.max}. A new voter counts as {VOTE_WEIGHT.min}. Reputation grows
+              by {REPUTATION.agrees} for each vote and each path that matches a final, unchallenged result, and drops by {Math.abs(REPUTATION.overturned)} for each one a successful challenge overturns.
+            </p>
+            <ScrollTable>
+              <thead>
+                <tr><th>Reputation</th><th>Weight</th></tr>
+              </thead>
+              <tbody>
+                {[0, 1, 3, 7, 15, 30].map((r) => (
+                  <tr key={r}><td className="num">{r}</td><td className="num">{voteWeight(r)}</td></tr>
+                ))}
+              </tbody>
+            </ScrollTable>
+
+            <h3>Who settles a claim today</h3>
+            <p>
+              Current mode: <span className="font-mono">{verificationMode}</span>. In advisory mode, votes and tallies are shown and Sera.cx <a href="#stewards">stewards</a> settle every claim. In community
+              mode, the votes decide and stewards step in only on disputes and legal problems. Switching is one setting.
+            </p>
+          </Section>
+
+          <Section
+            id="gsera"
+            title="gSera, for giving"
+            lead={`Giving earns gSera: ${GSERA.perUsd} for every US$1 that reaches the cause, then multiplied by up to ${GSERA.compoundCap}x.`}
+          >
+            <Figure className="mt-6" cap="max-w-[540px]" caption="A gift earns a coin you can spend. Checking a charity earns standing, which you cannot.">
+              <CoinAndBadge />
+            </Figure>
+            <p>
+              gSera is the reward points balance you share with{" "}
+              <a href={LINKS.gsera} target="_blank" rel="noopener noreferrer">
+                g.sera.cx
+              </a>
+              . It reaches your wallet when the gift arrives and passes screening. There is nothing to refund, so there is no waiting period. Helping earns <a href="#xp">Care XP</a> instead.
+            </p>
+
+            <h3>What a gift earns</h3>
+            <p>
+              gSera per gift = the gift in US$ x {GSERA.perUsd} x heat x volume tier x streak. A multiplier makes the base rate bigger, the four are multiplied together, and the total is capped at{" "}
+              {GSERA.compoundCap}x.
+            </p>
+            <ScrollTable>
+              <thead>
+                <tr><th>Multiplier</th><th>Range</th><th>Note</th></tr>
+              </thead>
+              <tbody>
+                <tr><td className="whitespace-nowrap">Base</td><td className="num">{GSERA.perUsd} per US$1</td><td>Measured at the value the cause receives. The same as a taker on Sera.cx.</td></tr>
+                <tr><td className="whitespace-nowrap">Heat</td><td className="num">{fmtMultiplier(GSERA.heat.normal)} to {fmtMultiplier(GSERA.heat.urgent)}</td><td>An urgent appeal chosen by Sera.cx: {fmtMultiplier(GSERA.heat.urgent)}. Every other cause: {fmtMultiplier(GSERA.heat.normal)}. Proposed.</td></tr>
+                <tr><td className="whitespace-nowrap">Volume tier</td><td className="num">{fmtMultiplier(GSERA.volumeTier.min)} to {fmtMultiplier(GSERA.volumeTier.max)}</td><td>The same season ladder as swaps. Gifts count towards it.</td></tr>
+                <tr><td className="whitespace-nowrap">Streak</td><td className="num">{fmtMultiplier(GSERA.streak.min)} to {fmtMultiplier(GSERA.streak.max)}</td><td>Weekly, Monday to Sunday UTC. A gift keeps a streak alive.</td></tr>
+                <tr><td className="whitespace-nowrap">Power Hour</td><td className="num">1.0x</td><td>Not used on gifts.</td></tr>
+              </tbody>
+            </ScrollTable>
+            <p>
+              An example. You give US$50, about {fmtRm(50)}, to an urgent appeal. You are on a 1.2x volume tier and a 1.1x streak. That earns 50 x {GSERA.perUsd} x {GSERA.heat.urgent} x 1.2 x 1.1 ={" "}
+              {fmtInt(example)} gSera.
+            </p>
+            <p>
+              A gift that settles through a Sera.cx swap earns once, at the giver's rate. The swap leg does not also earn taker gSera. A gift already in the cause's own stablecoin still earns, because the point
+              is the gift, not the swap.
+            </p>
+
+            <h3>What gSera is for here</h3>
+            <p>
+              gSera from a gift is tagged by where it came from, so it is always clear what was earned by giving. On this site it has one use: staking it to <a href="#challenges">object to a check</a> you
+              believe is wrong. Staking never lowers your lifetime rank. Everything else gSera does is on g.sera.cx.
+            </p>
+
+            <h3>Stopping people gaming it</h3>
+            <ul>
+              <li>A wallet linked to a cause's owner or its payout wallet earns no gSera on that cause. Linked means the same address, funded straight from it within 30 days, or grouped with it by Sera.cx screening.</li>
+              <li>Gifts earn gSera up to US${fmtInt(GSERA.giftCapUsdPerWalletPerCausePer30d)} per wallet, per cause, per {GSERA.giftCapWindowDays} days. A gift above that is still recorded, but earns 0x. Proposed.</li>
+              <li>Every gift passes Sera.cx screening. A flagged gift earns no gSera.</li>
+            </ul>
+          </Section>
+
+          <Section
+            id="xp"
+            title="Care XP, for helping"
+            lead="Help that a stranger can check earns XP, which is standing on community.sera.cx and not money."
+          >
+            <p>
+              XP is your standing in the Care track of the Sera.cx community programme, not a balance you can spend. It is kept on{" "}
+              <a href={LINKS.community} target="_blank" rel="noopener noreferrer">
+                {COMMUNITY_SITE}
+              </a>
+              , not here.
+            </p>
+            <ScrollTable>
+              <thead>
+                <tr><th>Action</th><th>XP</th><th>When it is credited</th></tr>
+              </thead>
+              <tbody>
+                {XP_EVENT_TYPES.map((t) => (
+                  <tr key={t}>
+                    <td>{XP[t].label}</td>
+                    <td className="num">{fmtInt(XP[t].amount)}</td>
+                    <td>{XP[t].when}</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </ScrollTable>
-          <h3>Evidence</h3>
-          <p>
-            Anyone can upload evidence: a document, a link, a photo, a video or a message signed by a wallet. Personal details are blacked out first. We take a fingerprint of every file and record it, so nobody
-            can swap a file later. Each piece shows who uploaded it and when.
-          </p>
-          <h3>Verification paths</h3>
-          <p>
-            A verification path is a written note of exactly how one person checked one claim. It uses a fixed form: the source, the steps, the exact search, what they found, whether it matches the profile, a
-            dated screenshot, the result, anything the source does not show, and a line about any connection they have to the organisation. One claim per path. A path with no source, no steps and no dated
-            screenshot cannot be sent. Paths are public, permanent and signed. Paths that agree, written by different helpers, count for more. "Not verified" and "Could not check" are useful results and earn the
-            same points when the final result agrees.
-          </p>
-          <h3>Voting</h3>
-          <ScrollTable>
-            <thead>
-              <tr><th>Rule</th><th>Value</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Independent paths before voting opens</td><td className="num">{VOTING.minPaths}</td></tr>
-              <tr><td>Voting period</td><td className="num">{VOTING.periodDays} days</td></tr>
-              <tr><td>Earliest close once quorum and threshold are met</td><td className="num">{VOTING.minHours} hours</td></tr>
-              <tr><td>Quorum (total vote weight)</td><td className="num">{VOTING.quorumWeight}</td></tr>
-              <tr><td>Threshold (vote weight saying Verified)</td><td className="num">{VOTING.thresholdPct}%</td></tr>
-              <tr><td>Challenge window after a pass</td><td className="num">{VOTING.challengeWindowHours} hours</td></tr>
-              <tr><td>Choices</td><td>Verified, Not verified, Needs more evidence</td></tr>
-            </tbody>
-          </ScrollTable>
-          <p>You have to open the paths first. The vote button sits under them and unlocks only once you have opened one. A "Needs more evidence" result reopens the claim. It is not a fail.</p>
-          <h3>Vote weight and reputation</h3>
-          <p>
-            weight = 1 + min({VOTE_WEIGHT.max - VOTE_WEIGHT.min}, log2(1 + reputation)), so it sits between {VOTE_WEIGHT.min} and {VOTE_WEIGHT.max}. A new voter counts as {VOTE_WEIGHT.min}. Reputation grows by{" "}
-            {REPUTATION.agrees} for each vote and each path that matches a final, unchallenged result, and drops by {Math.abs(REPUTATION.overturned)} for each one a successful challenge overturns. Neither gSera
-            nor XP adds vote weight. Points cannot buy verification.
-          </p>
-          <ScrollTable>
-            <thead>
-              <tr><th>Reputation</th><th>Weight</th></tr>
-            </thead>
-            <tbody>
-              {[0, 1, 3, 7, 15, 30].map((r) => (
-                <tr key={r}><td className="num">{r}</td><td className="num">{voteWeight(r)}</td></tr>
-              ))}
-            </tbody>
-          </ScrollTable>
-          <h3>Launch mode</h3>
-          <p>
-            Current mode: <span className="font-mono">{verificationMode}</span>. In advisory mode, votes and tallies are shown and Sera.cx stewards settle every claim. In community mode, the votes decide and
-            stewards only step in on disputes and legal problems. Switching is one setting.
-          </p>
+                ))}
+              </tbody>
+            </ScrollTable>
+            <p>Every XP number in that table is proposed, pending the community team's assessment.</p>
+            <p>
+              Each event is recorded on causes.sera.cx the moment you earn it: once per listing, path, vote, piece of evidence or challenge. It is credited on {COMMUNITY_SITE} once the link between the two
+              sites is live. Until then your XP is held here and nothing is lost.
+            </p>
+            <p>Every event in that table rests on something a stranger can check. Work only the cause can confirm earns a <a href="#badges">badge</a> instead.</p>
+          </Section>
 
-          <h2 id="challenges" className="scroll-mt-24">Challenges</h2>
-          <ul>
-            <li>Anyone can challenge a verified or nearly final claim by staking {fmtInt(CHALLENGE_STAKE)} gSera (proposed) and uploading evidence against it, with their own path.</li>
-            <li>A challenge reopens voting on that claim for {VOTING.periodDays} days, with the challenge shown at the top.</li>
-            <li>If the challenge wins: the claim flips, the challenger gets the stake back plus {fmtInt(XP.care_challenge_upheld.amount)} XP on {COMMUNITY_SITE}, and everyone whose path or vote was overturned loses {Math.abs(REPUTATION.overturned)} reputation. If the claim was a required one, the cause loses Verified.</li>
-            <li>If the challenge loses: the stake is burned.</li>
-          </ul>
+          <Section
+            id="badges"
+            title="Badges, for work only the cause can confirm"
+            lead="A badge is a mark on your profile, and that is all it is."
+          >
+            <Figure className="mt-6" cap="max-w-[620px]" caption="Work anyone can repeat earns XP. Work only the charity can confirm earns a badge.">
+              <XpOrBadge />
+            </Figure>
+            <p>
+              Some work cannot be checked by anybody but the cause: a translation, a visit, an introduction. Paying points for it would mean paying on one organisation's word, and a charity could hand points to
+              a friend all day long. So that work earns a badge.
+            </p>
+            <p>Badges are not ranked, they carry no amount, they cannot be spent, and each one is earned once. They unlock nothing: not voting, not vote weight, not XP.</p>
+            <ScrollTable>
+              <thead>
+                <tr><th>Badge</th><th>How it is earned</th></tr>
+              </thead>
+              <tbody>
+                {HELPER_BADGE_SLUGS.map((slug) => (
+                  <tr key={slug}>
+                    <td className="whitespace-nowrap">{HELPER_BADGES[slug].label}</td>
+                    <td>{HELPER_BADGES[slug].earnedBy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </ScrollTable>
+            <p>Your badges are on your own page, under your reputation.</p>
+          </Section>
 
-          <h2 id="stewards" className="scroll-mt-24">Stewards</h2>
-          <p>
-            While we launch, a Sera.cx steward multisig can settle or overturn a claim where voting is stuck or there is clear fraud or a legal problem; pause a cause at once on a believable report of fraud, harm
-            or a legal notice; remove evidence that contains personal details or defames someone; pin one urgent appeal at a time with a written reason; and take a cause off the home page with a public reason. Every
-            steward action goes on the cause's record with a written reason. The aim is that stewards end up handling legal takedowns and nothing else.
-          </p>
+          <Section
+            id="challenges"
+            title="Challenges, when you think a check is wrong"
+            lead={`Stake ${fmtInt(CHALLENGE_STAKE)} gSera, show evidence against the claim, and that one claim is voted on again.`}
+          >
+            <Figure className="mt-6" tone="card" cap="max-w-[680px]" caption="A stake and your evidence reopen one claim. Upheld, the stake comes back. Not upheld, it is gone.">
+              <WhenSomeoneObjects />
+            </Figure>
+            <p>
+              Anyone can challenge a verified or nearly final claim. Staking means locking up that much of your own gSera until the result, and the amount, {fmtInt(CHALLENGE_STAKE)} gSera, is proposed. You
+              upload evidence against the claim and write your own path, on the same form as any other path.
+            </p>
+            <ul>
+              <li>Voting on that claim reopens for {VOTING.periodDays} days, with the challenge shown at the top.</li>
+              <li>
+                Upheld: the claim flips, your stake comes back with {fmtInt(XP.care_challenge_upheld.amount)} XP on {COMMUNITY_SITE}, and everyone whose path or vote was overturned loses{" "}
+                {Math.abs(REPUTATION.overturned)} reputation. If it was a required claim, the cause loses Verified.
+              </li>
+              <li>Not upheld: the stake is burned, which means it is gone for good.</li>
+            </ul>
+          </Section>
 
-          <h2 id="reports" className="scroll-mt-24">What we do with reports</h2>
-          <p>
-            You can report a cause, a piece of evidence or a person from the cause page, or by email to security@sera.cx. We read every report. A believable report of fraud or harm pauses the cause while we look. A
-            report about personal details removes the file first and asks questions after. We tell you what we did, and the action goes on the record.
-          </p>
+          <Section
+            id="stewards"
+            title="Stewards"
+            lead="A Sera.cx steward can pause, settle and remove, always with a written reason. A steward cannot touch the money."
+          >
+            <Figure className="mt-6" cap="max-w-[660px]" caption="Four things a steward may reach, each written on the record. The gifts are on the other side of the rope.">
+              <WhatStewardsCanDo />
+            </Figure>
+            <p>Stewards are a small Sera.cx group. They act through one shared account that needs several of their keys, so no steward acts alone. While we launch, they can:</p>
+            <ul>
+              <li>settle or overturn a claim where voting is stuck, or there is clear fraud or a legal problem;</li>
+              <li>pause a cause at once on a believable report of fraud, harm or a legal notice;</li>
+              <li>remove evidence that carries personal details, or that defames someone;</li>
+              <li>pin one urgent appeal at a time, with a written reason;</li>
+              <li>take a cause off the home page, with a public reason.</li>
+            </ul>
+            <p>
+              Every steward action goes on the cause's record with a written reason. Gifts are not theirs to move: a gift goes to the cause's own address, and no steward can call it back or hold it. The aim is
+              that stewards end up handling legal takedowns and nothing else.
+            </p>
+          </Section>
 
-          <h2 id="data" className="scroll-mt-24">Personal data</h2>
-          <ul>
-            <li>A profile carries organisation contacts only. No personal phone numbers, home addresses or bank details of individuals.</li>
-            <li>Evidence is blacked out before upload: IC numbers, home addresses, personal phone numbers and signatures. The upload form warns you, and we reject files that still show them.</li>
-            <li>Wallets show as short addresses. You can keep yourself off the leaderboards.</li>
-            <li>Share counts are kept per channel, with no personal data in them.</li>
-          </ul>
+          <Section
+            id="reports"
+            title="What we do with a report"
+            lead="We read every report, and a believable report of fraud or harm pauses the cause while we look."
+          >
+            <p>
+              You can report a cause, a piece of evidence or a person from the cause page, or by email to <a href="mailto:security@sera.cx">security@sera.cx</a>. A report about personal details removes the file
+              first and asks questions after. We tell you what we did, and the action goes on the record with its reason, like any other <a href="#stewards">steward action</a>.
+            </p>
+          </Section>
 
-          <h2 id="faq" className="scroll-mt-24">FAQ</h2>
-          {/* Rendered from the same array that feeds the FAQPage schema, so the
-              visible answers and the structured data can never drift apart. */}
-          {RULES_FAQS.map((f) => (
-            <div key={f.q}>
-              <h3>{f.q}</h3>
-              <p>{f.a}</p>
-            </div>
-          ))}
-          <p>
-            Terms:{" "}
-            <a href={LINKS.terms} target="_blank" rel="noopener noreferrer">
-              sera.cx/terms
-            </a>
-            . Privacy:{" "}
-            <a href={LINKS.privacy} target="_blank" rel="noopener noreferrer">
-              sera.cx/privacy
-            </a>
-            .
-          </p>
+          <Section
+            id="data"
+            title="Personal data"
+            lead="We keep no personal details of individuals, on a profile or in a file."
+          >
+            <ul>
+              <li>A profile carries organisation contacts only. No personal phone numbers, home addresses or bank details of individuals.</li>
+              <li>Evidence is blacked out before upload: IC numbers, home addresses, personal phone numbers and signatures. The upload form warns you, and we reject files that still show them.</li>
+              <li>Wallets show as short addresses. You can keep yourself off the leaderboards.</li>
+              <li>Share counts are kept per channel, with no personal data in them.</li>
+            </ul>
+          </Section>
+
+          <Section id="faq" title="FAQ" lead="The questions we are asked most, answered in a line each.">
+            {/* Rendered from the same array that feeds the FAQPage schema, so the
+                visible answers and the structured data can never drift apart. */}
+            {RULES_FAQS.map((f) => (
+              <div key={f.q}>
+                <h3>{f.q}</h3>
+                <p>{f.a}</p>
+              </div>
+            ))}
+            <p>
+              Terms:{" "}
+              <a href={LINKS.terms} target="_blank" rel="noopener noreferrer">
+                sera.cx/terms
+              </a>
+              . Privacy:{" "}
+              <a href={LINKS.privacy} target="_blank" rel="noopener noreferrer">
+                sera.cx/privacy
+              </a>
+              .
+            </p>
+          </Section>
         </div>
       </div>
     </div>

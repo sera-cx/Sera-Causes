@@ -106,7 +106,7 @@ export const ROUTE_SEO = {
   rules: {
     title: withSuffix("Rules and how we check charities"),
     description:
-      "Every rule and every number in one place, written so a 15 year old can follow it: who lists a cause, how a charity is checked, how points work, and what we do with your data.",
+      "Every rule and every number in one place, in plain language: who lists a cause, how a charity is checked, how points work, and what we do with your data.",
     path: "/rules",
     keywords: "charity verification rules, gSera points, Care XP, donation rules Malaysia",
   },
