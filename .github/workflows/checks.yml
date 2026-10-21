@@ -1,0 +1,81 @@
+name: Checks for causes.sera.cx
+
+# This workflow only checks the code. It does NOT deploy.
+#
+# Deployment is triggered by a webhook on the server, which runs the same
+# update the old deploy job did: fetch main, rebuild the images and bring the
+# stack up. See deploy/README.md.
+#
+# Why there is no deploy job here: a deploy would need a runner on the box,
+# and this repository is public. A self-hosted runner attached to a public
+# repository lets anyone who opens a pull request run code on that machine,
+# with whatever credentials it holds, and the runner persists between jobs.
+# GitHub's own advice is to use self-hosted runners only with private
+# repositories. So the box is never reachable from CI, and GitHub-hosted
+# runners do the checking.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Never cancel a deploy mid-flight, and collapse a burst of pushes to the
+# newest queued run.
+concurrency:
+  group: deploy-causes-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: check and test every package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sera_causes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sera_causes_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The web app's typecheck resolves @sera-causes/shared through its built
+      # declarations, and the indexer's ABI test reads the compiled contract,
+      # so the build has to come before the checks.
+      - run: pnpm --filter @sera-causes/indexer db:generate
+      - run: pnpm --filter @sera-causes/contracts compile
+      - run: pnpm -r build
+
+      - run: pnpm -r check
+      - run: pnpm -r test
