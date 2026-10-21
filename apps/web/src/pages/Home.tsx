@@ -46,7 +46,6 @@ export function HomePage() {
       {!empty && (
         <>
           <Feed query={home} />
-          <NewRail data={data} />
           <BrowseBy data={data} />
         </>
       )}
@@ -236,24 +235,6 @@ function Feed({ query }: { query: ReturnType<typeof useHome> }) {
           )}
         </>
       )}
-    </section>
-  );
-}
-
-function NewRail({ data }: { data?: HomeData }) {
-  if (!data || data.new.length === 0) return null;
-  return (
-    <section className="border-t border-rule bg-paper-warm" aria-labelledby="new-heading">
-      <div className="container py-12 md:py-14">
-        <SectionHeader kicker="New" title={<span id="new-heading">Just listed. Some are still being checked.</span>} lede="An organisation lists itself here, then anyone can help check it. New means nobody has checked it yet." size="sm" />
-        <div className="mt-6 -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 snap-x" role="list">
-          {data.new.map((c) => (
-            <div key={c.id} role="listitem" className="w-[260px] shrink-0 snap-start">
-              <CauseCard cause={c} compact />
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }
