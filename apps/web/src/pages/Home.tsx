@@ -4,7 +4,6 @@ import { CauseCard, CauseCardSkeleton } from "@/components/CauseCard";
 import { ChecksBar } from "@/components/ChecksBar";
 import { Empty, ErrorState } from "@/components/Empty";
 import { Eyebrow } from "@/components/Eyebrow";
-import { GfCard, GreenField } from "@/components/GreenField";
 import { PhotoCredit } from "@/components/PhotoCredit";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
@@ -14,12 +13,11 @@ import { useJsonLdMany } from "@/hooks/useJsonLd";
 import { useSeo } from "@/hooks/useSeo";
 import { useAuth } from "@/lib/auth";
 import { COMMUNITY_SITE, GSERA, LINKS, TRIAL, XP } from "@/lib/constants";
-import { fmtCompactUsd, fmtInt, fmtMultiplier, fmtRm } from "@/lib/format";
+import { fmtInt, fmtMultiplier } from "@/lib/format";
 import { HERO_IMAGE_SRC, causeImage, imageUrl } from "@/lib/images";
 import { useHome, useMe } from "@/lib/queries";
 import { causeHref } from "@/lib/rules";
 import { ROUTE_SEO } from "@/lib/seo";
-import { cn } from "@/lib/utils";
 import { causeListSchema, organizationSchema, websiteSchema } from "@/lib/seoSchemas";
 import type { HomeData } from "@/lib/types";
 
@@ -49,7 +47,6 @@ export function HomePage() {
     <>
       <Hero empty={empty} />
       {data?.urgent && <UrgentAppeal urgent={data.urgent} />}
-      <NumbersStrip stats={data?.stats} />
       {/* Nothing listed yet: the hero already asks organisations to list, so a
           list of nothing, a rail of nothing and a row of empty categories only
           repeat it. /causes keeps its own empty state for anyone who goes
@@ -176,54 +173,6 @@ function UrgentAppeal({ urgent }: { urgent: NonNullable<HomeData["urgent"]> }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function NumbersStrip({ stats }: { stats?: HomeData["stats"] }) {
-  // A wall of zeros says less than no wall at all, so each card has to earn
-  // its place and the band only appears once at least two of them have.
-  if (!stats) return null;
-  const givenUsd = Number(stats.givenUsd ?? 0);
-  const cards = [
-    stats.causes > 0 && (
-      <GfCard
-        key="causes"
-        label="Causes listed"
-        ticker="Malaysia"
-        figure={fmtInt(stats.causes)}
-        meta={[
-          { label: "verified", value: fmtInt(stats.verified) },
-          { label: "givers", value: fmtInt(stats.givers) },
-        ]}
-      />
-    ),
-    stats.verified > 0 && (
-      <GfCard key="verified" label="Verified" ticker="All required checks done" figure={fmtInt(stats.verified)} meta={[{ label: "of", value: fmtInt(stats.causes) }]} tab="#00E676" />
-    ),
-    givenUsd >= 1000 && (
-      <GfCard
-        key="given"
-        label="Given so far"
-        ticker="Stablecoins"
-        figure={fmtCompactUsd(givenUsd)}
-        meta={[
-          { label: "about", value: fmtRm(givenUsd) },
-          { label: "givers", value: fmtInt(stats.givers) },
-        ]}
-        tab="#59E39A"
-      />
-    ),
-    stats.helpers > 0 && (
-      <GfCard key="helpers" label="Helpers" ticker="Checks written" figure={fmtInt(stats.helpers)} meta={[{ label: "earn", value: `${fmtInt(XP.care_path_agreed.amount)} XP per check` }]} tab="#FFFFFF" />
-    ),
-  ].filter(Boolean);
-
-  if (cards.length < 2) return null;
-
-  return (
-    <GreenField kicker="Care Share Donate" title="Every gift, every check, in the open." footer={false} className="border-b border-rule">
-      <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", cards.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>{cards}</div>
-    </GreenField>
   );
 }
 
