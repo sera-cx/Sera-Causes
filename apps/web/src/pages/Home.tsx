@@ -70,11 +70,19 @@ export function HomePage() {
 function Hero({ empty }: { empty: boolean }) {
   return (
     <section className="relative overflow-hidden border-b border-rule">
-      <img src="/brand/mark/sera-mark-color.svg" alt="" aria-hidden className="pointer-events-none absolute -right-16 -top-10 h-[420px] w-auto opacity-[0.045] select-none hidden md:block" />
-      <div className="container grid gap-8 py-10 md:grid-cols-[1.05fr_1fr] md:items-center md:py-16 lg:py-20">
+      <img src="/brand/mark/sera-mark-color.svg" alt="" aria-hidden className="pointer-events-none absolute -right-16 -top-10 hidden h-[420px] w-auto select-none opacity-[0.045] md:block" />
+      <div className="container grid gap-10 py-10 md:grid-cols-[1.05fr_1fr] md:items-center md:py-16 lg:py-20">
         <div className="rise-in">
-          <Eyebrow>Care. Share. Donate.</Eyebrow>
-          <h1 className="mt-4 font-display text-[38px] leading-[1.02] font-semibold tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Eyebrow>Care. Share. Donate.</Eyebrow>
+            {/* "New" belongs next to the name, where a reader forms their first
+                impression, not in a panel they reach after the buttons. */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-sera/40 bg-sera/10 px-2.5 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-sera-text">
+              <span className="h-1.5 w-1.5 rounded-full bg-sera" aria-hidden />
+              New. First run in Malaysia
+            </span>
+          </div>
+          <h1 className="mt-4 font-display text-[38px] font-semibold leading-[1.02] tracking-[-0.03em] sm:text-[52px] md:text-[60px]">
             {empty ? (
               <>
                 Giving to Malaysian charities, <em>in the open</em>.
@@ -85,25 +93,11 @@ function Hero({ empty }: { empty: boolean }) {
               </>
             )}
           </h1>
-          {empty ? (
-            <>
-              <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
-                We are building one open list of Malaysian charities. A charity lists itself and sets its own address for money. You give in stablecoins, which are digital money that holds a steady
-                value, and the gift goes straight there. Nothing is held back.
-              </p>
-              <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">
-                Anyone can help check a charity, and anyone can read every gift, check and update. The list is empty today, so we are looking for the first charities to join.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
-                Turtle hatcheries, animal shelters, children's homes, food banks and flood relief across Malaysia. You give in stablecoins, which are digital money that holds a steady value, and the gift
-                goes straight to the charity.
-              </p>
-              <p className="mt-3 measure text-[15px] leading-[1.55] text-ink-muted">You can also help check a charity, and anyone can see where every gift went.</p>
-            </>
-          )}
+          <p className="mt-5 measure-lede text-[17px] leading-[1.55] text-ink-muted sm:text-[19px]">
+            {empty
+              ? "A charity lists itself and sets its own address for money. You give in stablecoins, digital money that holds a steady value, and the gift goes straight there. Anyone can check a charity, and anyone can read every gift."
+              : "Turtle hatcheries, animal shelters, children's homes, food banks and flood relief. You give in stablecoins, digital money that holds a steady value, and the gift goes straight to the charity. Anyone can check a charity, and anyone can read every gift."}
+          </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             {empty ? (
               <>
@@ -130,7 +124,7 @@ function Hero({ empty }: { empty: boolean }) {
           <FirstRunNote />
         </div>
         <figure className="relative">
-          <div className="overflow-hidden rounded-2xl aspect-[4/3] bg-paper-warm">
+          <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-paper-warm">
             <img src={HERO_IMAGE.src} alt={HERO_IMAGE.alt} className="h-full w-full object-cover" fetchPriority="high" decoding="async" width={1200} height={900} />
           </div>
           <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -436,26 +430,22 @@ function HowGseraWorks() {
 }
 
 /**
- * The hero's scope note. It says plainly that the site is new and what the
- * first run covers, and carries the YouApp mark where it belongs: beside MYRT,
- * the ringgit stablecoin YouApp issues, rather than floating in a strip of its
- * own with nothing to explain it.
+ * The scope, as a quiet line rather than a panel. The badge by the title
+ * already says we are new; this says what that means in practice and carries
+ * the YouApp mark beside MYRT, the ringgit stablecoin YouApp issues.
  */
 function FirstRunNote() {
   return (
-    <div className="mt-7 rounded-xl border border-rule bg-paper-warm p-4">
-      <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-subtle">We are new</p>
-      <p className="mt-2 text-[14.5px] leading-[1.55] text-ink-muted">
-        {TRIAL.heroWhy}
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] leading-[1.55] text-ink-muted">
-        <span>You can give in</span>
-        <a href="https://youapp.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-ink hover:text-sera-text">
+    <div className="mt-7 border-t border-rule pt-5 text-[14px] leading-[1.6] text-ink-subtle">
+      <p className="measure">{TRIAL.heroWhy}</p>
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span>Give in</span>
+        <a href="https://youapp.ai" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium text-ink-muted hover:text-sera-text">
           MYRT
-          <img src="/brand/youapp-logo.svg" alt="from YouApp" className="h-[15px] w-auto" width={118} height={30} />
+          <img src="/brand/youapp-logo.svg" alt="from YouApp" className="h-[14px] w-auto" width={118} height={30} />
         </a>
         <span>{TRIAL.heroCurrenciesAfterMyrt}</span>
-      </div>
+      </p>
     </div>
   );
 }

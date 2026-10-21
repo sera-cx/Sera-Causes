@@ -81,6 +81,18 @@ const MARKS: Record<string, { label: string; art: ReactNode }> = {
       </>
     ),
   },
+  education: {
+    label: "Education",
+    // An open book: two leaves either side of the spine, with a line of text
+    // on each. Reads at 20px, where a mortarboard turns to mush.
+    art: (
+      <>
+        <path d="M12 7.2 c-2.2 -1.5 -4.6 -2 -7.4 -1.9 V17.9 c2.8 -0.1 5.2 0.4 7.4 1.9 c2.2 -1.5 4.6 -2 7.4 -1.9 V5.3 c-2.8 -0.1 -5.2 0.4 -7.4 1.9 Z" />
+        <path d="M12 7.2 V19.8" />
+        <path d="M7.1 10.3 h2.6 M14.3 10.3 h2.6" />
+      </>
+    ),
+  },
   health: {
     label: "Health",
     art: (

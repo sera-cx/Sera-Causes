@@ -98,9 +98,11 @@ describe('Care XP (docs/PLAN.md section 7)', () => {
 });
 
 describe('categories, states and pills', () => {
-  it('has the twelve categories with slugs and profile names', () => {
+  it('has the thirteen categories with slugs and profile names', () => {
+    // Education is separate from Children on purpose: a school and a refuge
+    // for abused children are not the same ask, and one chip served both.
     expect(CATEGORIES.map((c) => c.label)).toEqual([
-      'Turtles', 'Marine', 'Wildlife', 'Environment', 'Animals', 'Children', 'Health', 'Food', 'Relief', 'Elderly', 'Women', 'Disability',
+      'Turtles', 'Marine', 'Wildlife', 'Environment', 'Animals', 'Children', 'Education', 'Health', 'Food', 'Relief', 'Elderly', 'Women', 'Disability',
     ]);
     expect(findCategory('Food & poverty')?.slug).toBe('food');
     expect(findCategory('TURTLES')?.profileName).toBe('Turtles');

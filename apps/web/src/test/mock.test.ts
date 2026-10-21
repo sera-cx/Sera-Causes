@@ -78,7 +78,9 @@ describe("mock world built from the seed, in the API's shapes", () => {
     const challenged = await api.listClaims("challenged");
     expect(challenged).toHaveLength(1);
     expect(challenged[0]?.cause.slug).toBe("teach-for-malaysia");
-    expect(challenged[0]?.cause.category).toBe("children");
+    // Teach For Malaysia is Education now, not Children: a teacher network and
+    // a refuge for abused children were sharing one chip.
+    expect(challenged[0]?.cause.category).toBe("education");
     for (const tab of ["needs_evidence", "needs_checking", "open_for_votes", "recently_verified"] as const) {
       expect((await api.listClaims(tab)).length).toBeGreaterThan(0);
     }

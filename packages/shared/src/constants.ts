@@ -376,6 +376,7 @@ export const CATEGORIES: readonly Category[] = [
   { slug: 'environment', label: 'Environment', profileName: 'Environment' },
   { slug: 'animals', label: 'Animals', profileName: 'Animals' },
   { slug: 'children', label: 'Children', profileName: 'Children' },
+  { slug: 'education', label: 'Education', profileName: 'Education' },
   { slug: 'health', label: 'Health', profileName: 'Health' },
   { slug: 'food', label: 'Food', profileName: 'Food & poverty' },
   { slug: 'relief', label: 'Relief', profileName: 'Relief' },
